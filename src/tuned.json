@@ -1,0 +1,32 @@
+{
+ "w": {
+  "life": 0.231,
+  "lowLife": 0.677,
+  "unit": 1.037,
+  "atk": 0.463,
+  "bat": 0.161,
+  "hand": 1.963,
+  "handSpell": 0.2,
+  "set": 4,
+  "threat": 0.5,
+  "lethal": 22.181,
+  "souji": 0.3,
+  "magnet": 0.377,
+  "barrier": 0.547,
+  "bomb": 0.846,
+  "crane": 0.216,
+  "daruma": 0.73,
+  "heat": 0.444,
+  "megaton": 0.008,
+  "coin": 1.5,
+  "solar": 0,
+  "turbo": 0.5
+ },
+ "final": {
+  "wa": 782,
+  "wb": 218,
+  "dr": 0,
+  "rate": 0.782,
+  "avgTurns": 13.026
+ }
+}

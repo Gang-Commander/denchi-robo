@@ -1,0 +1,3834 @@
+<title>でんちロボ カードバトル</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+/* 星空の下でちびロボのカードが並ぶ盤面。単一のダークな世界観で統一（意図的にテーマ固定） */
+:root {
+  --night: #13142a;       /* 背景：夜空 */
+  --night-2: #1d1f3c;     /* 盤・パネル */
+  --night-3: #2a2c52;     /* 枠・区切り */
+  --ink: #ece4cf;         /* 本文 */
+  --dim: #9c98b8;         /* 補助テキスト */
+  --paper: #efe2c2;       /* 札の地 */
+  --paper-2: #d9c79e;     /* 札の影 */
+  --cardink: #231c2c;        /* 札の文字 */
+  --red: #d9483b;         /* 朱：攻撃力・強調 */
+  --volt: #7fd8f0;        /* 電池 */
+  --volt-dim: #2c4f63;
+  --gold: #e3b54d;
+  --ok: #7fd08a;
+  --f-dot: "DotGothic16", "Hiragino Kaku Gothic ProN", "Yu Gothic", monospace;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --cw: min(26vw, 100px);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  background: var(--night); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6;
+  background-image: radial-gradient(ellipse at 50% -10%, #2b2d5a 0%, transparent 60%), radial-gradient(circle at 85% 110%, #1f3346 0%, transparent 50%);
+  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--volt); outline-offset: 2px; }
+.wrap { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 24px; }
+
+/* ---------- ボタン ---------- */
+.btn { border: 1px solid var(--night-3); background: var(--night-2); color: var(--ink); padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; min-height: 44px; }
+.btn:hover { border-color: var(--dim); }
+.btn.primary { background: var(--red); border-color: var(--red); color: #fff6ea; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; }
+.btn.off { opacity: .45; }
+.btn.danger { border-color: #7a2c30; color: #f2a59c; }
+.btn:disabled { opacity: .4; cursor: default; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-top: 12px; }
+.row.acts { justify-content: stretch; }
+.row.acts .btn { flex: 1 1 40%; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+
+/* ---------- タイトル ---------- */
+#title .hero { text-align: center; padding-block: 28px 8px; }
+#titleArt { display: flex; justify-content: center; align-items: flex-end; gap: 6px; height: 96px; }
+.tart { width: 56px; height: 56px; image-rendering: pixelated; }
+.tart.t2 { width: 80px; height: 80px; filter: drop-shadow(0 0 14px var(--volt)); animation: bob 3s ease-in-out infinite; }
+.tart.t1, .tart.t3 { width: 64px; height: 64px; }
+@keyframes bob { 50% { transform: translateY(-8px); } }
+h1 { font-family: var(--f-dot); font-weight: 400; font-size: clamp(30px, 9vw, 44px); letter-spacing: .08em; margin: 14px 0 2px; text-wrap: balance; text-shadow: 0 0 18px rgba(127,216,240,.35); }
+h1 .h1sub { display: block; font-size: .5em; letter-spacing: .3em; margin-top: 4px; }
+.tagline { color: var(--dim); margin: 0 0 20px; text-wrap: balance; word-break: auto-phrase; }
+.panel { background: var(--night-2); border: 1px solid var(--night-3); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.panel h2 { font-family: var(--f-dot); font-weight: 400; font-size: 17px; margin: 0; letter-spacing: .06em; }
+.diffs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.diff { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px; }
+.diff small { font-weight: 400; color: var(--dim); font-size: 11px; line-height: 1.3; }
+.diff.primary small { color: #ffe3d8; }
+.first { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 13px; }
+.first select { background: var(--night); color: var(--ink); border: 1px solid var(--night-3); border-radius: 6px; padding: 6px 8px; font: inherit; }
+#titleStats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+#titleStats b { color: var(--ink); margin-inline: 2px; }
+.menu2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+#lessonPick { display: grid; gap: 6px; margin-top: 8px; }
+.btn.lesson { text-align: left; font-weight: 400; }
+.ainote { font-size: 12px; color: var(--dim); margin: 14px 2px 0; }
+.ainote b { color: var(--volt); font-weight: 700; }
+
+/* ---------- 盤面：1画面に収める ---------- */
+/* カード幅 --cw は画面の幅と高さから JS（fitLayout）で決める。札の中身は cqw で札幅に追従 */
+html, body { height: 100%; }
+body { margin: 0; }
+#game { height: 100%; overflow: hidden; }
+.game-wrap { max-width: 980px; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 9px; padding-block: 6px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
+#modeLabel { font-family: var(--f-dot); font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.iconbtn { min-height: 30px; padding: 4px 12px; font-size: 12px; white-space: nowrap; }
+
+.table { --cw: 72px; display: grid; gap: 6px; flex: none;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  grid-template-areas: "of oi" "mid mid" "mf mi" "hand hand"; }
+.table.shake { animation: shake .35s; }
+.logcol { display: none; grid-area: log; }
+#oppField { grid-area: of; } #myField { grid-area: mf; } #oppInfo { grid-area: oi; } #myInfo { grid-area: mi; }
+.midband { grid-area: mid; } .handwrap { grid-area: hand; }
+
+.field { display: grid; grid-template-columns: repeat(3, var(--cw)); justify-content: center; align-content: center; gap: 6px; padding: 6px; border-radius: 10px; background: rgba(29,31,60,.75); border: 1px solid var(--night-3); min-width: 0; }
+#oppField { border-style: dashed; }
+#oppField.tgt-player { box-shadow: 0 0 0 2px var(--red) inset; cursor: pointer; }
+.slot { width: var(--cw); }
+.slot.empty { border: 1px dashed var(--night-3); border-radius: 6px; aspect-ratio: 5/7; }
+
+/* 右：ライフ・山札・手札・スクラップ */
+.pinfo { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 6px; background: var(--night-2); border: 1px solid var(--night-3); border-radius: 10px; min-width: 0; }
+.pinfo.mine { border-color: #3a3d72; }
+.who { font-family: var(--f-dot); font-size: 10px; color: var(--dim); letter-spacing: .06em; white-space: nowrap; }
+.pinfo.turn { border-color: var(--gold); }
+.pinfo.turn .who { color: var(--gold); }
+.pinfo.turn .who::after { content: " ◀手番"; }
+.life { position: relative; display: flex; flex-direction: column; gap: 3px; }
+.lnum { font-family: var(--f-dot); font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums; }
+.lnum small { font-size: 11px; color: var(--dim); margin-left: 2px; }
+.lbar { display: grid; grid-template-columns: repeat(15, 1fr); gap: 1px; }
+.lbar i { height: 6px; background: var(--night-3); border-radius: 1px; }
+.lbar i.on { background: var(--ok); }
+.life.low .lbar i.on { background: var(--red); }
+.life.low .lnum { color: #ff8a7a; }
+.life.hit { animation: shake .4s; }
+@keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.dmg { position: absolute; right: 0; top: -8px; font-family: var(--f-dot); font-size: 26px; color: #ff6b5a; text-shadow: 0 2px 0 #000; animation: rise 1.2s forwards; pointer-events: none; }
+@keyframes rise { to { transform: translateY(-28px); opacity: 0; } }
+.pbody { display: flex; gap: 6px; align-items: center; }
+.counts { display: flex; flex-direction: column; gap: 1px; margin: 0; flex: 1; min-width: 0; }
+.cnt { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; font-size: 10px; line-height: 1.25; color: var(--dim); background: none; border: 0; padding: 0; text-align: left; min-height: 0; font-variant-numeric: tabular-nums; }
+.cnt b { color: var(--ink); font-family: var(--f-dot); font-weight: 400; font-size: 13px; }
+button.cnt { cursor: pointer; text-decoration: underline dotted var(--night-3); text-underline-offset: 3px; }
+.setslot { width: 28px; flex: none; }
+.setslot.empty { aspect-ratio: 5/7; display: grid; place-items: center; font-size: 8px; color: var(--dim); border: 1px dashed var(--night-3); border-radius: 4px; writing-mode: vertical-rl; }
+.setslot.tgt, .card.tgt { box-shadow: 0 0 0 3px var(--volt), 0 0 16px var(--volt); cursor: pointer; }
+
+/* 中央帯：状況・電池・ターン終了 */
+.midband { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 2px 0; }
+.midinfo { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+#phase { font-family: var(--f-dot); font-size: 12px; white-space: nowrap; }
+.turnno { color: var(--dim); font-size: 10px; margin-right: 4px; }
+.acts { color: var(--gold); letter-spacing: 2px; }
+#ticker { list-style: none; margin: 0; padding: 0; font-size: 11px; line-height: 1.4; color: var(--ink); cursor: pointer; min-width: 0; }
+#ticker li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ticker li:not(:last-child) { display: none; }
+#hint { display: none; font-size: 11px; color: var(--dim); }
+#endBtn { white-space: nowrap; min-height: 40px; padding: 6px 12px; font-size: 13px; }
+
+/* 手札 */
+.handwrap { min-width: 0; }
+#hand { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 6px; scroll-snap-type: x proximity; min-height: calc(var(--cw) * .9 * 1.4 + 8px); align-items: flex-start; }
+#hand .card.hand { flex: 0 0 calc(var(--cw) * .9); width: calc(var(--cw) * .9); scroll-snap-align: start; }
+.nohand { color: var(--dim); font-size: 12px; margin: auto; }
+
+/* 広い画面：左=経過ログ / 中央=場 / 右=情報 */
+@media (min-width: 960px) {
+  .table { grid-template-columns: 220px auto 168px; justify-content: center; gap: 8px 12px;
+    grid-template-areas: "log of oi" "log mid mid" "log mf mi" "log hand hand"; }
+  .logcol { display: flex; flex-direction: column; min-height: 0; background: rgba(10,10,26,.55); border: 1px solid var(--night-3); border-radius: 10px; padding: 10px; }
+  .logcol h2 { font-family: var(--f-dot); font-weight: 400; font-size: 12px; color: var(--dim); margin: 0 0 6px; letter-spacing: .08em; }
+  #logPane { flex: 1 1 0; min-height: 0; overflow-y: auto; margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: 1.5; color: var(--dim); }
+  #logPane li:last-child { color: var(--ink); }
+  #logPane li { padding-left: .9em; text-indent: -.9em; }
+  #logPane li::before { content: '・'; }
+  #logPane .lt::before { content: none; }
+  #logPane .lt { padding-left: 0; text-indent: 0; margin-top: 6px; color: var(--gold); font-family: var(--f-dot); }
+  #ticker { display: none; }
+  #hint { display: block; }
+  #phase { font-size: 14px; }
+  .pinfo { padding: 10px 12px; gap: 6px; }
+  .who { font-size: 12px; }
+  .lnum { font-size: 32px; }
+  .lbar i { height: 8px; }
+  .cnt { font-size: 12px; } .cnt b { font-size: 16px; }
+  .setslot { width: 40px; }
+  .setslot.empty { font-size: 10px; }
+  #endBtn { padding-inline: 18px; font-size: 14px; }
+}
+
+/* ---------- カード ---------- */
+/* 札の中身は札の幅（cqw）に比例させる */
+.card { position: relative; display: flex; flex-direction: column; width: 100%; aspect-ratio: 5/7; padding: 4px; border: 0; border-radius: 6px; background: var(--paper); color: var(--cardink); box-shadow: 0 2px 0 var(--paper-2), 0 3px 8px rgba(0,0,0,.4); cursor: pointer; text-align: left; transition: transform .15s; overflow: hidden; container-type: inline-size; }
+.card:hover { transform: translateY(-2px); }
+.card .cname { font-family: var(--f-dot); font-size: max(8px, 13cqw); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .tag { position: absolute; top: 24cqw; right: 8cqw; z-index: 1; font-size: max(7px, 9.5cqw); line-height: 1; padding: .2em .3em; border-radius: 3px; color: var(--paper); background: var(--cardink); font-weight: 700; }
+.card .tag.t-powered { background: #2f6f8a; }
+.card .tag.t-release { background: #6b3f9c; }
+.card .tag.t-const { background: #5b5446; }
+.card .tag.t-spell { background: var(--red); }
+.card .frame { flex: 1; display: grid; place-items: center; margin: 3cqw 0; border-radius: 4px; background: #262447; min-height: 0; overflow: hidden; }
+.card.spell .frame { background: #4a2330; }
+.card .art { width: 66%; height: auto; aspect-ratio: 1; image-rendering: pixelated; }
+.card .foot { display: flex; align-items: center; justify-content: space-between; gap: 2px; min-height: 18cqw; }
+.card .atk { font-family: var(--f-dot); font-weight: 400; font-size: max(10px, 15cqw); color: #fff; background: var(--red); border-radius: 50%; width: 1.45em; height: 1.45em; display: grid; place-items: center; line-height: 1; }
+.card .atk.up { background: #f07a2a; box-shadow: 0 0 0 2px var(--gold); }
+.card .maxhd { font-size: max(8px, 10cqw); color: #6d5f48; }
+.card .spl { font-size: max(8px, 10cqw); color: #8a4a3e; font-weight: 700; letter-spacing: .1em; }
+.pips { display: flex; gap: 2cqw; }
+.pip { width: max(6px, 9cqw); height: max(6px, 9cqw); border-radius: 50%; border: 1.5px solid #6c86a0; }
+.pip.on { background: var(--volt); border-color: #2f8fb3; box-shadow: 0 0 5px var(--volt); }
+.card .badge { position: absolute; left: 50%; top: 45%; transform: translate(-50%,-50%); background: var(--cardink); color: var(--volt); font-family: var(--f-dot); padding: 0 .35em; border-radius: 4px; font-size: max(9px, 14cqw); }
+.card.mini { padding: 3px; }
+.card.mini .cname, .card.mini .tag, .card.mini .foot { display: none; }
+.card.mini .frame { margin: 0; }
+.card.mini .art { width: 90%; }
+.card.facedown-own { filter: saturate(.7); outline: 2px dashed var(--gold); outline-offset: -3px; }
+.card.facedown-own .badge { top: auto; bottom: 2px; transform: translateX(-50%); color: var(--gold); font-size: 9px; }
+.card.back { background: repeating-linear-gradient(45deg, #2a2560 0 6px, #241f52 6px 12px); box-shadow: 0 0 0 2px #3c3680 inset, 0 4px 10px rgba(0,0,0,.4); display: grid; place-items: center; }
+.backart .bart { width: 60%; image-rendering: pixelated; margin: auto; display: block; filter: drop-shadow(0 0 6px var(--volt)); }
+.backlbl { position: absolute; bottom: 3px; left: 0; right: 0; text-align: center; font-family: var(--f-dot); color: var(--gold); font-size: 10px; }
+.card.picked { box-shadow: 0 0 0 3px var(--gold), 0 0 16px var(--gold); }
+.card.flash { animation: flash .7s; }
+@keyframes flash { 0% { filter: brightness(1.8); transform: scale(1.06); } 100% { filter: none; transform: none; } }
+.card.attacking { transform: translateY(-10px) scale(1.04); box-shadow: 0 0 0 3px var(--red), 0 0 18px var(--red); }
+.card.defending { box-shadow: 0 0 0 3px var(--red); animation: shake .4s 2; }
+.card.coach { animation: coachpulse 1.2s ease-in-out infinite; }
+@keyframes coachpulse { 50% { box-shadow: 0 0 0 3px var(--gold), 0 0 20px var(--gold); } }
+
+/* 対象選択バー */
+#selbar { position: fixed; left: 0; right: 0; top: 0; z-index: 20; background: #1b2e40; border-bottom: 2px solid var(--volt); padding: calc(10px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; box-shadow: 0 4px 20px rgba(0,0,0,.5); }
+#selPrompt { flex: 1 1 200px; font-weight: 700; color: var(--volt); }
+
+/* コーチ（チュートリアル） */
+#coach { flex: none; background: #2a2346; border: 1px solid var(--gold); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 10px; align-items: center; }
+#coach > div:first-child { grid-column: 1; }
+#coachTitle { font-family: var(--f-dot); color: var(--gold); font-size: 11px; }
+#coachText { margin: 0; font-size: 13px; line-height: 1.5; grid-column: 1; }
+#coachText b { color: var(--gold); }
+#coach .row { margin: 0; grid-column: 2; grid-row: 1 / span 2; }
+#coach .row .btn { min-height: 36px; padding: 6px 12px; }
+#coach.shake { animation: shake .35s; }
+
+/* シート（下から出るパネル） */
+#sheetBack { position: fixed; inset: 0; background: rgba(5,5,15,.6); z-index: 30; }
+#sheet { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: min(560px, 100%); max-height: 88vh; overflow-y: auto; z-index: 31; background: var(--night-2); border: 1px solid var(--night-3); border-bottom: 0; border-radius: 14px 14px 0 0; padding: 18px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); box-shadow: 0 -10px 40px rgba(0,0,0,.5); animation: up .2s ease-out; }
+@keyframes up { from { transform: translate(-50%, 30px); opacity: .5; } }
+#sheet h3 { font-family: var(--f-dot); font-weight: 400; font-size: 20px; margin: 0 0 6px; text-wrap: balance; }
+#sheet h3.warn { color: #ff9a8a; }
+.sub { color: var(--dim); font-size: 13px; margin: 0 0 8px; }
+.info { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: start; }
+.info .card.big { width: 120px; }
+.itext { min-width: 0; }
+.meta { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 12px; margin: 0 0 6px; justify-content: start; }
+.meta dt { font-size: 10px; color: var(--dim); }
+.meta dd { margin: 0; font-family: var(--f-dot); font-size: 17px; }
+.meta small { font-family: var(--f-body); font-size: 10px; color: var(--dim); }
+.effhelp { font-size: 12px; color: var(--dim); margin: 0 0 6px; }
+.etext { margin: 0; padding: 8px 10px; background: var(--paper); color: var(--cardink); border-radius: 6px; font-weight: 700; }
+.why { color: #ff9a8a; font-size: 13px; min-height: 1em; margin: 6px 0 0; }
+.respond { display: grid; grid-template-columns: 100px 1fr; gap: 12px; align-items: center; }
+.respond .card { width: 100px; }
+.statusbox { display: grid; gap: 6px; margin: 10px 0 4px; }
+.st-side { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 6px; padding: 6px 10px; }
+.st-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.st-life b { font-size: 1.15em; color: var(--volt); }
+.statusbox details { margin-top: 4px; }
+.statusbox summary { cursor: pointer; font-size: .9em; opacity: .85; }
+.st-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.st-chips .chip { font-size: .8em; padding: 2px 6px; border-radius: 4px; background: #262447; border: 1px solid #4d4f8a; }
+.st-chips .chip.spell { background: #4a2330; border-color: #8a4a5e; }
+.glist { display: flex; flex-wrap: wrap; gap: 8px; }
+.glist .card { width: 86px; }
+.gitem { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: var(--dim); }
+.over { text-align: center; }
+.over h2 { font-family: var(--f-dot); font-weight: 400; font-size: 40px; margin: 4px 0; }
+.over.win h2 { color: var(--volt); }
+.over.lose h2 { color: #ff8a7a; }
+.overart { width: 72px; image-rendering: pixelated; }
+
+/* ログ */
+#logDrawer { position: fixed; inset: auto 0 0 0; z-index: 25; max-height: 60vh; display: flex; flex-direction: column; background: #101125; border-top: 1px solid var(--night-3); padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+#logList { overflow-y: auto; margin: 0; padding: 0 0 0 1.2em; font-size: 13px; color: var(--dim); }
+#logList .lt { list-style: none; margin-left: -1.2em; color: var(--gold); font-family: var(--f-dot); margin-top: 6px; }
+.logtop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-family: var(--f-dot); }
+
+.toast { position: fixed; left: 50%; top: calc(16px + env(safe-area-inset-top, 0px)); transform: translate(-50%, -80px); background: var(--paper); color: var(--cardink); padding: 8px 14px; border-radius: 6px; font-weight: 700; z-index: 40; transition: transform .25s; max-width: calc(100% - 32px); box-shadow: 0 6px 20px rgba(0,0,0,.5); font-size: 14px; }
+.toast.show { transform: translate(-50%, 0); }
+.toast.err { background: #f2b3a8; }
+.toast.spell { background: var(--red); color: #fff4e8; }
+
+/* ルール */
+.rules h2 { font-family: var(--f-dot); font-weight: 400; font-size: 20px; margin: 22px 0 8px; letter-spacing: .04em; }
+.rules h3 { font-size: 15px; margin: 16px 0 4px; }
+.rules p, .rules li { max-width: 65ch; }
+.rules ol, .rules ul { padding-left: 1.3em; margin: 6px 0; }
+.rules .note { background: var(--night-2); border-left: 3px solid var(--gold); padding: 8px 12px; border-radius: 0 6px 6px 0; font-size: 13px; }
+.dexlist { display: flex; flex-direction: column; gap: 10px; }
+.dex { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center; }
+.dex .card { width: 76px; cursor: default; }
+.dexlist.retired { opacity: .75; }
+.dexgrp { font-size: .95em; margin: 8px 0 0; padding: 4px 8px; border-left: 4px solid var(--volt); color: var(--paper); background: rgba(127,216,240,.08); }
+.dexgrp:first-child { margin-top: 0; }
+.noart { display: grid; place-items: center; width: 100%; height: 100%; color: #8a86b8; font-size: max(7px, 11cqw); font-weight: 700; line-height: 1.1; text-align: center; letter-spacing: .05em; }
+.dex h4 { margin: 0; font-family: var(--f-dot); font-weight: 400; font-size: 17px; }
+.dexmeta { display: block; font-family: var(--f-body); font-size: 11px; color: var(--dim); }
+.dex p { margin: 2px 0 0; font-size: 14px; }
+
+
+/* ---------- エフェクト ---------- */
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 28; overflow: hidden; }
+.fxabs { position: fixed; pointer-events: none; }
+/* 電池の出し入れ */
+.batfloat { z-index: 60; transform: translate(-50%, 0); font-family: var(--f-dot); font-size: 22px; font-weight: 700; line-height: 1; text-shadow: 2px 2px 0 #1b1424, -1px -1px 0 #1b1424; animation: batfloat .9s ease-out forwards; }
+.batfloat.plus { color: var(--volt); }
+.batfloat.minus { color: #ff8a5c; }
+@keyframes batfloat { 0% { opacity: 0; transform: translate(-50%, 8px) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.25); } 100% { opacity: 0; transform: translate(-50%, -34px) scale(1); } }
+.card.bat-in { animation: batin .6s ease-out; }
+.card.bat-out { animation: batout .6s ease-out; }
+@keyframes batin { 0% { box-shadow: 0 0 0 0 rgba(127,216,240,0); } 30% { box-shadow: 0 0 0 4px rgba(127,216,240,.95), 0 0 22px 6px rgba(127,216,240,.7); transform: scale(1.05); } 100% { box-shadow: 0 0 0 0 rgba(127,216,240,0); transform: scale(1); } }
+@keyframes batout { 0% { filter: none; transform: translateX(0); } 20% { filter: brightness(.55) saturate(.4); transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 100% { filter: none; transform: translateX(0); } }
+.card.bat-in .pips .on { animation: pipon .6s steps(3); }
+@keyframes pipon { 0%,66% { background: #fff; } }
+@media (prefers-reduced-motion: reduce) { .batfloat, .card.bat-in, .card.bat-out { animation: none; } }
+/* 起動：上から舞い降りて青白く灯る */
+.card.deploying { animation: deployIn .75s cubic-bezier(.2,.8,.25,1) both; }
+@keyframes deployIn {
+  0% { opacity: 0; transform: translateY(-26px) scale(1.3); filter: brightness(3) saturate(0); }
+  55% { opacity: 1; transform: translateY(2px) scale(.97); filter: brightness(1.8); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+.ring { border-radius: 50%; border: 3px solid var(--volt); box-shadow: 0 0 18px var(--volt), 0 0 8px var(--volt) inset; animation: ring .7s ease-out both; }
+@keyframes ring { from { transform: scale(.2); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+.px { width: 6px; height: 6px; background: var(--volt); box-shadow: 0 0 6px var(--volt); animation: pxfly var(--d, .8s) ease-out both; }
+@keyframes pxfly { from { transform: translate(0,0); opacity: 1; } to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+.px.ash { background: #6d6478; box-shadow: none; }
+.px.ember { background: #ff8a3a; box-shadow: 0 0 6px #ff8a3a; }
+.px.frost { background: #dff6ff; box-shadow: 0 0 6px #9fe3f5; }
+/* 破壊：札が燃え落ちる */
+.ghost { margin: 0; }
+.ghost.burn { animation: burn .75s ease-in both; }
+@keyframes burn {
+  0% { filter: none; transform: none; opacity: 1; }
+  30% { filter: brightness(2.2) sepia(1) hue-rotate(-30deg) saturate(3); transform: scale(1.04) rotate(-2deg); }
+  100% { filter: brightness(.2) sepia(1); transform: translateY(14px) scale(.85) rotate(4deg); opacity: 0; }
+}
+/* 攻撃：照準と斬撃 */
+.reticle { border: 2px solid var(--red); border-radius: 8px; box-shadow: 0 0 14px var(--red); animation: reticle .6s ease-out both; }
+@keyframes reticle { 0% { transform: scale(1.4); opacity: 0; } 40% { transform: scale(1); opacity: 1; } 100% { opacity: 0; } }
+.slash { height: 6px; border-radius: 3px; background: linear-gradient(90deg, transparent, #fff 30%, #ffd1c4 60%, transparent); box-shadow: 0 0 12px #ff6b5a; transform-origin: center; animation: slash .38s ease-out both; }
+@keyframes slash { 0% { transform: rotate(var(--r)) scaleX(0); opacity: 1; } 60% { transform: rotate(var(--r)) scaleX(1); opacity: 1; } 100% { transform: rotate(var(--r)) scaleX(1.1); opacity: 0; } }
+.boom { border-radius: 50%; background: radial-gradient(circle, #fff 0%, #ffd98a 30%, rgba(217,72,59,.7) 55%, transparent 70%); animation: boom .45s ease-out both; }
+@keyframes boom { from { transform: scale(.2); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+/* アクション：画面中央にカットイン */
+.cutin { position: fixed; left: 0; right: 0; top: 50%; height: 168px; margin-top: -84px; display: flex; align-items: center; justify-content: center; gap: 16px; animation: cutin 1s ease-in-out both; }
+.cutin .band { position: absolute; inset: 22px -20px; background: linear-gradient(90deg, transparent, rgba(124,31,43,.92) 15%, rgba(124,31,43,.92) 85%, transparent); transform: skewY(-4deg); border-block: 2px solid var(--gold); }
+.cutin.p1 .band { background: linear-gradient(90deg, transparent, rgba(35,58,120,.92) 15%, rgba(35,58,120,.92) 85%, transparent); }
+.cutin .cimg { position: relative; width: 112px; height: 112px; image-rendering: pixelated; filter: drop-shadow(0 0 16px rgba(255,230,160,.8)); animation: cimg 1s ease-out both; }
+.cutin .ctext { position: relative; display: flex; flex-direction: column; }
+.cutin .ctext span { font-size: 12px; color: #f3e6c8; letter-spacing: .12em; }
+.cutin .ctext b { font-family: var(--f-dot); font-weight: 400; font-size: 40px; color: #fff4e0; text-shadow: 0 3px 0 rgba(0,0,0,.5), 0 0 18px rgba(255,200,120,.6); line-height: 1.1; }
+@keyframes cutin { 0% { opacity: 0; transform: translateX(-60px); } 15% { opacity: 1; transform: none; } 80% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateX(60px); } }
+@keyframes cimg { 0% { transform: scale(.4) rotate(-20deg); } 25% { transform: scale(1.15) rotate(4deg); } 40% { transform: scale(1) rotate(0); } }
+.volt { width: 22px; height: 22px; image-rendering: pixelated; filter: drop-shadow(0 0 6px var(--volt)); }
+.card.flash { animation: flash .7s; }
+
+/* ================================================================
+   ピクセル調の仕上げ
+   角は3pxの段で欠き、影はぼかさず「ずらし」で付ける。動きは steps() で刻む
+   ================================================================ */
+:root {
+  --px: 3px;
+  --line: #0a0914;               /* ドットの外枠 */
+  --hi: rgba(255,255,255,.10);   /* 左上のハイライト */
+  --lo: rgba(0,0,0,.38);         /* 右下の陰 */
+  --frame: 0 calc(var(--px) * -1) 0 0 var(--line), 0 var(--px) 0 0 var(--line), calc(var(--px) * -1) 0 0 0 var(--line), var(--px) 0 0 0 var(--line);
+  --bevel: inset var(--px) var(--px) 0 0 var(--hi), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--lo);
+  --gframe: 0 calc(var(--px) * -1) 0 0 var(--gold), 0 var(--px) 0 0 var(--gold), calc(var(--px) * -1) 0 0 0 var(--gold), var(--px) 0 0 0 var(--gold);
+  --rframe: 0 calc(var(--px) * -1) 0 0 var(--red), 0 var(--px) 0 0 var(--red), calc(var(--px) * -1) 0 0 0 var(--red), var(--px) 0 0 0 var(--red);
+  --frame2: 0 -2px 0 0 var(--line), 0 2px 0 0 var(--line), -2px 0 0 0 var(--line), 2px 0 0 0 var(--line);
+  --f-body: var(--f-dot);
+}
+html { -webkit-font-smoothing: none; font-synthesis: none; }
+body {
+  font-family: var(--f-dot); line-height: 1.55;
+  background-color: #12132a;
+  background-image: var(--stars, none), linear-gradient(#0f1026 0 30%, #121330 30% 62%, #15163a 62% 86%, #191a42 86%);
+  background-size: 288px 288px, auto;
+  background-attachment: fixed;
+  image-rendering: pixelated;
+}
+img { image-rendering: pixelated; }
+:focus-visible { outline: 2px dashed var(--volt); outline-offset: 4px; }
+b, strong, h1, h2, h3, h4 { font-weight: 400; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0c0d1f; }
+::-webkit-scrollbar-thumb { background: var(--night-3); box-shadow: inset 2px 2px 0 var(--hi); }
+
+/* 枠：パネル類はすべて欠け角＋立体 */
+.panel, .pinfo, .field, .logcol, #coach, .chip, .first select {
+  border: 0 !important; border-radius: 0 !important;
+  box-shadow: var(--frame), var(--bevel);
+}
+.panel { background: #1a1b38; }
+.field { background: #171833; }
+#oppField { background: repeating-linear-gradient(0deg, #161731 0 3px, #181936 3px 6px); }
+.pinfo { background: #1c1d3d; }
+.pinfo.turn { box-shadow: var(--gframe), var(--bevel) !important; }
+.logcol { background: #0f1023; }
+#coach { background: #2a2147; box-shadow: var(--gframe), var(--bevel) !important; }
+#coachTitle::before { content: "▶ "; }
+.slot.empty { border: 2px dashed #2c2e58; border-radius: 0; }
+.setslot.empty { border-radius: 0; }
+
+/* ボタン：押すと沈むドットボタン */
+.btn {
+  font-family: var(--f-dot); font-weight: 400; letter-spacing: .04em;
+  border: 0; border-radius: 0; background: #2a2c55; color: var(--ink);
+  box-shadow: var(--frame), inset var(--px) var(--px) 0 0 rgba(255,255,255,.14), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 rgba(0,0,0,.4);
+  transition: none;
+}
+.btn:hover { background: #33366a; filter: none; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: var(--frame), inset var(--px) var(--px) 0 0 rgba(0,0,0,.35); }
+.btn.primary { background: var(--red); color: #fff6ea; box-shadow: var(--frame), inset var(--px) var(--px) 0 0 rgba(255,255,255,.28), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 rgba(90,10,10,.55); }
+.btn.primary:hover { background: #e65a49; }
+.btn.ghost { background: #16172f; }
+.btn.danger { background: #3a1b26; color: #f2a59c; }
+.btn:disabled { opacity: .45; }
+.diff small { font-size: 10px; }
+.chip { background: #121329; }
+
+/* タイトル */
+h1 { letter-spacing: .1em; text-shadow: var(--px) var(--px) 0 var(--red), calc(var(--px) * 2) calc(var(--px) * 2) 0 var(--line); }
+.tart.t2 { filter: drop-shadow(0 0 0 var(--volt)) drop-shadow(0 0 8px rgba(127,216,240,.5)); animation: bob 2.4s steps(4) infinite; }
+.tart { animation: bob 3s steps(3) infinite; }
+.tart.t1 { animation-delay: -.6s; } .tart.t3 { animation-delay: -1.2s; } .tart.t4 { animation-delay: -1.8s; }
+@keyframes bob { 50% { transform: translateY(-6px); } }
+
+/* ライフ：区切りのある体力ゲージ */
+.lbar { gap: 0; padding: 2px; background: var(--line); }
+.lbar i { border-radius: 0; box-shadow: inset 0 -2px 0 rgba(0,0,0,.35); margin-right: 1px; }
+.lbar i:last-child { margin-right: 0; }
+.lbar i.on { background: #6ed07c; box-shadow: inset 0 2px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.25); }
+.life.low .lbar i.on { background: var(--red); }
+.lnum { text-shadow: 2px 2px 0 var(--line); }
+.dmg { text-shadow: 2px 2px 0 var(--line), -2px 0 0 var(--line), 0 -2px 0 var(--line); }
+
+
+/* カード：黒い外枠＋紙色の地＋内枠 */
+.card {
+  border-radius: 0; background: var(--paper);
+  box-shadow: var(--frame2), inset 2px 2px 0 0 #fff8e6, inset -2px -2px 0 0 #cdb98c;
+  transition: none;
+}
+.card:hover { transform: translateY(-2px); }
+.card .cname { padding-bottom: 1px; border-bottom: 2px dotted #c9b385; }
+.card .frame { border-radius: 0; box-shadow: inset 0 0 0 2px var(--cardink), inset 3px 3px 0 0 rgba(0,0,0,.35); background: #22204a; }
+.card.spell .frame { background: #461f2c; }
+.card .tag { border-radius: 0; box-shadow: 1px 1px 0 var(--line); }
+.card .atk { border-radius: 0; width: 1.5em; height: 1.4em; box-shadow: 0 -2px 0 var(--line), 0 2px 0 var(--line), -2px 0 0 var(--line), 2px 0 0 var(--line), inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.3); }
+.card .atk.up { background: #f07a2a; box-shadow: 0 -2px 0 var(--gold), 0 2px 0 var(--gold), -2px 0 0 var(--gold), 2px 0 0 var(--gold), inset 2px 2px 0 rgba(255,255,255,.35); }
+.pip { border-radius: 0; border: 0; background: #3a3550; box-shadow: inset 1px 1px 0 rgba(0,0,0,.5); transform: rotate(45deg) scale(.82); }
+.pip.on { background: var(--volt); box-shadow: inset 1px 1px 0 #e8fbff, 0 0 4px var(--volt); }
+.card .badge { border-radius: 0; box-shadow: var(--frame2); }
+.card.back { border-radius: 0; background: conic-gradient(#2b2662 25%, #221d50 0 50%, #2b2662 0 75%, #221d50 0) 0 0 / 6px 6px; box-shadow: var(--frame2), inset 0 0 0 2px #4a43a0; }
+.card.facedown-own { outline: 2px dashed var(--gold); outline-offset: -4px; }
+/* 状態表示は外側の線で（枠の影は残す） */
+.card.tgt, .setslot.tgt { box-shadow: var(--frame2), inset 2px 2px 0 0 #fff8e6; outline: 3px solid var(--volt); outline-offset: 3px; animation: tblink .8s steps(2) infinite; }
+@keyframes tblink { 50% { outline-color: #e6fbff; } }
+.card.picked { outline: 3px solid var(--gold); outline-offset: 3px; box-shadow: var(--frame2); }
+.card.attacking { outline: 3px solid var(--red); outline-offset: 3px; box-shadow: var(--frame2); transform: translateY(-6px); }
+.card.defending { outline: 3px solid var(--red); outline-offset: 3px; box-shadow: var(--frame2); animation: shake .3s steps(3) 2; }
+.card.coach { animation: coachblink 1s steps(2) infinite; outline-offset: 3px; }
+@keyframes coachblink { 0% { outline: 3px solid var(--gold); } 50% { outline: 3px solid transparent; } }
+#oppField.tgt-player { box-shadow: var(--rframe), var(--bevel) !important; }
+@keyframes flash { 0% { filter: brightness(2); } 50% { filter: brightness(1.4); } 100% { filter: none; } }
+.card.flash { animation: flash .5s steps(3); }
+
+/* 中央帯 */
+.acts { letter-spacing: 1px; }
+#ticker li:last-child::before { content: "▶"; color: var(--gold); margin-right: 3px; }
+
+/* 下から出るウィンドウ：RPGのメッセージ窓 */
+#sheet { border: 0; border-radius: 0; background: #17183a; box-shadow: 0 0 0 3px #e6dcc2, 0 0 0 6px var(--line), 0 -10px 30px rgba(0,0,0,.5); animation: up .18s steps(3); }
+#sheet h3 { text-shadow: 2px 2px 0 var(--line); }
+#sheet h3.warn::before { content: "！ "; }
+.etext { border-radius: 0; box-shadow: var(--frame2); }
+#sheetBack { background: repeating-linear-gradient(0deg, rgba(5,5,15,.62) 0 2px, rgba(5,5,15,.5) 2px 4px); }
+.toast { border-radius: 0; box-shadow: 0 0 0 3px var(--line), 0 0 0 5px #e6dcc2, 0 0 0 8px var(--line); transition: transform .2s steps(4); }
+#selbar { background: #10233a; border-bottom: 0; box-shadow: 0 3px 0 var(--volt), 0 6px 0 var(--line); }
+#selPrompt::before { content: "▶ "; color: var(--gold); }
+#logDrawer { box-shadow: 0 -3px 0 #e6dcc2, 0 -6px 0 var(--line); }
+.over h2 { text-shadow: var(--px) var(--px) 0 var(--line); }
+.rules .note { border-left: 0; box-shadow: inset 4px 0 0 var(--gold); border-radius: 0; }
+.dex .card { cursor: default; }
+
+/* エフェクトもドットに */
+.ring { border-radius: 50%; border: 4px dotted var(--volt); box-shadow: none; animation: ring .6s steps(5) both; }
+.reticle { border: 3px dashed var(--red); border-radius: 0; box-shadow: none; animation: reticle .6s steps(4) both; }
+.slash { height: 6px; border-radius: 0; background: #fff; box-shadow: 0 3px 0 var(--red), 0 -3px 0 #ffd98a; animation: slash .36s steps(4) both; }
+.boom { border-radius: 50%; background: radial-gradient(circle, #fff 0 22%, #ffd98a 22% 40%, #f07a2a 40% 54%, transparent 54% 62%, rgba(217,72,59,.8) 62% 68%, transparent 68%); animation: boom .42s steps(4) both; }
+.px { box-shadow: none; }
+.card.deploying { animation: deployIn .7s steps(7) both; }
+.ghost.burn { animation: burn .7s steps(7) both; }
+.cutin .band { inset: 26px -20px; transform: none; border: 0; background: repeating-linear-gradient(0deg, rgba(124,31,43,.95) 0 3px, rgba(105,24,36,.95) 3px 6px); box-shadow: 0 -3px 0 var(--gold), 0 3px 0 var(--gold), 0 -6px 0 var(--line), 0 6px 0 var(--line); }
+.cutin.p1 .band { background: repeating-linear-gradient(0deg, rgba(35,58,120,.95) 0 3px, rgba(28,47,100,.95) 3px 6px); }
+.cutin { animation: cutin .95s steps(10) both; }
+.cutin .cimg { filter: drop-shadow(3px 3px 0 var(--line)); animation: cimg .95s steps(6) both; }
+.cutin .ctext b { text-shadow: 3px 3px 0 var(--line); }
+.volt { filter: drop-shadow(0 0 4px rgba(127,216,240,.8)); }
+
+
+/* ---------- ワンタップ操作 ---------- */
+.qa-row { position: absolute; left: 0; right: 0; bottom: calc(18cqw + 10px); display: flex; justify-content: center; gap: 3px; z-index: 2; }
+.qa { display: grid; place-items: center; min-width: max(22px, 27cqw); height: max(22px, 25cqw); padding: 0 2px; font-family: var(--f-dot); font-size: max(11px, 13cqw); line-height: 1; color: #fff; cursor: pointer;
+  box-shadow: 0 -2px 0 var(--line), 0 2px 0 var(--line), -2px 0 0 var(--line), 2px 0 0 var(--line), inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.35); }
+.qa:hover { filter: brightness(1.2); }
+.qa:active { transform: translateY(1px); }
+.q-place { background: #1d5a78; color: #dff6ff; }
+.q-rel { background: #6b3f9c; }
+.q-atk { background: var(--red); }
+.card.deploying .qa-row { animation: none; }
+#pop { position: fixed; z-index: 35; display: flex; gap: 6px; padding: 6px; background: #17183a; box-shadow: 0 0 0 3px #e6dcc2, 0 0 0 6px var(--line), 4px 8px 0 6px rgba(0,0,0,.35); }
+#pop .btn { min-height: 38px; padding: 4px 12px; font-size: 14px; }
+.card { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+
+/* ---------- 中央帯：電池の横に「戦闘」「ターン終了」 ---------- */
+.midband { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "info btns"; row-gap: 4px; }
+.midinfo { grid-area: info; flex-direction: row; align-items: baseline; gap: 8px; }
+.midinfo #ticker { flex: 1; min-width: 0; }
+.phasebtns { grid-area: btns; display: flex; gap: 8px; }
+.phasebtns .btn { white-space: nowrap; min-height: 40px; padding: 6px 12px; font-size: 14px; }
+#battleBtn { background: #8a2a3a; color: #ffe9e2; box-shadow: var(--frame2), inset 2px 2px 0 rgba(255,255,255,.22), inset -2px -2px 0 rgba(0,0,0,.4); }
+#battleBtn:hover { background: #a3354a; }
+#battleBtn.off { opacity: .45; }
+#endBtn { background: #2e5f86; color: #eaf7ff; box-shadow: var(--frame2), inset 2px 2px 0 rgba(255,255,255,.22), inset -2px -2px 0 rgba(0,0,0,.4); }
+#endBtn:hover { background: #3a7099; }
+@media (min-width: 960px) {
+  .midband { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "info btns"; }
+  .midinfo { flex-direction: column; align-items: stretch; gap: 1px; }
+  .phasebtns .btn { min-height: 44px; padding-inline: 16px; font-size: 15px; }
+}
+
+/* ---------- 伏せ札を場のロボと同じ大きさに / 情報パネルは帯に ---------- */
+.table { grid-template-columns: minmax(0, 1fr); grid-template-areas: "oi" "of" "mid" "mf" "mi" "hand"; }
+.field { grid-template-columns: repeat(3, var(--cw)) var(--cw); }
+.field .setslot { width: var(--cw); margin-left: 6px; position: relative; flex: none; }
+.field .setslot::before { content: ""; position: absolute; left: -9px; top: 6%; bottom: 6%; border-left: 2px dashed #3c3a6a; }
+.field .setslot.empty { aspect-ratio: 5/7; display: grid; place-items: center; writing-mode: horizontal-tb; border: 2px dashed #6a5626; background: repeating-linear-gradient(45deg, rgba(227,181,77,.05) 0 4px, transparent 4px 8px); }
+.setlbl { font-family: var(--f-dot); font-size: max(9px, calc(var(--cw) * .13)); color: #a88b45; letter-spacing: .1em; writing-mode: vertical-rl; }
+.field .setslot .card.back { width: 100%; }
+.card.opp-set { box-shadow: var(--frame2), inset 0 0 0 2px #4a43a0, 0 0 0 2px var(--gold); animation: setglow 1.6s steps(2) infinite; }
+@keyframes setglow { 50% { box-shadow: var(--frame2), inset 0 0 0 2px #6a62c8, 0 0 0 2px #fff0b8, 0 0 12px rgba(227,181,77,.55); } }
+.card.opp-set .backlbl { font-size: max(9px, calc(var(--cw) * .13)); bottom: 6%; letter-spacing: .1em; text-shadow: 1px 1px 0 var(--line); }
+.card.opp-set .bart { width: 52%; }
+.card.facedown-own { filter: saturate(.55) brightness(.9); outline: 2px dashed var(--gold); outline-offset: -5px; }
+.card.facedown-own .badge { top: auto; bottom: 6px; transform: translateX(-50%); color: var(--gold); font-size: max(9px, 12cqw); }
+
+/* スマホ：ライフ・山札などは場の上下の帯 */
+.pinfo { flex-direction: row; align-items: center; gap: 8px; padding: 5px 10px; }
+.pinfo .who { flex: none; min-width: 3.2em; }
+.pinfo .life { flex-direction: row; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.pinfo .lnum { font-size: 20px; flex: none; }
+.pinfo .lbar { flex: 1; min-width: 40px; }
+.pinfo .counts { flex-direction: row; gap: 10px; flex: none; }
+.pinfo .cnt { gap: 3px; }
+.pinfo .cnt b { font-size: 14px; }
+
+/* ドラッグ */
+#hand .card { touch-action: pan-x; }
+.drag-ghost { position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; opacity: .92; box-shadow: var(--frame2), 6px 8px 0 rgba(0,0,0,.45) !important; }
+#hand .card.dragging { opacity: .3; }
+#myField.drop-ok { box-shadow: 0 0 0 3px var(--volt), var(--bevel) !important; }
+#myField.drop-ok.drop-over { background: #17304a; }
+#myField.drop-ng { box-shadow: 0 0 0 3px #7a2c30, var(--bevel) !important; }
+.setslot.drop-ok { outline: 3px solid var(--volt); outline-offset: 3px; }
+.setslot.drop-ok.drop-over { background: rgba(127,216,240,.18); }
+.setslot.drop-ng { outline: 3px solid #7a2c30; outline-offset: 3px; }
+
+@media (min-width: 960px) {
+  .table { grid-template-columns: 220px auto 168px; grid-template-areas: "log of oi" "log mid mid" "log mf mi" "log hand hand"; }
+  .pinfo { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
+  .pinfo .life { flex-direction: column; align-items: stretch; gap: 4px; flex: none; }
+  .pinfo .lnum { font-size: 34px; }
+  .pinfo .counts { flex-direction: column; gap: 2px; }
+  .pinfo .cnt { justify-content: space-between; }
+  .pinfo .cnt b { font-size: 16px; }
+}
+
+.card.back .backart { position: absolute; inset: 0; display: grid; place-items: center; }
+.card.back .backart .bart { width: 58%; margin: 0 0 14%; }
+.card.opp-set .backart .bart { animation: bob 2.2s steps(4) infinite; }
+
+/* ---------- ドラッグ攻撃 ---------- */
+#myField .card { touch-action: none; }
+.card.aiming { outline: 3px solid var(--red); outline-offset: 3px; transform: translateY(-6px); }
+svg.aim { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.aim-shadow { stroke: var(--line); stroke-width: 10; stroke-linecap: square; }
+.aim-line { stroke: var(--red); stroke-width: 5; stroke-dasharray: 9 6; stroke-linecap: square; animation: aimflow .4s steps(3) infinite; }
+.aim-head { fill: #ffd98a; stroke: var(--line); stroke-width: 3; }
+svg.aim.ng .aim-line { stroke: #6a6478; }
+svg.aim.ng .aim-head { fill: #6a6478; }
+@keyframes aimflow { to { stroke-dashoffset: -15; } }
+.card.aim-ok { outline: 3px dashed var(--red); outline-offset: 3px; }
+.card.aim-over { outline: 3px solid #ffd98a; outline-offset: 3px; transform: scale(1.04); }
+#oppField.aim-ok, #oppInfo.aim-ok { box-shadow: var(--rframe), var(--bevel) !important; }
+#oppField.aim-over, #oppInfo.aim-over { box-shadow: var(--gframe), var(--bevel) !important; background: #2a1a2a; }
+.btn.battle { background: #8a2a3a; color: #ffe9e2; }
+.sub b.hl { color: var(--gold); }
+
+/* ---------- アクションのドラッグ発動・カットイン ---------- */
+.field.drop-ok, .field.drop-ng { position: relative; }
+.field[data-drop]::after { content: attr(data-drop); position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 4px 14px; font-family: var(--f-dot); font-size: 18px; letter-spacing: .2em; color: #fff4e0; background: rgba(10,9,20,.75); box-shadow: var(--frame2); pointer-events: none; z-index: 3; }
+.field.drop-ng[data-drop]::after { color: #9a8f9e; }
+#oppField.drop-ok { box-shadow: 0 0 0 3px var(--volt), var(--bevel) !important; }
+#oppField.drop-ok.drop-over, #myField.drop-ok.drop-over { background: #17304a; }
+#oppField.drop-ng { box-shadow: 0 0 0 3px #7a2c30, var(--bevel) !important; }
+.setslot[data-drop] { position: relative; }
+.cutin.banner .ctext b { font-size: clamp(26px, 8vw, 44px); white-space: nowrap; }
+.cutin.banner .cimg { width: clamp(64px, 20vw, 112px); height: auto; }
+.cutin.banner { gap: 12px; padding-inline: 12px; }
+.cutin.banner.turn.p0 .band { background: repeating-linear-gradient(0deg, rgba(30,70,110,.96) 0 3px, rgba(24,58,94,.96) 3px 6px); }
+.cutin.banner.turn.p1 .band { background: repeating-linear-gradient(0deg, rgba(70,30,80,.96) 0 3px, rgba(58,24,66,.96) 3px 6px); }
+.cutin.banner.battle .band { background: repeating-linear-gradient(-45deg, rgba(140,30,40,.96) 0 8px, rgba(30,10,16,.96) 8px 16px); box-shadow: 0 -3px 0 #ffd98a, 0 3px 0 #ffd98a, 0 -6px 0 var(--line), 0 6px 0 var(--line); }
+.cutin.banner.battle .ctext b { color: #ffe9c2; letter-spacing: .12em; }
+
+/* ---------- リザルト ---------- */
+.over .overhead { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 8px; }
+.over .overhead .overart { width: 56px; }
+.over .overhead h2 { margin: 0; line-height: 1.1; }
+.over .overhead .sub { margin: 2px 0 0; }
+.mvp { display: flex; align-items: center; gap: 10px; margin: 0 auto 10px; padding: 6px 12px 6px 6px; width: fit-content; max-width: 100%; background: #2a2147; box-shadow: var(--gframe); text-align: left; }
+.mvp .mvpart { width: 44px; height: 44px; image-rendering: pixelated; background: #22204a; box-shadow: inset 0 0 0 2px var(--line); }
+.mvp span { display: block; font-size: 10px; color: var(--gold); letter-spacing: .2em; }
+.mvp b { display: block; font-size: 16px; }
+.mvp small { color: var(--dim); font-size: 11px; }
+.scorewrap { overflow-x: auto; margin: 0 auto 8px; max-width: 420px; }
+table.score { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px; }
+table.score th, table.score td { padding: 3px 8px; }
+table.score thead th { font-weight: 400; color: var(--dim); font-size: 11px; letter-spacing: .1em; border-bottom: 2px solid #33356a; }
+table.score thead th:nth-child(2) { color: #9fd6ff; } table.score thead th:nth-child(3) { color: #e0a8c8; }
+table.score tbody th { text-align: left; font-weight: 400; color: var(--ink); white-space: nowrap; }
+table.score td { text-align: right; width: 4.5em; font-size: 15px; }
+table.score tbody tr:nth-child(odd) { background: rgba(255,255,255,.03); }
+table.score tr.sub th { color: var(--dim); font-size: 12px; padding-left: 14px; }
+table.score tr.sub td { color: var(--dim); font-size: 13px; }
+table.score td.best { color: var(--gold); }
+table.score td.best::before { content: "▶"; font-size: 9px; margin-right: 3px; vertical-align: 2px; }
+
+/* ---------- デバッグ ---------- */
+.dbgentry { width: 100%; margin-top: 8px; font-size: 12px; min-height: 36px; color: var(--dim); }
+#dbgbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 8px; background: #1b2a1f; box-shadow: 0 0 0 2px #3f6b45, var(--frame2); font-size: 12px; }
+#dbgbar label { display: flex; align-items: center; gap: 4px; color: #b9e0bd; }
+#dbgbar select { background: #0f1a12; color: var(--ink); border: 0; box-shadow: var(--frame2); font: inherit; padding: 2px 4px; }
+#dbgbar .btn { min-height: 28px; padding: 2px 10px; font-size: 12px; }
+#dbgLoop { color: #8fe39a; font-family: var(--f-dot); }
+#debug .wrap { max-width: 560px; }
+.dbgtitle { font-family: var(--f-dot); color: #8fe39a; }
+#dbgEditor { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.dbgside { border: 0; margin: 0; padding: 10px 12px; background: #1a1b38; box-shadow: var(--frame), var(--bevel); display: flex; flex-direction: column; gap: 6px; }
+.dbgside legend { font-family: var(--f-dot); color: var(--gold); padding: 0 4px; background: #1a1b38; }
+.dbgrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dbgrow > span { min-width: 5em; color: var(--dim); font-size: 13px; }
+.dbgrow select, .dbgrow input[type=number] { background: #0f1023; color: var(--ink); border: 0; box-shadow: var(--frame2); font: inherit; padding: 4px 6px; min-height: 32px; }
+.dbgrow input[type=number] { width: 5em; }
+.dbgrow.chk { gap: 6px; }
+
+/* ---------- スクラップはタップで中身を見られるボタン ---------- */
+button.cnt[data-scrap] { text-decoration: none; cursor: pointer; padding: 1px 6px 1px 5px; color: #bfeefa; background: #1b3550; box-shadow: 0 -2px 0 var(--line), 0 2px 0 var(--line), -2px 0 0 var(--line), 2px 0 0 var(--line), inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.35); }
+button.cnt[data-scrap] b { color: #fff; }
+button.cnt[data-scrap]::after { content: "▸"; margin-left: 3px; color: var(--volt); font-size: .9em; }
+button.cnt[data-scrap]:hover { background: #24476a; }
+button.cnt[data-scrap]:active { transform: translateY(1px); }
+@media (min-width: 960px) { button.cnt[data-scrap] { margin-top: 2px; } }
+
+.toast:not(.show) { visibility: hidden; transition: transform .2s steps(4), visibility 0s .2s; }
+
+.card .tag.t-token { background: #b8862a; color: #1b1424; }
+
+/* ---------- ロボット版：電池の目盛り ---------- */
+.pips { gap: max(2px, 2.5cqw); align-items: flex-end; }
+.pip { transform: none; width: max(6px, 7cqw); height: max(9px, 11cqw); border: 0; background: #2c2840; box-shadow: 0 0 0 1px #1b1424, inset 0 2px 0 rgba(255,255,255,.08); position: relative; }
+.pip::before { content: ""; position: absolute; left: 25%; right: 25%; top: -2px; height: 2px; background: #1b1424; }
+.pip.on { background: #9be15d; box-shadow: 0 0 0 1px #1b1424, inset 0 -3px 0 #4e8a2e, inset 0 2px 0 #d8ffb0, 0 0 5px rgba(155,225,93,.6); }
+.px { background: #ffe066; box-shadow: 0 0 6px #ffe066; }
+.ring { border-color: #ffe066; }
+
+/* 狭い画面ではライフのゲージを省いて、数字と山札・手札・スクラップを並べる */
+@media (max-width: 480px) { .pinfo .lbar { display: none; } .pinfo .life { flex: none; } .pinfo .counts { margin-left: auto; } }
+
+.card .cname.long { font-size: max(8px, 11.5cqw); letter-spacing: -.02em; }
+
+.card.lim { outline: 3px solid #ff5a3a; outline-offset: 2px; animation: limpulse .6s steps(2) infinite; }
+@keyframes limpulse { 50% { outline-color: #ffd98a; } }
+.card.lim .atk { background: #ff5a3a; box-shadow: 0 0 0 2px #ffd98a; }
+.card.hacked { outline: 3px dashed #a865d8; outline-offset: 2px; }
+.card.hacked::after { content: "ハック中"; position: absolute; left: 0; right: 0; top: 46%; text-align: center; font-size: max(8px, 11cqw); color: #fff; background: rgba(92,48,134,.85); }
+.card.guarding .frame { box-shadow: inset 0 0 0 2px var(--cardink), inset 0 0 0 4px #3e72d6; }
+
+.card .tag.t-powered.on { background: #f6d24a; color: #1b1424; box-shadow: 0 0 0 1px var(--line), 0 0 6px rgba(246,210,74,.8); }
+.card .tag.off { background: #4a4658; color: #9a96a8; }
+.card .tag.t-release.on { background: #8a55c8; }
+.etext.idle { opacity: .5; text-decoration: line-through; text-decoration-color: rgba(0,0,0,.35); }
+.idlenote { margin: 6px 0 0; font-size: 12px; color: #f2b3a8; }
+
+.kw { color: #2e5f86; letter-spacing: .1em; }
+.kwhelp { margin: 6px 0 0; font-size: 12px; color: var(--dim); }
+.dex .kw { color: #9fd6ff; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<section class="screen" id="title">
+  <div class="wrap">
+    <div class="hero">
+      <div id="titleArt" aria-hidden="true"></div>
+      <h1>でんちロボ<span class="h1sub">カードバトル</span></h1>
+      <p class="tagline">ちびロボに電池を入れて戦う、2人用カードゲーム</p>
+    </div>
+    <div class="panel">
+      <h2>CPUと対戦</h2>
+      <div class="diffs">
+        <button class="btn diff" data-diff="easy">やさしい<small>ときどき気まぐれ</small></button>
+        <button class="btn diff" data-diff="normal">ふつう<small>手調整の思考</small></button>
+        <button class="btn diff primary" data-diff="hard">つよい<small>自己対戦で強化</small></button>
+      </div>
+      <label class="first" for="firstSel">先攻・後攻
+        <select id="firstSel"><option value="random">じゃんけん（ランダム）</option><option value="first">先攻</option><option value="second">後攻</option></select>
+      </label>
+      <div id="titleStats"></div>
+    </div>
+    <div class="menu2">
+      <button class="btn" id="tutBtn">チュートリアル</button>
+      <button class="btn" id="rulesBtn">ルール・カード図鑑</button>
+    </div>
+    <div id="lessonPick" hidden></div>
+    <button class="btn ghost dbgentry" id="dbgBtn">デバッグ（戦闘テスト）</button>
+    <p class="ainote">「つよい」CPUは、CPU同士の対戦（自己対戦）で評価関数の重みを調整したものです。調整前の「ふつう」CPUとの1000戦で<b>勝率78.2%</b>。</p>
+  </div>
+</section>
+
+<section class="screen" id="game" hidden>
+  <div class="wrap game-wrap">
+    <div class="topbar"><span id="modeLabel"></span><button class="btn iconbtn" id="menuBtn">メニュー</button></div>
+    <div id="dbgbar" hidden>
+      <span id="dbgLoop"></span>
+      <label>攻撃<select id="dbgAtk2"><option value="me">あなた</option><option value="cpu">CPU</option><option value="alt">交互</option></select></label>
+      <label>速度<select id="dbgSpd2"><option value="1">等速</option><option value="0.5">1/2</option><option value="0.25">1/4</option></select></label>
+      <label class="chk"><input type="checkbox" id="dbgRestore2">毎回戻す</label>
+      <button class="btn" id="dbgResetBtn">配置に戻す</button>
+      <button class="btn" id="dbgEdit">配置を編集</button>
+    </div>
+    <div id="coach" hidden><div id="coachTitle"></div><p id="coachText"></p><div class="row"><button class="btn primary" id="coachNext">次へ</button></div></div>
+    <div id="board" class="table">
+      <aside class="logcol" aria-label="これまでの経過"><h2>これまでの経過</h2><ol id="logPane"></ol></aside>
+      <div class="field" id="oppField"></div>
+      <div class="pinfo" id="oppInfo"></div>
+      <div class="midband">
+        <div class="midinfo"><div id="phase"></div><ul id="ticker" aria-live="polite"></ul><span id="hint"></span></div>
+        <div class="phasebtns"><button class="btn battle" id="battleBtn">戦闘</button><button class="btn primary" id="endBtn">ターン終了</button></div>
+      </div>
+      <div class="field" id="myField"></div>
+      <div class="pinfo mine" id="myInfo"></div>
+      <div class="handwrap"><div id="hand"></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="debug" hidden>
+  <div class="wrap">
+    <div class="topbar"><span class="dbgtitle">デバッグ：配置エディタ</span><button class="btn iconbtn" id="dbgBack">戻る</button></div>
+    <p class="sub">好きな配置で「戦闘 → ターン終了 → 戦闘」を繰り返します。あなたの手番では自分のロボを相手へドラッグ（または「戦闘」）で攻撃。CPU側を攻撃させる設定にすると、CPUが毎回ランダムに攻撃します。</p>
+    <div id="dbgEditor"></div>
+    <div class="row"><button class="btn ghost" id="dbgDefault">初期配置に戻す</button><button class="btn primary" id="dbgStart">この配置で開始</button></div>
+  </div>
+</section>
+
+<section class="screen" id="rules" hidden>
+  <div class="wrap rules">
+    <div class="topbar"><span id="modeLabel2" style="font-family:var(--f-dot)">ルール・カード図鑑</span><button class="btn iconbtn" id="rulesBack">戻る</button></div>
+    <h2>勝利条件</h2>
+    <p>お互いライフ15で開始。相手のライフを先に0にしたプレイヤーの勝ちです。両者の山札が尽き、どちらもダメージを与えられない状態が続いた場合はライフの多い方が勝ち（同じなら引き分け）です。</p>
+    <h2>手番の流れ</h2>
+    <ol>
+      <li><b>メインフェイズ</b>：最初に山札から1枚引きます。その後、次の行動を<b>合計2回まで</b>好きな順に行います。
+        <ul><li>カードをプレイ（手札またはセットから。ロボは場に3体まで）</li><li>電池を入れる（自分のロボに1本。攻撃力+1、上限あり）</li><li>放電効果を使う（電池を1本抜く）</li><li>アクションをセット（裏向き・1枚まで）</li></ul></li>
+      <li><b>バトルフェイズ</b>（任意）：自分のロボ1体で攻撃。相手の場にロボがいればその中から対象を選び、いなければ相手プレイヤーを攻撃します。先攻の最初の手番は攻撃できません。</li>
+      <li><b>手番の交代</b></li>
+    </ol>
+    <p class="note">後攻は、特別なアクション<b>「ワンモア」</b>を1枚手札に持って始めます。好きな手番のメインフェイズに使うと、その手番の行動が1回増えます。ワンモアを使うこと自体には行動を消費しません（行動を使い切った後でも使えます）。セットはできません。</p>
+    <h2>効果の種類</h2>
+    <p>ロボのカードの右上には、効果の種類を示す札が付いています。</p>
+    <ul>
+      <li><b>常時</b>：場にいる限り、いつでも働く効果。効果文の頭に【常時】と書いてあります。電池の有無は関係ありません。</li>
+      <li><b>放電</b>：自分の手番のメインフェイズに、<b>行動を1回</b>使い、そのロボの<b>電池を1本抜いて</b>使う効果。効果文の頭に【放電】と書いてあります。電池が入っていないと使えません（場では札が灰色になります）。</li>
+      <li><b>通電</b>：そのロボに<b>電池が1本以上入っている間だけ</b>働く効果。効果文の頭に【通電中】と書いてあります。電池が0本になると止まり、また入れると働きます。場では札が黄色の「通電ON」なら働いていて、灰色の「通電OFF」なら止まっています。</li>
+      <li><b>効果なし</b>：アニキロボのように、効果を持たないロボです。</li>
+    </ul>
+    <h3>キーワード能力</h3>
+    <ul>
+      <li><b>付属電池</b>：このロボは電池を1本入れた状態で場に出る（リペアキットでの起動も含む）。効果文の1行目に書いてあります。手札でも電池1本ぶんの攻撃力で表示されます。</li>
+    </ul>
+    <p class="note">電池を入れると、どのロボも攻撃力が1上がります（ターボロボはさらに+1）。放電で電池を抜くと、そのぶん攻撃力も下がります。</p>
+    <h2>戦闘</h2>
+    <p>攻撃宣言時、防御側はセットしたアクションを表にして発動できます。その後、攻撃力を比べ、低い方が破壊されて持ち主が差分のダメージを受けます。同じ攻撃力なら両方破壊、ダメージはありません。直接攻撃は攻撃力の分だけダメージです。</p>
+    <h3>このアプリでの細かい裁定</h3>
+    <ul>
+      <li>かみなり：場で最も攻撃力の高いロボの中から選びます。最高値のロボが相手の電池入りバリアロボだけなら使えません。</li>
+      <li>バリアロボ：電池が入っている間、相手のカードの効果で「選ばれ」ません（かみなり・スナイパー・マグネット・ドロボー・ショート・リミッター解除・電池交換・非常用電池など）。対象を選ばない効果（ボムロボの手番終了時の破壊など）は受けます。自分のカードでは選べます。戦闘の攻撃対象にはふつうに選べます。「最も攻撃力の高いロボ」を選ぶ効果で、最高値が相手のバリアロボだけなら、その効果は使えません（ドロボは何も奪いません）。</li>
+      <li>ショート：外した電池はなくなります。放電効果は発動しません。</li>
+      <li>ダルマロボ：戦闘で負けても電池を1本失って場に残ります。差分ダメージは通常どおり受けます。</li>
+      <li>ボムロボ：戦闘時に電池があれば、戦闘相手が生き残っても手番終了時に破壊します。</li>
+      <li>マグネットロボ：放電後、マグネットロボと相手のロボの持ち主（コントロール）を入れ替えます。電池は入ったまま移ります。</li>
+      <li>リペアキットで起動したメガトンロボは、自分の手番なら起動した手番の攻撃禁止が働きます。</li>
+      <li>破壊されたカードは元の持ち主のスクラップへ行きます。</li>
+      <li>リミッター解除：相手のロボにも使えます。上がるのは+3で固定です（電池の本数には関係しません）。</li>
+      <li>リサイクルロボ：起動した時、起動したプレイヤーのスクラップにある一番新しいアクションを1枚手札に戻します（ワンモアは対象外）。リペアキットで起動した場合は「リペアキットの処理が終わってスクラップへ置かれる → リサイクルロボの効果」の順なので、そのリペアキットを回収できます。</li>
+      <li>ドロボ：相手の場に電池入りのロボがいなければ何も起きません。攻撃力が同じなら左のロボから奪います。</li>
+      <li>コブンロボ：破壊されると、同じ場所にアニキロボが出ます。アニキロボはデッキに入らないロボですが、破壊されるとスクラップへ行くので、リペアキットで起動し直せます。</li>
+    </ul>
+    <h2>ロボ</h2>
+    <div class="dexlist" id="dexRobo"></div>
+    <h2>アクション</h2>
+    <div class="dexlist" id="dexSpell"></div>
+    <h2>デッキに入らないカード</h2>
+    <div class="dexlist" id="dexToken"></div>
+    <h2>不採用カード</h2>
+    <p class="note">試したものの採用しなかったカードです。デッキには入りません。</p>
+    <div class="dexlist retired" id="dexRetired"></div>
+  </div>
+</section>
+
+<div id="selbar" hidden><span id="selPrompt"></span><button class="btn" id="selCancel">やめる</button><button class="btn primary" id="selOk">決定</button></div>
+<div id="sheetBack" hidden></div>
+<div id="sheet" hidden></div>
+<div id="logDrawer" hidden><div class="logtop"><span>これまでの経過</span><button class="btn iconbtn" id="logClose">閉じる</button></div><ol id="logList"></ol></div>
+<div id="pop" hidden></div>
+<div id="fx" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// ===== ロボカードゲーム ルールエンジン =====
+// ブラウザ・Node 両対応。状態はプレーンなオブジェクトで、clone() で複製してシミュレーションに使う。
+(function (root) {
+'use strict';
+
+// リミッター解除の効果：'x2'＝攻撃力2倍、数値＝固定加算（計測時は環境変数 LIMBONUS で差し替え）
+const LIM_BONUS = (typeof process !== 'undefined' && process.env && process.env.LIMBONUS) ? (process.env.LIMBONUS === 'x2' ? 'x2' : +process.env.LIMBONUS) : 3;
+const CARDS = {
+  souji:    { id:'souji',    name:'そうじロボ', kind:'robo', atk:2, max:3, eff:'release', text:'【放電】伏せ札を1枚選び、破壊する。', enterBat:1 },
+  turbo:   { id:'turbo',   name:'ターボロボ', kind:'robo', atk:2, max:3, eff:'const',   text:'【常時】このロボの攻撃力は、電池1本につき追加で1上がる。' },
+  magnet:    { id:'magnet',    name:'マグネットロボ', kind:'robo', atk:3, max:3, eff:'release', text:'【放電】相手の場のロボを1体選び、このロボと入れ替える。' },
+  barrier: { id:'barrier', name:'バリアロボ', kind:'robo', atk:3, max:2, eff:'powered',    text:'【通電中】このロボは、相手のカードの効果で選ばれない。' },
+  bomb: { id:'bomb', name:'ボムロボ',   kind:'robo', atk:1, max:2, eff:'powered',    text:'【通電中】このロボと戦闘したロボは、手番終了時に破壊される。', enterBat:1 },
+  crane:  { id:'crane',  name:'クレーンロボ', kind:'robo', atk:3, max:3, eff:'powered',    text:'【通電中】このロボが戦闘でロボを破壊した時、山札を1枚引く。' },
+  daruma:    { id:'daruma',    name:'ダルマロボ', kind:'robo', atk:3, max:2, eff:'const',   text:'【常時】このロボが戦闘で破壊される時、代わりにこのロボの電池を1本抜く。' },
+  heat:   { id:'heat',   name:'ヒートロボ', kind:'robo', atk:4, max:2, eff:'const',   text:'【常時】自分の手番開始時、自分は2ダメージを受ける。' },
+  megaton:    { id:'megaton',    name:'メガトンロボ',   kind:'robo', atk:5, max:1, eff:'const',   text:'【常時】このロボを起動した手番、自分の場のロボは攻撃できない。' },
+  solar:   { id:'solar',   name:'ソーラーロボ', kind:'robo', atk:1, max:5, eff:'const', text:'【常時】自分の手番開始時、このロボに電池を1本入れる。このロボが破壊された時、その電池を自分の場のロボに移す（攻撃力の高いロボから順に）。', enterBat:1 },
+  guard:   { id:'guard',   name:'ガードロボ', kind:'robo', atk:3, max:2, eff:'powered',  text:'【通電中】相手は、このロボ以外の自分のロボを攻撃できない。', enterBat:1 },
+  recycle: { id:'recycle', name:'リサイクルロボ', kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、自分のスクラップにある一番新しいアクションを1枚手札に戻す。' },
+  hack:    { id:'hack',    name:'ハッキング', kind:'spell', text:'相手の場で最も攻撃力の高いロボを1体選ぶ。この手番の終わりまで、そのロボは自分の場で自分のロボとして動く（攻撃もできる）。手番終了時に持ち主の場へ戻る。' },
+  limiter: { id:'limiter', name:'リミッター解除', kind:'spell', text:'場のロボを1体選ぶ。この手番の間、そのロボの攻撃力を@LIM@にする。手番終了時に、そのロボは破壊される。' },
+  ebattery:    { id:'ebattery',    name:'非常用電池', kind:'spell', text:'場のロボを選び、電池を2本まで好きなように入れる。' },
+  manual: { id:'manual', name:'整備マニュアル', kind:'spell', text:'山札を2枚引く。そのあと、自分の場のロボを1体選び、電池を1本入れる。' },
+  short:    { id:'short',    name:'ショート',   kind:'spell', text:'電池が入ったロボを2体まで選び、その電池をすべて外す。' },
+  repair:    { id:'repair',    name:'リペアキット', kind:'spell', text:'自分か相手のスクラップのロボを1体選び、自分の場で起動する。' },
+  swap:    { id:'swap',    name:'電池交換',   kind:'spell', text:'場のロボを2体選び、1体目の電池を1本、2体目に移す。' },
+  onemore: { id:'onemore', name:'ワンモア',   kind:'spell', token:true, noSet:true, noCost:true, text:'後攻が最初から持つ特別なアクション。この手番の行動を1回増やす。使うのに行動を消費しない。セットはできない。' },
+  thunder:    { id:'thunder',    name:'かみなり',   kind:'spell', text:'場で最も攻撃力の高いロボを、1体選び破壊する。' },
+  // ---- 2026-10 追加ロボ ----
+  sniper:  { id:'sniper',  name:'スナイパーロボ', kind:'robo', atk:2, max:1, eff:'release', text:'【放電】このロボ以外で、場で最も攻撃力の高いロボを1体選び、破壊する。', enterBat:1 },
+  rocket:  { id:'rocket',  name:'ロケットロボ',   kind:'robo', atk:1, max:1, eff:'const',   text:'【常時】このロボが戦闘する時（攻撃した時も、攻撃された時も）、電池が入っていれば1本使い、その戦闘の間だけ攻撃力を+4する。そのとき自分は3ダメージを受ける。', enterBat:1 },
+  jammer:  { id:'jammer',  name:'ジャマーロボ',   kind:'robo', atk:2, max:2, eff:'powered', text:'【通電中】相手はアクションを使えない（伏せ札を表にすることもできない。伏せることはできる）。' },
+  thief:   { id:'thief',   name:'ドロボ',   kind:'robo', atk:2, max:2, eff:'const',   text:'【常時】このロボを起動した時、相手の場の電池が入っているロボのうち、最も攻撃力の高いロボを1体選び、その電池を1本このロボに移す。' },
+  kobun:  { id:'kobun',  name:'コブンロボ',   kind:'robo', atk:2, max:1, eff:'const',   text:'【常時】このロボが破壊された時、自分の場に「アニキロボ」を出す。' },
+  aniki:   { id:'aniki',   name:'アニキロボ',     kind:'robo', atk:4, max:3, eff:'none',    token:true, text:'コブンロボが破壊された時に出るロボ（デッキには入らない）。' },
+};
+CARDS.limiter.text = CARDS.limiter.text.replace('@LIM@', LIM_BONUS === 'x2' ? '2倍' : '+' + LIM_BONUS).replace('+' + LIM_BONUS + 'にする', '+' + LIM_BONUS + 'する');
+const LIM_LABEL = LIM_BONUS === 'x2' ? '攻撃力2倍' : '攻撃力+' + LIM_BONUS;
+const ROBO_IDS = ['souji','turbo','magnet','barrier','bomb','crane','daruma','heat','megaton','recycle','sniper','thief','kobun'];
+const SPELL_IDS = ['ebattery','manual','short','repair','swap','thunder','limiter'];
+// 不採用カード：デッキには入らないが、ルール・図鑑には残す（新しいものを末尾に足す）
+const RETIRED_IDS = ['solar','guard','hack','jammer','rocket'];
+// 本体以外で出てくるカード（デッキ外）
+const TOKEN_IDS = ['aniki','onemore'];
+const DECK_IDS = ROBO_IDS.concat(SPELL_IDS);
+const LIFE_MAX = 15, FIELD_MAX = 3, ACTIONS = 2;
+const STALL_TURNS = 8; // 両者の山札切れ後、この手番数ダメージが無ければ「互いにダメージを与えられない」とみなす
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function shuffle(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+  return arr;
+}
+
+// ---------- 状態 ----------
+function newGame(rng, first, opts) {
+  opts = opts || {};
+  let uid = 0;
+  const players = [0, 1].map(pi => {
+    const deck = shuffle(DECK_IDS.map(id => ({ uid: uid++, id, owner: pi, bat: 0 })), rng);
+    return { life: LIFE_MAX, deck, hand: [], field: [], set: null, scrap: [] };
+  });
+  const s = {
+    players, turn: first, turnNo: 0, actions: ACTIONS,
+    phase: 'main', attacked: false, firstTurn: true, eot: [], noAttack: false,
+    winner: null, draw: false, stall: 0, lifeSnap: '', pending: null,
+    log: opts.log === false ? null : [], v: opts.v || null, uidSeq: 0,
+  };
+  const v = s.v || {};
+  for (const pi of [0, 1]) drawCards(s, pi, 4 + (pi !== first ? (v.secondExtraCards || 0) : 0), true);
+  if (v.secondLife) players[1 - first].life = v.secondLife;
+  // 後攻は「ワンモア」（行動+1・消費なし）を1枚持って始める
+  if (!v.noCoin) players[1 - first].hand.push({ uid: uid++, id: 'onemore', owner: 1 - first, bat: 0 });
+  s.uidSeq = uid;
+  startTurn(s, true);
+  return s;
+}
+
+function cloneCard(c) { const o = { uid: c.uid, id: c.id, owner: c.owner, bat: c.bat }; if (c.lim) o.lim = true; if (c.boost) o.boost = c.boost; if (c.home !== undefined) o.home = c.home; return o; }
+function clone(s) {
+  const players = s.players.map(p => ({
+    life: p.life,
+    deck: p.deck.map(cloneCard), hand: p.hand.map(cloneCard), field: p.field.map(cloneCard),
+    set: p.set ? cloneCard(p.set) : null, scrap: p.scrap.map(cloneCard),
+  }));
+  return {
+    players, turn: s.turn, turnNo: s.turnNo, actions: s.actions, phase: s.phase,
+    attacked: s.attacked, firstTurn: s.firstTurn, eot: s.eot.slice(), noAttack: s.noAttack,
+    winner: s.winner, draw: s.draw, stall: s.stall, lifeSnap: s.lifeSnap,
+    pending: s.pending ? Object.assign({}, s.pending) : null, log: null, v: s.v, uidSeq: s.uidSeq || 0,
+  };
+}
+
+function log(s, msg, ev) { if (s.log) s.log.push(Object.assign({ msg }, ev || {})); }
+function pname(pi) { return pi === 0 ? 'あなた' : 'CPU'; }
+function cname(c) { return CARDS[c.id].name; }
+
+// ---------- 参照系 ----------
+function atkOf(y) { const c = CARDS[y.id]; const a = c.atk + y.bat + (y.id === 'turbo' ? y.bat : 0) + (y.boost || 0); return y.lim ? (LIM_BONUS === 'x2' ? a * 2 : a + LIM_BONUS) : a; }
+// 戦闘時の攻撃力（ロケットロボ＝不採用カードの点火を含む）
+function battleAtk(y) { return y.id === 'rocket' && y.bat > 0 ? atkOf(y) - 1 + 4 : atkOf(y); }
+// ジャマーロボ（不採用カード）：pi の相手の場に電池入りのジャマーがいれば、pi はアクションを使えない
+function isJammed(s, pi) { return s.players[1 - pi].field.some(y => y.id === 'jammer' && y.bat > 0); }
+// スナイパーロボの対象：自分以外で場の攻撃力が最も高いロボ（相手の電池入りバリアロボは除く）
+function sniperCandidates(s, srcUid) {
+  const src = findRobo(s, srcUid); if (!src) return [];
+  const all = allField(s).filter(y => y.uid !== srcUid); if (!all.length) return [];
+  const mx = Math.max.apply(null, all.map(atkOf));
+  return all.filter(y => atkOf(y) === mx && !immuneFrom(y, s, src.pi));
+}
+// 攻撃対象の制限：電池入りのガードロボがいれば、それ以外は狙えない（不採用カード）
+function guardsOf(s, pi) { return s.players[pi].field.filter(y => y.id === 'guard' && y.bat > 0); }
+// 電池入りのバリアロボは、相手のカードの効果で選ばれない（選ばない効果＝ボムロボなどは効く）。srcPi＝効果を出した側
+function immuneFrom(y, s, srcPi) {
+  if (y.id !== 'barrier' || y.bat <= 0) return false;
+  const f = findRobo(s, y.uid);
+  return !f || f.pi !== srcPi;
+}
+function findRobo(s, uid) {
+  for (let pi = 0; pi < 2; pi++) {
+    const f = s.players[pi].field;
+    for (let i = 0; i < f.length; i++) if (f[i].uid === uid) return { pi, i, y: f[i] };
+  }
+  return null;
+}
+function allField(s) { return s.players[0].field.concat(s.players[1].field); }
+function isOver(s) { return s.winner !== null || s.draw; }
+
+// ---------- 基本処理 ----------
+function damage(s, pi, n, why) {
+  if (n <= 0 || isOver(s)) return;
+  s.players[pi].life = Math.max(0, s.players[pi].life - n);
+  log(s, `${pname(pi)}に${n}ダメージ${why ? '（' + why + '）' : ''}`, { t: 'damage', pi, n });
+  if (s.players[pi].life <= 0) { s.winner = 1 - pi; log(s, `${pname(1 - pi)}の勝利！`, { t: 'win', pi: 1 - pi }); }
+}
+function drawCards(s, pi, n, silent) {
+  const p = s.players[pi]; let k = 0;
+  for (let i = 0; i < n; i++) { if (!p.deck.length) break; const c = p.deck.pop(); c.bat = 0; p.hand.push(c); k++; }
+  if (!silent) {
+    if (k) log(s, `${pname(pi)}はカードを${k}枚引いた`, { t: 'draw', pi, n: k });
+    if (k < n) log(s, `${pname(pi)}の山札がない`, { t: 'nodeck', pi });
+  }
+  return k;
+}
+// 破壊。byBattle の時はダルマロボの置換が働く。実際に破壊されたら true
+function destroy(s, uid, byBattle) {
+  const f = findRobo(s, uid); if (!f) return false;
+  const y = f.y;
+  if (byBattle && y.id === 'daruma' && y.bat > 0) {
+    y.bat--;
+    log(s, `ダルマロボは電池を1本失って破壊を免れた`, { t: 'daruma', uid });
+    return false;
+  }
+  s.players[f.pi].field.splice(f.i, 1);
+  const leftBat = y.bat;
+  y.bat = 0; delete y.lim; delete y.home; delete y.boost;
+  const G = s.players[y.owner].scrap;
+  G.push(y); // アニキロボ（トークン）もスクラップへ行く
+  s.eot = s.eot.filter(u => u !== uid);
+  log(s, `${cname(y)}が破壊された`, { t: 'destroy', uid, pi: f.pi });
+  if (y.id === 'solar' && leftBat > 0) solarPass(s, f.pi, uid, leftBat);
+  if (y.id === 'kobun' && s.players[f.pi].field.length < FIELD_MAX) {
+    const t = { uid: s.uidSeq++, id: 'aniki', owner: y.owner, bat: 0 };
+    s.players[f.pi].field.splice(f.i, 0, t);
+    log(s, `アニキロボが現れた！`, { t: 'deploy', pi: f.pi, uid: t.uid, token: true });
+  }
+  return true;
+}
+// ソーラーロボ（不採用カード）の遺言：残っていた電池を、同じ場のロボへ攻撃力の高い順（同値は左から）に上限まで移す
+function solarPass(s, pi, fromUid, n) {
+  const order = s.players[pi].field.map((y, i) => ({ y, i })).sort((a, b) => atkOf(b.y) - atkOf(a.y) || a.i - b.i);
+  let moved = 0;
+  for (const { y } of order) {
+    while (n > 0 && y.bat < CARDS[y.id].max) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
+    if (n <= 0) break;
+  }
+  if (moved) log(s, `ソーラーロボの電池が${moved}本、味方のロボに移った`, { t: 'solarpass', pi, n: moved });
+}
+// リサイクルロボの起動時効果：自分のスクラップの一番新しいアクション（ワンモア以外）を手札へ
+function recycleTrigger(s, pi) {
+  const G = s.players[pi].scrap;
+  for (let i = G.length - 1; i >= 0; i--) if (CARDS[G[i].id].kind === 'spell' && !CARDS[G[i].id].token) {
+    const c = G.splice(i, 1)[0]; s.players[pi].hand.push(c);
+    log(s, `リサイクルロボの効果で${cname(c)}が手札に戻った`, { t: 'recycle', pi, id: c.id });
+    return;
+  }
+}
+// ドロボの起動時効果：相手の電池入りロボのうち攻撃力最大（同値は左）から1本奪う
+function thiefTrigger(s, pi, uid) {
+  const me = findRobo(s, uid); if (!me) return;
+  const c = s.players[1 - pi].field.filter(y => y.bat > 0);
+  if (!c.length || me.y.bat >= CARDS[me.y.id].max) return;
+  const mx = Math.max.apply(null, c.map(atkOf)), t = c.find(y => atkOf(y) === mx && !immuneFrom(y, s, pi));
+  if (!t) { log(s, 'ドロボは電池を奪えなかった（バリアロボ）', { t: 'fizzle' }); return; }
+  t.bat--; me.y.bat++;
+  log(s, `ドロボが${cname(t)}の電池を1本奪った`, { t: 'batmove', from: t.uid, to: uid });
+}
+// 整備マニュアルで電池を入れられる自分のロボ
+function maintTargets(s, pi) { return s.players[pi].field.filter(y => y.bat < CARDS[y.id].max); }
+function placeBat(s, y, n) { // 置ける分だけ置く。置いた数を返す
+  const room = CARDS[y.id].max - y.bat;
+  const k = Math.max(0, Math.min(n, room));
+  y.bat += k; return k;
+}
+function deploy(s, pi, card, how) {
+  card.bat = 0; s.players[pi].field.push(card);
+  log(s, `${pname(pi)}は${cname(card)}を${how || '起動'}した`, { t: 'deploy', pi, uid: card.uid });
+  const eh = CARDS[card.id].enterBat || 0;
+  if (eh) { const k = placeBat(s, card, eh); if (k) log(s, `${cname(card)}は電池を${k}本入れて起動した`, { t: 'enterbat', pi, uid: card.uid }); }
+  // 起動時効果。アクションの処理中に起動した場合は、そのアクションがスクラップに置かれてから発動する
+  const trig = card.id === 'recycle' ? () => recycleTrigger(s, pi) : card.id === 'thief' ? () => thiefTrigger(s, pi, card.uid) : null;
+  if (trig) { if (s.resolving) (s.deferred = s.deferred || []).push(trig); else trig(); }
+  if (card.id === 'megaton' && s.turn === pi && !isOver(s)) {
+    s.noAttack = true; log(s, `メガトンロボの効果：この手番、${pname(pi)}のロボは攻撃できない`, { t: 'megaton', pi });
+  }
+}
+
+// ---------- 手番 ----------
+function startTurn(s, isFirst) {
+  s.turnNo++;
+  s.actions = ACTIONS; s.phase = 'main'; s.attacked = false; s.noAttack = false; s.eot = []; s.pending = null;
+  s.firstTurn = !!isFirst;
+  const pi = s.turn;
+  log(s, `―― ${pname(pi)}の手番（${s.turnNo}） ――`, { t: 'turn', pi });
+  for (const y of s.players[pi].field.slice()) {
+    if (y.id === 'heat') damage(s, pi, 2, 'ヒートロボ');
+    if (isOver(s)) return;
+    if (y.id === 'solar' && placeBat(s, y, 1)) log(s, `ソーラーロボに電池が1本入った`, { t: 'solar', pi, uid: y.uid });
+  }
+  const v = s.v || {};
+  if (s.turnNo === 1 && v.firstActions) s.actions = v.firstActions;
+  if (s.turnNo === 2 && v.secondExtraAction) s.actions += v.secondExtraAction;
+  if (!(s.turnNo === 1 && v.firstNoDraw)) drawCards(s, pi, 1);
+}
+function endTurn(s) {
+  if (isOver(s)) return;
+  resolveEot(s);
+  if (isOver(s)) return;
+  // 膠着判定
+  const P = s.players;
+  const snap = P[0].life + ',' + P[1].life;
+  if (!P[0].deck.length && !P[1].deck.length) {
+    s.stall = (snap === s.lifeSnap) ? s.stall + 1 : 0;
+  }
+  s.lifeSnap = snap;
+  if (s.stall >= STALL_TURNS || s.turnNo >= 120) {
+    if (P[0].life === P[1].life) { s.draw = true; log(s, '互いにダメージを与えられない：引き分け', { t: 'tie' }); }
+    else { s.winner = P[0].life > P[1].life ? 0 : 1; log(s, `互いにダメージを与えられない：ライフの多い${pname(s.winner)}の勝利`, { t: 'win', pi: s.winner }); }
+    return;
+  }
+  s.turn = 1 - s.turn;
+  startTurn(s, false);
+}
+function resolveEot(s) {
+  for (const p of s.players) for (const y of p.field) delete y.boost;
+  const list = s.eot.slice(); s.eot = [];
+  for (const uid of list) {
+    const f = findRobo(s, uid);
+    if (f) { log(s, f.y.lim ? 'リミッター解除の反動' : 'ボムロボの効果が発動', { t: 'bomb' }); destroy(s, uid, false); }
+  }
+  // ハッキング（不採用カード）で奪ったロボを持ち主の場へ戻す
+  for (const pi of [0, 1]) for (const y of s.players[pi].field.slice()) {
+    if (y.home === undefined || y.home === pi) { delete y.home; continue; }
+    const from = s.players[pi].field, to = s.players[y.home].field;
+    from.splice(from.indexOf(y), 1);
+    if (to.length < FIELD_MAX) { to.push(y); log(s, `${cname(y)}は${pname(y.home)}の場に戻った`, { t: 'hackback', uid: y.uid, pi: y.home }); delete y.home; }
+    else { from.push(y); delete y.home; destroy(s, y.uid, false); }
+  }
+}
+
+// ---------- 行動 ----------
+// action = {t:'play', uid, ch} | {t:'place', target} | {t:'release', src, ch} | {t:'set', uid}
+//          | {t:'attack', att, tgt('player'|uid)} | {t:'end'}
+function locateOwnCard(s, pi, uid) {
+  const p = s.players[pi];
+  const hi = p.hand.findIndex(c => c.uid === uid);
+  if (hi >= 0) return { from: 'hand', i: hi, c: p.hand[hi] };
+  if (p.set && p.set.uid === uid) return { from: 'set', c: p.set };
+  return null;
+}
+
+function canAct(s) { return !isOver(s) && s.phase === 'main' && s.actions > 0 && !s.pending; }
+
+// 合法性チェック。不正なら理由文字列、合法なら null
+function checkAction(s, a) {
+  if (isOver(s)) return 'ゲームは終了しています';
+  const pi = s.turn, P = s.players[pi], O = s.players[1 - pi];
+  if (a.t === 'end') return s.pending ? '攻撃処理中です' : null;
+  if (a.t === 'attack') {
+    if (s.pending) return '攻撃処理中です';
+    if (s.firstTurn) return '先攻の最初の手番は攻撃できません';
+    if (s.attacked) return 'この手番はすでに攻撃しました';
+    if (s.noAttack) return 'メガトンロボの効果で攻撃できません';
+    const f = findRobo(s, a.att); if (!f || f.pi !== pi) return '攻撃するロボがいません';
+    if (O.field.length) {
+      const t = findRobo(s, a.tgt); if (!t || t.pi !== 1 - pi) return '相手の場のロボを選んでください';
+      const gs = guardsOf(s, 1 - pi); if (gs.length && !gs.includes(t.y)) return 'ガードロボがいるので、先にガードロボを攻撃してください';
+    }
+    else if (a.tgt !== 'player') return '相手プレイヤーを攻撃します';
+    return null;
+  }
+  if (a.t === 'battle') {
+    if (s.pending) return '攻撃処理中です';
+    if (s.phase !== 'main') return 'すでにバトルフェイズです';
+    if (s.firstTurn) return '先攻の最初の手番は攻撃できません';
+    if (s.noAttack) return 'メガトンロボの効果でこの手番は攻撃できません';
+    if (!P.field.length) return '攻撃できるロボがいません';
+    return null;
+  }
+  if (a.t === 'play') {
+    const L0 = locateOwnCard(s, pi, a.uid);
+    if (L0 && CARDS[L0.c.id].kind === 'spell' && isJammed(s, pi)) return 'ジャマーロボがいるので、アクションを使えません';
+    if (L0 && CARDS[L0.c.id].noCost) {
+      if (s.pending) return '攻撃処理中です';
+      if (s.phase !== 'main') return 'バトルフェイズ中は使えません';
+      return null;
+    }
+  }
+  if (!canAct(s)) return s.phase === 'battle' ? 'バトルフェイズ中はメインの行動はできません' : s.actions <= 0 ? 'この手番の行動は使い切りました' : 'いまは行動できません';
+  if (a.t === 'place') {
+    const f = findRobo(s, a.target); if (!f || f.pi !== pi) return '自分のロボを選んでください';
+    if (f.y.bat >= CARDS[f.y.id].max) return '電池の上限です';
+    return null;
+  }
+  if (a.t === 'set') {
+    if (P.set) return 'すでにアクションをセットしています';
+    const c = P.hand.find(c => c.uid === a.uid); if (!c || CARDS[c.id].kind !== 'spell') return '手札のアクションを選んでください';
+    if (CARDS[c.id].noSet) return 'このカードはセットできません';
+    return null;
+  }
+  if (a.t === 'play') {
+    const L = locateOwnCard(s, pi, a.uid); if (!L) return 'そのカードはプレイできません';
+    const def = CARDS[L.c.id];
+    if (def.kind === 'robo') { if (P.field.length >= FIELD_MAX) return '場のロボは3体までです'; return null; }
+    return checkSpell(s, pi, L.c.id, a.ch || {});
+  }
+  if (a.t === 'release') {
+    const f = findRobo(s, a.src); if (!f || f.pi !== pi) return '自分のロボを選んでください';
+    if (CARDS[f.y.id].eff !== 'release') return '放電効果を持っていません';
+    if (f.y.bat <= 0) return '電池が入っていません';
+    const ch = a.ch || {};
+    if (f.y.id === 'souji') { if (ch.pi !== 0 && ch.pi !== 1) return '対象を選んでください'; if (!s.players[ch.pi].set) return 'セットされたアクションがありません'; }
+    if (f.y.id === 'magnet') { const t = findRobo(s, ch.target); if (!t || t.pi !== 1 - pi) return '相手のロボを選んでください'; if (immuneFrom(t.y, s, pi)) return 'そのロボは相手のカードの効果を受けません'; }
+    if (f.y.id === 'sniper') { if (!sniperCandidates(s, f.y.uid).some(y => y.uid === ch.target)) return '場で最も攻撃力の高いロボを選んでください'; }
+    return null;
+  }
+  return '不明な行動';
+}
+
+// ハッキング（不採用カード）の対象：相手の場で最も攻撃力の高いロボ（選ばれないロボは除く）
+function hackCandidates(s, pi) {
+  const O = s.players[1 - pi].field; if (!O.length) return [];
+  const mx = Math.max(...O.map(atkOf));
+  return O.filter(y => atkOf(y) === mx && !immuneFrom(y, s, pi));
+}
+function thunderCandidates(s, pi) {
+  const all = allField(s); if (!all.length) return [];
+  const mx = Math.max.apply(null, all.map(atkOf));
+  return all.filter(y => atkOf(y) === mx && !immuneFrom(y, s, pi));
+}
+function checkSpell(s, pi, id, ch) {
+  switch (id) {
+    case 'ebattery': return null;
+    case 'manual': {
+      // 電池を入れられる自分のロボがいれば、1体選ぶ（いなければ引くだけ）
+      const ok = maintTargets(s, pi);
+      if (ok.length && !ok.some(y => y.uid === ch.target)) return '電池を入れる自分のロボを選んでください';
+      return null;
+    }
+    case 'onemore': return null;
+    case 'short': {
+      const t = ch.targets || [];
+      if (!t.length || t.length > 2 || new Set(t).size !== t.length) return '対象を1〜2体選んでください';
+      for (const u of t) { const f = findRobo(s, u); if (!f || f.y.bat <= 0 || immuneFrom(f.y, s, pi)) return '電池が入ったロボを選んでください'; }
+      return null;
+    }
+    case 'repair': {
+      if (s.players[pi].field.length >= FIELD_MAX) return '場のロボは3体までです';
+      const g = s.players[ch.gpi]; if (!g) return 'スクラップのロボを選んでください';
+      const c = g.scrap.find(c => c.uid === ch.uid); if (!c || CARDS[c.id].kind !== 'robo') return 'スクラップのロボを選んでください';
+      return null;
+    }
+    case 'swap': {
+      const a = findRobo(s, ch.from), b = findRobo(s, ch.to);
+      if (!a || !b || a.y.uid === b.y.uid) return '移動元と移動先を選んでください';
+      if (a.y.bat <= 0 || immuneFrom(a.y, s, pi)) return '移動元に動かせる電池がありません';
+      if (immuneFrom(b.y, s, pi) || b.y.bat >= CARDS[b.y.id].max) return '移動先に入れられません';
+      return null;
+    }
+    case 'thunder': {
+      const c = thunderCandidates(s, pi); if (!c.some(y => y.uid === ch.target)) return '最も攻撃力の高いロボを選んでください';
+      return null;
+    }
+    case 'hack': {
+      if (s.players[pi].field.length >= FIELD_MAX) return '自分の場がいっぱいです';
+      if (!hackCandidates(s, pi).some(y => y.uid === ch.target)) return '相手の場で最も攻撃力の高いロボを選んでください';
+      return null;
+    }
+    case 'limiter': {
+      const t = findRobo(s, ch.target); if (!t) return 'ロボを選んでください';
+      if (immuneFrom(t.y, s, pi)) return 'そのロボはアクションの効果を受けません';
+      return null;
+    }
+  }
+  return null;
+}
+
+// アクション効果の解決（キャスターpi）
+function resolveSpell(s, pi, card, ch) {
+  ch = ch || {};
+  log(s, `${pname(pi)}は${cname(card)}を発動した`, { t: 'spell', pi, id: card.id });
+  s.resolving = true; s.deferred = [];
+  switch (card.id) {
+    case 'ebattery': {
+      let n = 0;
+      for (const u of (ch.targets || []).slice(0, 2)) {
+        const f = findRobo(s, u); if (!f || immuneFrom(f.y, s, pi)) continue;
+        const k = placeBat(s, f.y, 1); n += k;
+        if (k) log(s, '', { t: 'batfly', uid: f.y.uid });
+      }
+      log(s, `電池を${n}本入れた`, { t: 'bat' });
+      break;
+    }
+    case 'manual': {
+      drawCards(s, pi, 2);
+      const t = findRobo(s, ch.target);
+      if (t && t.pi === pi && placeBat(s, t.y, 1)) log(s, `${cname(t.y)}に電池を入れた`, { t: 'batfly', uid: t.y.uid });
+      break;
+    }
+    case 'onemore': s.actions += 1; log(s, `${pname(pi)}の行動が1回増えた`, { t: 'extraact', pi }); break;
+    case 'short': {
+      for (const u of (ch.targets || [])) {
+        const f = findRobo(s, u); if (!f || f.y.bat <= 0 || immuneFrom(f.y, s, pi)) continue;
+        const k = f.y.bat; f.y.bat = 0;
+        log(s, `${cname(f.y)}の電池が${k}本外れた`, { t: 'short', uid: u, n: k });
+      }
+      break;
+    }
+    case 'repair': {
+      if (s.players[pi].field.length >= FIELD_MAX) break;
+      const g = s.players[ch.gpi]; if (!g) break;
+      const i = g.scrap.findIndex(c => c.uid === ch.uid); if (i < 0) break;
+      const c = g.scrap.splice(i, 1)[0]; deploy(s, pi, c, 'スクラップから起動');
+      break;
+    }
+    case 'swap': {
+      const a = findRobo(s, ch.from), b = findRobo(s, ch.to);
+      if (a && b && a.y.bat > 0 && !immuneFrom(a.y, s, pi) && !immuneFrom(b.y, s, pi) && b.y.bat < CARDS[b.y.id].max) {
+        a.y.bat--; b.y.bat++; log(s, `${cname(a.y)}の電池を${cname(b.y)}に移した`, { t: 'batmove', from: a.y.uid, to: b.y.uid });
+      }
+      break;
+    }
+    case 'thunder': {
+      const c = thunderCandidates(s, pi).find(y => y.uid === ch.target);
+      if (c) destroy(s, c.uid, false); else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'hack': {
+      const t = findRobo(s, ch.target);
+      if (t && hackCandidates(s, pi).includes(t.y) && s.players[pi].field.length < FIELD_MAX) {
+        s.players[t.pi].field.splice(t.i, 1);
+        if (t.y.home === pi) delete t.y.home; else if (t.y.home === undefined) t.y.home = t.pi;
+        s.players[pi].field.push(t.y);
+        log(s, `${cname(t.y)}を乗っ取った`, { t: 'hack', pi, uid: t.y.uid });
+      } else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'limiter': {
+      const t = findRobo(s, ch.target);
+      if (t && !immuneFrom(t.y, s, pi)) {
+        t.y.lim = true; if (!s.eot.includes(t.y.uid)) s.eot.push(t.y.uid);
+        log(s, `${cname(t.y)}のリミッターが外れた（攻撃力${atkOf(t.y)}）`, { t: 'limiter', uid: t.y.uid });
+      } else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+  }
+  card.bat = 0; s.players[card.owner].scrap.push(card);
+  // アクションの処理が終わってから、途中で起きた起動時効果を処理する
+  const later = s.deferred || []; s.resolving = false; s.deferred = [];
+  for (const f of later) f();
+}
+
+function apply(s, a) {
+  const err = checkAction(s, a);
+  if (err) throw new Error(err);
+  const pi = s.turn, P = s.players[pi], O = s.players[1 - pi];
+  switch (a.t) {
+    case 'end': endTurn(s); return;
+    case 'battle': s.phase = 'battle'; log(s, `${pname(pi)}はバトルフェイズに入った`, { t: 'phase', pi }); return;
+    case 'attack': declareAttack(s, a.att, a.tgt); return;
+    case 'place': {
+      const f = findRobo(s, a.target); placeBat(s, f.y, 1); s.actions--;
+      log(s, `${pname(pi)}は${cname(f.y)}に電池を入れた`, { t: 'place', pi, uid: f.y.uid });
+      return;
+    }
+    case 'set': {
+      const i = P.hand.findIndex(c => c.uid === a.uid); P.set = P.hand.splice(i, 1)[0]; s.actions--;
+      log(s, `${pname(pi)}はアクションをセットした`, { t: 'set', pi });
+      return;
+    }
+    case 'play': {
+      const L = locateOwnCard(s, pi, a.uid);
+      if (!CARDS[L.c.id].noCost) s.actions--;
+      if (L.from === 'hand') P.hand.splice(L.i, 1); else P.set = null;
+      if (CARDS[L.c.id].kind === 'robo') deploy(s, pi, L.c, '起動');
+      else resolveSpell(s, pi, L.c, a.ch);
+      return;
+    }
+    case 'release': {
+      const f = findRobo(s, a.src);
+      f.y.bat--;
+      s.actions--;
+      log(s, `${pname(pi)}は${cname(f.y)}の放電効果を使った`, { t: 'release', pi, uid: f.y.uid });
+      if (f.y.id === 'souji') {
+        const tp = s.players[a.ch.pi]; const c = tp.set; tp.set = null; c.bat = 0; s.players[c.owner].scrap.push(c);
+        log(s, `セットされていた${cname(c)}を破壊した`, { t: 'setdestroy', pi: a.ch.pi, id: c.id });
+      } else if (f.y.id === 'magnet') {
+        const t = findRobo(s, a.ch.target);
+        const my = f.y, th = t.y;
+        P.field[f.i] = th; O.field[t.i] = my;
+        log(s, `マグネットロボと${cname(th)}を入れ替えた`, { t: 'swap', pi });
+      } else if (f.y.id === 'sniper') {
+        destroy(s, a.ch.target, false);
+      }
+      return;
+    }
+  }
+}
+
+// ---------- 戦闘 ----------
+function declareAttack(s, att, tgt) {
+  if (s.phase === 'main') log(s, `${pname(s.turn)}はバトルフェイズに入った`, { t: 'phase', pi: s.turn });
+  s.phase = 'battle'; s.attacked = true;
+  s.pending = { att, tgt };
+  const A = findRobo(s, att).y;
+  const tn = tgt === 'player' ? pname(1 - s.turn) : cname(findRobo(s, tgt).y);
+  log(s, `${cname(A)}が${tn}に攻撃！`, { t: 'attack', pi: s.turn, att, tgt });
+}
+// 防御側がセットアクションで応答できるか
+function needsResponse(s) { return !!(s.pending && s.players[1 - s.turn].set && !isJammed(s, 1 - s.turn)); }
+function respondChoiceError(s, ch) {
+  const di = 1 - s.turn, c = s.players[di].set; if (!c) return 'セットされていません';
+  return checkSpell(s, di, c.id, ch || {});
+}
+// resp: null (発動しない) or {ch}
+function respond(s, resp) {
+  const di = 1 - s.turn, D = s.players[di];
+  if (resp && D.set) {
+    const c = D.set; D.set = null;
+    log(s, `${pname(di)}はセットした${cname(c)}を表にした！`, { t: 'reveal', pi: di, id: c.id });
+    resolveSpell(s, di, c, resp.ch);
+  }
+  resolveBattle(s);
+}
+function resolveBattle(s) {
+  const p = s.pending; s.pending = null;
+  if (!p || isOver(s)) return;
+  const pi = s.turn, di = 1 - pi, D = s.players[di];
+  const af = findRobo(s, p.att);
+  if (!af || af.pi !== pi) { log(s, '攻撃したロボがいなくなり、攻撃は中止された', { t: 'cancel' }); return; }
+  let tgt = p.tgt;
+  if (tgt === 'player' && D.field.length) { tgt = D.field[D.field.length - 1].uid; log(s, `攻撃対象が${cname(D.field[D.field.length - 1])}に変更された`, { t: 'retarget' }); }
+  const A = af.y;
+  if (tgt === 'player') { log(s, '', { t: 'direct', att: A.uid, pi: di }); damage(s, di, atkOf(A), '直接攻撃'); return; }
+  const tf = findRobo(s, tgt);
+  if (!tf || tf.pi !== di) { log(s, '攻撃対象がいなくなり、攻撃は中止された', { t: 'cancel' }); return; }
+  const T = tf.y;
+  // ロケットロボ（不採用カード）：戦闘時に電池を1本使って攻撃力+4、持ち主（今の場の側）に3ダメージ
+  for (const [y, side] of [[A, pi], [T, di]]) if (y.id === 'rocket' && y.bat > 0) {
+    y.bat--; y.boost = (y.boost || 0) + 4;
+    log(s, `ロケットロボが点火！（攻撃力${atkOf(y)}）`, { t: 'rocket', uid: y.uid });
+    damage(s, side, 3, 'ロケットロボの反動');
+  }
+  if (isOver(s)) return;
+  const a = atkOf(A), d = atkOf(T);
+  const aCho = A.id === 'bomb' && A.bat > 0, dCho = T.id === 'bomb' && T.bat > 0;
+  const aRok = A.id === 'crane' && A.bat > 0, dRok = T.id === 'crane' && T.bat > 0;
+  log(s, `戦闘：${cname(A)}(${a}) vs ${cname(T)}(${d})`, { t: 'battle', a, d, att: A.uid, tgt: T.uid });
+  if (a > d) {
+    const k = destroy(s, T.uid, true);
+    if (k && aRok) { log(s, 'クレーンロボの効果', { t: 'crane' }); drawCards(s, pi, 1); }
+    damage(s, di, a - d, '戦闘');
+  } else if (d > a) {
+    const k = destroy(s, A.uid, true);
+    if (k && dRok) { log(s, 'クレーンロボの効果', { t: 'crane' }); drawCards(s, di, 1); }
+    damage(s, pi, d - a, '戦闘');
+  } else {
+    const k1 = destroy(s, T.uid, true), k2 = destroy(s, A.uid, true);
+    if (k1 && aRok) { log(s, 'クレーンロボの効果', { t: 'crane' }); drawCards(s, pi, 1); }
+    if (k2 && dRok) { log(s, 'クレーンロボの効果', { t: 'crane' }); drawCards(s, di, 1); }
+  }
+  delete A.boost; delete T.boost;
+  // ボムロボは対象を選ばない効果なので、バリアロボにも効く
+  if (aCho && findRobo(s, T.uid)) s.eot.push(T.uid);
+  if (dCho && findRobo(s, A.uid)) s.eot.push(A.uid);
+}
+// シミュレーション用：攻撃～応答～解決を一括
+function attackFull(s, att, tgt, resp) {
+  apply(s, { t: 'attack', att, tgt });
+  if (needsResponse(s)) respond(s, resp); else resolveBattle(s);
+}
+
+// 整合性チェック（テスト用）
+function invariant(s) {
+  let bat = 0, n = 0;
+  const real = arr => arr.filter(c => !CARDS[c.id].token).length;
+  for (const p of s.players) { for (const y of p.field) bat += y.bat; n += real(p.deck) + real(p.hand) + real(p.field) + real(p.scrap) + (p.set && !CARDS[p.set.id].token ? 1 : 0); }
+  if (n !== DECK_IDS.length * 2) throw new Error('card count ' + n);
+  for (const p of s.players) { if (p.field.length > 3) throw new Error('field>3'); for (const y of p.field) if (y.bat > CARDS[y.id].max) throw new Error('bat>max'); }
+}
+
+const api = { maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
+  mulberry32, shuffle, newGame, clone, atkOf, immuneFrom, findRobo, allField, isOver,
+  checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondChoiceError, resolveBattle,
+  attackFull, endTurn, resolveEot, invariant, pname, cname };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+// ===== CPU思考ルーチン =====
+// 方式: 手番の残りアクション(最大2)を全列挙 → 各終端で攻撃の有無/対象を全列挙 → 評価関数で採点。
+// 相手の伏せアクションは中身が見えないので「まだ相手が使っていないアクション」で平均を取る（ズルなし）。
+// 1アクション実行するたびに再計画する（引いたカードや相手の応答を反映するため）。
+(function (root) {
+'use strict';
+const E = (typeof module !== 'undefined' && module.exports) ? require('./engine.js') : root.Engine;
+const { CARDS, SPELL_IDS } = E;
+
+// 手調整の初期重み（「ふつう」）
+const BASE_W = {
+  life: 1.0, lowLife: 0.5, unit: 1.5, atk: 0.6, bat: 0.3, hand: 0.8, handSpell: 0.2, set: 1.0,
+  threat: 0.5, lethal: 12, coin: 0.8, // coin＝手札のワンモアの価値（調整済みの重みファイルと合わせるため旧名のまま）
+  souji: 0.3, magnet: 0.5, barrier: 0.5, bomb: 0.5, crane: 0.3, daruma: 0.4, heat: 1.0, megaton: 0.0,
+  solar: 0.4, guard: 0.5, turbo: 0.0, recycle: 0.0,
+  sniper: 1.5, rocket: 0.5, jammer: 1.0, kobun: 1.5,
+};
+
+// ---------- 評価関数 ----------
+function roboVal(y, w) {
+  let v = w.unit + w.atk * E.atkOf(y) + w.bat * y.bat;
+  const on = y.bat > 0 ? 1 : 0;
+  switch (y.id) {
+    case 'souji': v += w.souji * on; break;
+    case 'magnet': v += w.magnet * on; break;
+    case 'barrier': v += w.barrier * on; break;
+    case 'bomb': v += w.bomb * on; break;
+    case 'crane': v += w.crane * on; break;
+    case 'daruma': v += w.daruma * y.bat; break;
+    case 'heat': v -= w.heat; break;
+    case 'megaton': v += w.megaton; break;
+    case 'solar': v += (w.solar ?? 0.4) * (CARDS[y.id].max - y.bat); break;
+    case 'guard': v += (w.guard ?? 0.5) * on; break;
+    case 'turbo': v += (w.turbo ?? 0) * y.bat; break;
+    case 'recycle': v += (w.recycle ?? 0); break;
+    case 'sniper': v += (w.sniper ?? 1.5) * on; break;
+    case 'rocket': v += (w.rocket ?? 0.5) * on; break;
+    case 'jammer': v += (w.jammer ?? 1.0) * on; break;
+    case 'kobun': v += (w.kobun ?? 1.5); break;
+  }
+  return v;
+}
+// 攻撃側(ai)が次の手番に1回攻撃した時に防御側(di)が失う最大価値（相手の手札・行動は無視した概算）
+function threatOf(s, ai, di, w) {
+  const A = s.players[ai].field, D = s.players[di];
+  if (!A.length) return 0;
+  let best = 0;
+  for (const a of A) {
+    const av = E.battleAtk(a);
+    if (!D.field.length) {
+      let loss = w.life * av;
+      if (av >= D.life) loss += w.lethal;
+      best = Math.max(best, loss);
+    } else {
+      for (const t of D.field) {
+        const tv = E.battleAtk(t);
+        if (av > tv) {
+          let loss = (t.id === 'daruma' && t.bat > 0) ? w.bat + w.daruma : roboVal(t, w);
+          loss += w.life * (av - tv);
+          if (av - tv >= D.life) loss += w.lethal;
+          best = Math.max(best, loss);
+        }
+      }
+    }
+  }
+  return best;
+}
+function sideVal(s, pi, w) {
+  const p = s.players[pi];
+  let v = w.life * p.life + (p.life <= 5 ? -w.lowLife * (6 - p.life) : 0);
+  for (const y of p.field) v += roboVal(y, w);
+  v += w.hand * p.hand.length;
+  for (const c of p.hand) { if (CARDS[c.id].token) { v += (w.coin ?? 0.8) - w.hand; continue; } if (CARDS[c.id].kind === 'spell') v += w.handSpell; }
+  if (p.set) v += w.set;
+  return v;
+}
+// next: 次に手番を持つプレイヤー
+function evaluate(s, me, w, next) {
+  if (s.winner !== null) return s.winner === me ? 1e5 + s.players[me].life : -1e5 - s.players[1 - me].life;
+  if (s.draw) return 0;
+  const op = 1 - me;
+  let v = sideVal(s, me, w) - sideVal(s, op, w);
+  if (next === op) v -= w.threat * threatOf(s, op, me, w);
+  else v += w.threat * threatOf(s, me, op, w);
+  return v;
+}
+
+// ---------- 選択肢の列挙 ----------
+function multisets(items, k) {
+  const out = [];
+  (function rec(start, cur) {
+    if (cur.length === k) { out.push(cur.slice()); return; }
+    for (let i = start; i < items.length; i++) { cur.push(items[i]); rec(i, cur); cur.pop(); }
+  })(0, []);
+  return out;
+}
+// AI用のアクション選択肢（明らかに無意味なものは省く）
+function spellChoices(s, pi, id) {
+  const P = s.players[pi], O = s.players[1 - pi];
+  switch (id) {
+    case 'ebattery': {
+      // 自分のロボに置く。容量に収まる組み合わせのみ
+      const own = P.field.filter(y => !E.immuneFrom(y, s, pi));
+      const cap = own.reduce((a, y) => a + CARDS[y.id].max - y.bat, 0);
+      const k = Math.min(2, cap);
+      if (k <= 0) return [];
+      const res = [];
+      for (const ms of multisets(own.map(y => y.uid), k)) {
+        const cnt = {}; let ok = true;
+        for (const u of ms) cnt[u] = (cnt[u] || 0) + 1;
+        for (const y of own) if ((cnt[y.uid] || 0) > CARDS[y.id].max - y.bat) ok = false;
+        if (ok) res.push({ targets: ms });
+      }
+      return res;
+    }
+    case 'manual': {
+      const ok = E.maintTargets(s, pi);
+      if (ok.length) return ok.map(y => ({ target: y.uid }));
+      return P.deck.length ? [{}] : [];
+    }
+    case 'onemore': return [{}];
+    case 'short': {
+      const c = E.allField(s).filter(y => y.bat > 0 && !E.immuneFrom(y, s, pi)).map(y => y.uid);
+      const res = [];
+      for (let i = 0; i < c.length; i++) { res.push({ targets: [c[i]] }); for (let j = i + 1; j < c.length; j++) res.push({ targets: [c[i], c[j]] }); }
+      return res;
+    }
+    case 'repair': {
+      if (P.field.length >= 3) return [];
+      const res = [], seen = {};
+      for (const gpi of [0, 1]) for (const c of s.players[gpi].scrap) {
+        if (CARDS[c.id].kind !== 'robo' || seen[c.id]) continue; seen[c.id] = 1;
+        res.push({ gpi, uid: c.uid });
+      }
+      return res;
+    }
+    case 'swap': {
+      const all = E.allField(s), res = [];
+      for (const a of all) if (a.bat > 0 && !E.immuneFrom(a, s, pi))
+        for (const b of all) if (b !== a && !E.immuneFrom(b, s, pi) && b.bat < CARDS[b.id].max) res.push({ from: a.uid, to: b.uid });
+      return res;
+    }
+    case 'thunder': return E.thunderCandidates(s, pi).map(y => ({ target: y.uid }));
+    case 'hack': return P.field.length >= 3 ? [] : E.hackCandidates(s, pi).map(y => ({ target: y.uid }));
+    case 'limiter': return E.allField(s).filter(y => !E.immuneFrom(y, s, pi)).map(y => ({ target: y.uid }));
+  }
+  return [];
+}
+function mainActions(s) {
+  const pi = s.turn, P = s.players[pi], O = s.players[1 - pi], acts = [];
+  if (!(s.phase === 'main' && !E.isOver(s) && !s.pending)) return acts;
+  // 行動を消費しないカード（ワンモア）は行動0でも使える
+  const jam = E.isJammed(s, pi);
+  if (s.actions <= 0) { if (!jam) for (const c of P.hand) if (CARDS[c.id].noCost) acts.push({ t: 'play', uid: c.uid, ch: {} }); return acts; }
+  const cards = P.hand.slice(); if (P.set) cards.push(P.set);
+  const seenY = {};
+  for (const c of cards) {
+    const d = CARDS[c.id];
+    if (d.kind === 'robo') { if (P.field.length < 3 && !seenY[c.id]) { seenY[c.id] = 1; acts.push({ t: 'play', uid: c.uid }); } }
+    else if (!jam) for (const ch of spellChoices(s, pi, c.id)) acts.push({ t: 'play', uid: c.uid, ch });
+  }
+  for (const y of P.field) if (y.bat < CARDS[y.id].max) acts.push({ t: 'place', target: y.uid });
+  for (const y of P.field) if (y.bat > 0) {
+    if (y.id === 'souji') { for (const tp of [0, 1]) if (s.players[tp].set) acts.push({ t: 'release', src: y.uid, ch: { pi: tp } }); }
+    if (y.id === 'magnet') for (const t of O.field) if (!E.immuneFrom(t, s, pi)) acts.push({ t: 'release', src: y.uid, ch: { target: t.uid } });
+    if (y.id === 'sniper') for (const t of E.sniperCandidates(s, y.uid)) acts.push({ t: 'release', src: y.uid, ch: { target: t.uid } });
+  }
+  if (!P.set) for (const c of P.hand) if (CARDS[c.id].kind === 'spell' && !CARDS[c.id].noSet) acts.push({ t: 'set', uid: c.uid });
+  return acts;
+}
+function attackOptions(s) {
+  const pi = s.turn, O = s.players[1 - pi];
+  if (s.firstTurn || s.attacked || s.noAttack || E.isOver(s)) return [];
+  const res = [];
+  const gs = E.guardsOf(s, 1 - pi), targets = gs.length ? gs : O.field;
+  for (const a of s.players[pi].field) {
+    if (O.field.length) for (const t of targets) res.push({ t: 'attack', att: a.uid, tgt: t.uid });
+    else res.push({ t: 'attack', att: a.uid, tgt: 'player' });
+  }
+  return res;
+}
+
+// ---------- 応答（防御側の伏せアクション） ----------
+function respondOptions(s) {
+  const di = 1 - s.turn, c = s.players[di].set;
+  if (!c) return [null];
+  return [null].concat(spellChoices(s, di, c.id).filter(ch => !E.respondChoiceError(s, ch)).map(ch => ({ ch })));
+}
+// 攻撃宣言後の状態で、防御側として最善の応答を選ぶ
+function chooseResponse(s, w) {
+  const di = 1 - s.turn;
+  let best = null, bv = -Infinity;
+  for (const r of respondOptions(s)) {
+    const t = E.clone(s); E.respond(t, r); E.resolveEot(t);
+    const v = evaluate(t, di, w, di);
+    if (v > bv) { bv = v; best = r; }
+  }
+  return best;
+}
+
+// ---------- 攻撃の評価（相手の伏せアクションは期待値） ----------
+function unknownSpells(s, op) {
+  // 相手のアクションで、まだ公開領域（スクラップ）に出ていないもの = 伏せカードの候補
+  const known = {};
+  for (const gp of s.players) for (const c of gp.scrap) if (c.owner === op) known[c.id] = 1;
+  return SPELL_IDS.filter(id => !known[id]);
+}
+function finishVal(s, me, w) { const t = E.clone(s); E.resolveEot(t); return evaluate(t, me, w, 1 - me); }
+function evalAttack(s, act, me, w, opt) {
+  const op = 1 - me, O = s.players[op];
+  if (!O.set || opt.ignoreSet || E.isJammed(s, op)) {
+    const t = E.clone(s);
+    if (t.players[op].set && opt.ignoreSet) { // 伏せを無視する（甘い読み）
+      E.apply(t, act); E.resolveBattle(t);
+    } else E.attackFull(t, act.att, act.tgt, null);
+    return finishVal(t, me, w);
+  }
+  const cands = unknownSpells(s, op);
+  if (!cands.length) cands.push(O.set.id); // 理論上起きない保険
+  let sum = 0;
+  for (const id of cands) {
+    const t = E.clone(s);
+    t.players[op].set = { uid: O.set.uid, id, owner: op, bat: 0 };
+    E.apply(t, act);
+    const r = chooseResponse(t, w);
+    E.respond(t, r);
+    sum += finishVal(t, me, w);
+  }
+  return sum / cands.length;
+}
+function bestBattle(s, me, w, opt) {
+  let bv = finishVal(s, me, w), ba = null;
+  for (const a of attackOptions(s)) {
+    const v = evalAttack(s, a, me, w, opt);
+    if (v > bv) { bv = v; ba = a; }
+  }
+  return { v: bv, a: ba };
+}
+
+// ---------- メイン：次の1手を決める ----------
+// opt: { w, ignoreSet, noise, rng, randomRate }
+function chooseAction(s, opt) {
+  const me = s.turn, w = opt.w || BASE_W, rng = opt.rng || Math.random;
+  if (E.isOver(s)) return null;
+  // 計画用の状態：自分の山札順は分からないものとして混ぜる
+  const root = E.clone(s);
+  E.shuffle(root.players[me].deck, rng);
+  E.shuffle(root.players[1 - me].deck, rng);
+
+  if (opt.randomRate && rng() < opt.randomRate) {
+    const pool = mainActions(root).concat(attackOptions(root));
+    if (pool.length && rng() < 0.7) return pool[Math.floor(rng() * pool.length)];
+  }
+
+  let best = null, bv = -Infinity;
+  const consider = (first, v) => {
+    if (opt.noise) v += (rng() - 0.5) * opt.noise;
+    if (v > bv) { bv = v; best = first; }
+  };
+  // 深さ優先でメインアクション列を列挙
+  const dfs = (st, first, depth) => {
+    const bb = bestBattle(st, me, w, opt);
+    consider(first || bb.a || { t: 'end' }, bb.v);
+    const acts = opt.filter ? mainActions(st).filter(a => opt.filter(a, st)) : mainActions(st);
+    if (!acts.length) return;
+    for (const a of acts) {
+      const t = E.clone(st);
+      try { E.apply(t, a); } catch (e) { continue; }
+      if (E.isOver(t)) { consider(first || a, evaluate(t, me, w, 1 - me)); continue; }
+      dfs(t, first || a, t.actions);
+    }
+  };
+  dfs(root, null, root.actions);
+  return best;
+}
+
+// 自分が防御側の時（相手の攻撃宣言中）の応答
+function chooseResponseFor(s, opt) { return chooseResponse(s, opt.w || BASE_W); }
+
+const api = { BASE_W, evaluate, chooseAction, chooseResponseFor, mainActions, attackOptions, spellChoices };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.AI = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+// ===== ドット絵 (16x16) ロボット版 =====
+(function (root) {
+const PAL = {"k": "#1b1424", "w": "#f6f1e4", "r": "#d23c3c", "R": "#7c1f2b", "o": "#f0883a", "y": "#f6d24a", "Y": "#b8862a", "g": "#5bb04f", "G": "#2f6a37", "b": "#3e72d6", "B": "#233a78", "c": "#9fe3f5", "C": "#4fb0d8", "p": "#a865d8", "P": "#5c3086", "s": "#f3cba4", "S": "#d4936c", "n": "#9a6236", "N": "#573420", "x": "#9a9aa6", "X": "#5a5a68", "l": "#dcdce6", "m": "#ff9cc0", "h": "#3a3448", "u": "#f1e0a6", "e": "#9be15d", "E": "#4e8a2e"};
+const SPR = {
+souji: [
+'................',
+'....kkkkkkkk.k..',
+'...kbbbwbbbbkk..',
+'...kkkkkkkkkkn..',
+'...kllllllllkn..',
+'...klkkllkklkn..',
+'...klkwllkwlkn..',
+'...kllllllllkn..',
+'....kkkkkkkk.n..',
+'...kxxxxxxxxkn..',
+'..kxlxxxxxxlxn..',
+'..kxxxxxxxxxkn..',
+'...kkkkkkkk.kyk.',
+'...kXk..kXk.kyyk',
+'..kkkk..kkkkkyyk',
+'............kkkk'],
+turbo: [
+'................',
+'....kkkkkkkk....',
+'...kggggggggk...',
+'..kgkkggggkkgk..',
+'..kgkwggggkwgk..',
+'..kggggggggggk..',
+'..kgggmmmmgggk..',
+'...kkkkkkkkkk...',
+'..kGGGGyGGGGGk..',
+'..kGGGyyGGGGGk..',
+'..kGGGGyyGGGGk..',
+'...kkkkkkkkkk...',
+'...kXk....kXk...',
+'..koyyok.koyyok.',
+'..kyoyo..oyoyk..',
+'...o.o....o.o...'],
+magnet: [
+'................',
+'..kkkk....kkkk..',
+'..krrk....kllk..',
+'..krrk....kllk..',
+'..krrrkkkklllk..',
+'..krrrrrrrrllk..',
+'...krrrrrrrrk...',
+'...kkkkkkkkkk...',
+'..kxxxxxxxxxxk..',
+'..kxkkxxxxkkxk..',
+'..kxkwxxxxkwxk..',
+'..kxxxxkkxxxxk..',
+'...kkkkkkkkkk...',
+'....kxxxxxxk....',
+'....kXk..kXk....',
+'....kk....kk....'],
+barrier: [
+'....cccccccc....',
+'..cc........cc..',
+'.c............c.',
+'c....kkkkkk....c',
+'c...kppppppk...c',
+'c..kppkkkkppk..c',
+'c..kpkwrrrkpk..c',
+'c..kpkrrRrkpk..c',
+'c..kppkkkkppk..c',
+'c..kPppppppPk..c',
+'c...kPPPPPPk...c',
+'.c...kkkkkk...c.',
+'..c...kXXk..cc..',
+'...cc..kk.cc....',
+'.....cccccc.....',
+'................'],
+bomb: [
+'..........yo....',
+'.........oy.....',
+'........kk......',
+'.......kXXk.....',
+'.....kkkkkkk....',
+'...kkhhhhhhhkk..',
+'..khhxhhhhhhhhk.',
+'..khxhhhhhhhhhk.',
+'.khhhwkhhhwkhhhk',
+'.khhhkkhhhkkhhhk',
+'.khhhhhhhhhhhhhk',
+'.khhhhhmmhhhhhhk',
+'..khhhhhhhhhhhk.',
+'...kkhhhhhhhkk..',
+'...kokkkkkkkok..',
+'..kook....kook..'],
+crane: [
+'kkkkkkkkkkkkkkkk',
+'kXXXXXXXXXXXXXXk',
+'kkkkkkkkkkkkkkkk',
+'.......kk.......',
+'.....kkkkkk.....',
+'....kyyyyyyk....',
+'....kwkyykwk....',
+'....kyyyyyyk....',
+'...kkkkkkkkkk...',
+'..kx........xk..',
+'..kx........xk..',
+'...kxk....kxk...',
+'.....kkkkkk.....',
+'.....kmwmmk.....',
+'.....kmmmmk.....',
+'.....kkkkkk.....'],
+daruma: [
+'................',
+'.....kkkkkk.....',
+'...kkrrrrrrkk...',
+'..krrrrrrrrrrk..',
+'..krrkkkkkkrrk..',
+'.krrkwwwwwwkrrk.',
+'.krkwkkwwkkwkrk.',
+'.krkwwkwwkwwkrk.',
+'.krkwwwmmwwwkrk.',
+'.krrkwwwwwwkrrk.',
+'.krrrkkkkkkrrrk.',
+'.krrrryyyyrrrrk.',
+'..krrrryyrrrrk..',
+'..kRRRRRRRRRRk..',
+'...kkkkkkkkkk...',
+'................'],
+heat: [
+'....l..l...l....',
+'...l..l...l.....',
+'....l..l...l....',
+'...kkkkkkkkkk...',
+'..krrrrrrrrrrk..',
+'..krkkrrrrkkrk..',
+'..krrykrrkyrrk..',
+'..krrrrrrrrrrk..',
+'..krrrkkkkrrrk..',
+'..krrrrrrrrrrk..',
+'...kkkkkkkkkk...',
+'..kRRRooooRRRk..',
+'.kokRRRRRRRRkok.',
+'.kk.kRRRRRRk.kk.',
+'....kXk..kXk....',
+'....kk....kk....'],
+megaton: [
+'......kkkk......',
+'.....kXXXXk.....',
+'....kXXyyXXk....',
+'....kkkkkkkk....',
+'.kkkkkkkkkkkkkk.',
+'.kxlxxxxxxxxxlk.',
+'.kxkkkxxxxkkkxk.',
+'.kxkykxxxxkykxk.',
+'.kxkkkxxxxkkkxk.',
+'.kxxxxkkkkxxxxk.',
+'.kxxxxxxxxxxxxk.',
+'kkXxXxXxXxXxXxkk',
+'kXkxxxxxxxxxxkXk',
+'.kkkkkkkkkkkkkk.',
+'..kXXk....kXXk..',
+'..kkkk....kkkk..'],
+ebattery: [
+'kkkkkkkkkkkkkkkk',
+'krrrrrrrrrrrrrrk',
+'krwckkcccckkccrk',
+'krckGGkcckGGkcrk',
+'krckGykcckGykcrk',
+'krckyykcckyykcrk',
+'krkkkkkkkkkkkkrk',
+'kryykkyykkyykkrk',
+'krkyykkyykkyykrk',
+'krkkkkkkkkkkkkrk',
+'krckyGkcckyGkcrk',
+'krckGGkcckGGkcrk',
+'krckkkkcckkkkcrk',
+'krccccccccccccrk',
+'krrrrrrwwrrrrrrk',
+'kkkkkkkkkkkkkkkk'],
+manual: [
+'................',
+'..kkkkkkkkkkk...',
+'..kbbbbbbbbbbk..',
+'..kbccccbbbbbk..',
+'..kbcbbcbbcbbk..',
+'..kbcbbcbcccbk..',
+'..kbccccbbcbbk..',
+'..kbbbbbbbbbbk..',
+'..kbcccccccbbk..',
+'..kbcbbbbbcbbk..',
+'..kbcbcccbcbbk..',
+'..kbcbbbbbcbbk..',
+'..kbcccccccbbk..',
+'..kbbbbbbbbbBk..',
+'..kkkkkkkkkkkk..',
+'................'],
+short: [
+'................',
+'........y.......',
+'......y.yy..y...',
+'.......yyy.y....',
+'...hhhk.wyk.....',
+'..hhhhk.yw.kxxh.',
+'..h...kyy..kxxhh',
+'..h......y....hh',
+'..h...y..y.y...h',
+'..h....y.......h',
+'..h............h',
+'.kxk..........kx',
+'.kxk..........kx',
+'.kkk..........kk',
+'................',
+'................'],
+repair: [
+'................',
+'...........kk...',
+'..........kllk..',
+'.........kllk...',
+'........kllk....',
+'.....kkkllk.....',
+'....kXXkkk......',
+'...kkkkkkkkkk...',
+'..krrrrrrrrrrk..',
+'..krrrRkkRrrrk..',
+'..kkkkkllkkkkk..',
+'..krrrRkkRrrrk..',
+'..krrrrrrrrrrk..',
+'..kRRRRRRRRRRk..',
+'..kkkkkkkkkkkk..',
+'................'],
+swap: [
+'................',
+'....kk....kk....',
+'...keek..kXXk...',
+'..keeeek.kxxxk..',
+'..keeeek.kxxxk..',
+'..keeeek.kxxxk..',
+'..kEEEEk.kxxxk..',
+'..kkkkkk.kkkkk..',
+'................',
+'...........y....',
+'..yyyyyyyyyyy...',
+'...........y....',
+'....y...........',
+'...yyyyyyyyyyy..',
+'....y...........',
+'................'],
+thunder: [
+'................',
+'....kkkkk.......',
+'..kklllllkkk....',
+'.kllllllllllk...',
+'kllxlllllllllk..',
+'kllllllllllllk..',
+'.kxxxxxxxxxxk...',
+'..kkkkykkkkk....',
+'......yy........',
+'.....yyw........',
+'....yyyyy.......',
+'......yy........',
+'.....yy.........',
+'....yy..........',
+'....y...........',
+'................'],
+onemore: [
+'................',
+'.....kkkkkk.....',
+'...kkooooookk...',
+'..kkooooooookk..',
+'..kooooooooook..',
+'.koooooooowoook.',
+'.kooowooowwoook.',
+'.kooowoooowoook.',
+'.kowwwwwoowoook.',
+'.kooowoooowoook.',
+'.kooowoooowoook.',
+'..kYYYYYYwwwYk..',
+'..kkYYYYYYYYkk..',
+'...kkYYYYYYkk...',
+'.....kkkkkk.....',
+'................'],
+battery: [
+'................',
+'......kkkk......',
+'.....kxllxk.....',
+'....kkkkkkkk....',
+'....kllllllk....',
+'....kleeeeek....',
+'....keeyeeek....',
+'....keyyeeek....',
+'....keeyyeek....',
+'....keeeyeek....',
+'....keeeeeek....',
+'....kEEEEEEk....',
+'....kEEEEEEk....',
+'....kkkkkkkk....',
+'................',
+'................'],
+gear: [
+'................',
+'......kkkk......',
+'...kk.kxxk.kk...',
+'..kxxkkxxkkxxk..',
+'..kxxxxxxxxxxk..',
+'...kxxxkkxxxk...',
+'.kkkxxk..kxxkkk.',
+'.kxxxk....kxxxk.',
+'.kxxxk....kxxxk.',
+'.kkkxxk..kxxkkk.',
+'...kxxxkkxxxk...',
+'..kxxxxxxxxxxk..',
+'..kxxkkxxkkxxk..',
+'...kk.kxxk.kk...',
+'......kkkk......',
+'................'],
+solar: [
+'..kkkkkkkkkkkk..',
+'..kbCbCbCbCbCk..',
+'..kCbCbCbCbCbk..',
+'..kkkkkkkkkkkk..',
+'.......kk.......',
+'....kkkkkkkk....',
+'...kyyyyyyyyk...',
+'...kykkyykkyk...',
+'...kykwyykwyk...',
+'...kyyyyyyyyk...',
+'...kyyymmyyyk...',
+'....kkkkkkkk....',
+'...kooooooook...',
+'...kooYooYook...',
+'....kkkkkkkk....',
+'....kXk..kXk....'],
+guard: [
+'................',
+'....kkkkkkk.....',
+'...kxxxxxxxk....',
+'...kxkkxkkxk....',
+'...kxkwxkwxk....',
+'...kxxxxxxxk....',
+'....kkkkkkk.....',
+'..kkkkkkkkkkk...',
+'.kbbbbbbbbbbbk..',
+'.kbbbbbybbbbbk..',
+'.kbbbbyyybbbbk..',
+'.kbbbbbybbbbbk..',
+'..kbbbbbbbbbk...',
+'...kbbbbbbbk....',
+'....kkkkkkk.....',
+'....kXk..kXk....'],
+sniper: [
+'................',
+'.....kkkkkk.....',
+'....kPPPPPPk....',
+'...kPPkkkkPPk...',
+'...kPkhhhhkPk...',
+'...kPkhrhhkPk...',
+'...kPkhhhhkPk...',
+'...kPPkkkkPPk...',
+'..kPPPPPPPPPPk..',
+'..kPpPPPPPPpPkkk',
+'..kPPPPPPPPPPxxk',
+'..kPpPPPPPPpPkkk',
+'..kPPPPPPPPPPk..',
+'...kkkkkkkkkk...',
+'....kXk..kXk....',
+'...kkkk..kkkk...'],
+rocket: [
+'......kk........',
+'.....kwwk.......',
+'....kwrrwk......',
+'....kwwwwk......',
+'...kkwbbwkk.....',
+'..kckwbbwkck....',
+'..kckwwwwkck....',
+'..kckrrrrkck....',
+'..kkkwwwwkkk....',
+'...krkwwkrk.....',
+'...kk.kk.kk.....',
+'....koyyok......',
+'....kyoyyk......',
+'.....kook.......',
+'......kk........',
+'................'],
+jammer: [
+'..k.......k.....',
+'...k..k..k......',
+'.k..k.k.k..k....',
+'..k..kkk..k.....',
+'......k.........',
+'....kkkkkkk.....',
+'...kppppppPk....',
+'...kpkkpkkPk....',
+'...kpkwpkwPk....',
+'...kppppppPk....',
+'....kkkkkkk.....',
+'...kPPPPPPPk....',
+'..kPpPrrrPpPk...',
+'..kPPPPPPPPPk...',
+'...kkkkkkkkk....',
+'....kXk.kXk.....'],
+thief: [
+'................',
+'....kkkkkkk.....',
+'...klllllllk....',
+'...kkkkkkkkk....',
+'...kkwkkkwkk....',
+'...klllllllk....',
+'...kllkkkllk....',
+'....kkkkkkk..kk.',
+'...kbBbBbBk.knnk',
+'..kbBbBbBbBkknnk',
+'..kBbBbBbBbkkynk',
+'..kbBbBbBbBkknnk',
+'...kbBbBbBk.kkk.',
+'....kkkkkkk.....',
+'....kXk.kXk.....',
+'...kkkk.kkkk....'],
+kobun: [
+'................',
+'................',
+'......kk........',
+'.....keek.......',
+'....kkkkkk......',
+'...keeeeeek.....',
+'...kekeekek.....',
+'...kewekwek.....',
+'...keeeeeek.....',
+'...keemmeek.....',
+'....kkkkkk......',
+'....kgggggk.....',
+'...kgkggkgk.....',
+'....kkkkkk......',
+'....kXk.kXk.....',
+'................'],
+aniki: [
+'...kkkkkkkk.....',
+'.kkXXxXXXXXkk...',
+'kXxxXXXXXXXXXk..',
+'.kkkkXXxXXXXXXk.',
+'....kggggggggk..',
+'...kkkkkkkkkkkk.',
+'...kkwkkggkwkkk.',
+'....kggggggggk..',
+'....kggkkkkggk..',
+'..kkkkkkkkkkkkk.',
+'.kBBBBkrrrkBBBBk',
+'kBbBBBkrrrkBBBbk',
+'kBbBBBBkykBBBBbk',
+'kBBBBBBkykBBBBBk',
+'.kkkkkkkkkkkkkk.',
+'...kXXk...kXXk..'],
+recycle: [
+'................',
+'.....kkkkkk.....',
+'....keeeeeek....',
+'....kekeekek....',
+'....keeeeeek....',
+'..kkkkkkkkkkkk..',
+'.kGGGGwwwwGGGGk.',
+'.kGGGwGGGGwGGGk.',
+'.kGGwGGGGwwwGGk.',
+'.kGGGGGGGGwGGGk.',
+'.kGGGwGGGGGGGGk.',
+'.kGGwwwGGGGwGGk.',
+'.kGGGwGGGGwGGGk.',
+'.kGGGGwwwwGGGGk.',
+'..kkkkkkkkkkkk..',
+'...kXk....kXk...'],
+hack: [
+'................',
+'..kkkkkkkkkkkk..',
+'..khhhhhhhhhhk..',
+'..khehhhhhhhhk..',
+'..kheehhwwwhhk..',
+'..khehhwwwwwhk..',
+'..khhhhwkwkwhk..',
+'..khhhhwwwwwhk..',
+'..khhhhhwhwhhk..',
+'..kkkkkkkkkkkk..',
+'.kxxxxxxxxxxxxk.',
+'.kxXxXxXxXxXxxk.',
+'kxxxxxxxxxxxxxxk',
+'kkkkkkkkkkkkkkkk',
+'................',
+'................'],
+limiter: [
+'................',
+'....kkkkkkkk....',
+'..kkwwwwwwwwkk..',
+'.kwwgwwwwwwrrwk.',
+'.kwgwwwwwwwwrwk.',
+'kwgwwwwwwwkwwrwk',
+'kwwwwwwwwkwwwwwk',
+'kwwwwwwwkwwwwwwk',
+'kwwwwwwkkwwwwwwk',
+'kwwwwwwkkwwwwwwk',
+'.kkkkkkkkkkkkkk.',
+'..kRRRRRRRRRRk..',
+'..kRyRyRyRyRyk..',
+'..kkkkkkkkkkkk..',
+'................',
+'................'],
+};
+const api = { PAL, SPR };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Sprites = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+window.TUNED_W = {"life":0.231,"lowLife":0.677,"unit":1.037,"atk":0.463,"bat":0.161,"hand":1.963,"handSpell":0.2,"set":4,"threat":0.5,"lethal":22.181,"souji":0.3,"magnet":0.377,"barrier":0.547,"bomb":0.846,"crane":0.216,"daruma":0.73,"heat":0.444,"megaton":0.008,"coin":1.5,"solar":0,"turbo":0.5};
+</script>
+<script>
+// ===== アプリ本体（UI・CPU進行・チュートリアル） =====
+(function () {
+'use strict';
+const E = window.Engine, AI = window.AI, SP = window.Sprites;
+const { CARDS } = E;
+const TUNED = window.TUNED_W || AI.BASE_W;
+const DIFF = {
+  easy:   { label: 'やさしい', opt: { w: AI.BASE_W, randomRate: 0.45, noise: 4, ignoreSet: true } },
+  normal: { label: 'ふつう',   opt: { w: AI.BASE_W } },
+  hard:   { label: 'つよい',   opt: { w: TUNED } },
+};
+const EFF_LABEL = { powered: '通電', release: '放電', const: '常時', none: '効果なし' };
+const EFF_HELP = {
+  powered: '電池が1本以上入っている間（通電中）だけ働く効果。電池が0本だと止まる。',
+  release: '電池を1本抜いて使う効果（行動1回）。',
+  const: '場にいる限りずっと働く効果。',
+  none: '効果を持たないロボ。',
+};
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms / (typeof SPD === 'number' ? SPD : 1)));
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- ドット絵 ----------
+const ART = {};
+(function buildArt() {
+  for (const [k, rows] of Object.entries(SP.SPR)) {
+    const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+    const g = c.getContext('2d');
+    rows.forEach((row, y) => { for (let x = 0; x < 16; x++) { const ch = row[x]; if (ch !== '.') { g.fillStyle = SP.PAL[ch]; g.fillRect(x, y, 1, 1); } } });
+    ART[k] = c.toDataURL();
+  }
+})();
+// イラストのないカード（不採用案など）は文字で代用する
+const img = (id, cls) => ART[id] ? `<img class="${cls || 'art'}" src="${ART[id]}" alt="" draggable="false">` : `<span class="${cls || 'art'} noart">NO<br>IMAGE</span>`;
+
+// ---------- 状態 ----------
+let G = null;      // { s, diff, opt, mode:'game'|'tut', busy, sel, tut, logIdx, flash:Set }
+let stats = { easy: [0, 0], normal: [0, 0], hard: [0, 0] };
+try { const v = JSON.parse(localStorage.getItem('denchi-stats') || 'null'); if (v) stats = Object.assign(stats, v); } catch (e) {}
+function saveStats() { try { localStorage.setItem('denchi-stats', JSON.stringify(stats)); } catch (e) {} }
+
+function show(id) {
+  for (const el of document.querySelectorAll('.screen')) el.hidden = el.id !== id;
+  window.scrollTo(0, 0);
+}
+
+// ---------- カード描画 ----------
+function batPips(y) {
+  const max = CARDS[y.id].max; let h = '';
+  for (let i = 0; i < max; i++) h += `<i class="pip${i < y.bat ? ' on' : ''}"></i>`;
+  return `<span class="pips" aria-label="電池 ${y.bat}/${max}">${h}</span>`;
+}
+// 場の外での攻撃力：最初から電池が入って出るロボは、その分を含めて表示する
+// キーワード能力（効果文の1行目に表示）
+const KEYWORDS = { enterBat: { name: '付属電池', help: 'このロボは電池を1本入れた状態で場に出る（リペアキットでの起動も含む）。' } };
+function kwList(d) { return d.enterBat ? [KEYWORDS.enterBat] : []; }
+function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b><br>` : '') + d.text; }
+function cardTextPlain(d) { const k = kwList(d); return (k.length ? k.map(x => x.name).join('・') + '／' : '') + d.text; }
+function shownAtk(c) { const d = CARDS[c.id]; return E.atkOf({ id: c.id, bat: d.enterBat || 0 }); }
+function cardHTML(c, opts) {
+  opts = opts || {};
+  const d = CARDS[c.id];
+  const cls = ['card', d.kind, opts.size || ''];
+  if (opts.cls) cls.push(opts.cls);
+  if (G && G.flash && G.flash.has(c.uid)) cls.push('flash');
+  let style = '';
+  if (G && G.deployFx && G.deployFx[c.uid] && opts.zone === 'field') {
+    const dl = G.deployFx[c.uid] - Date.now();
+    if (dl > -750 / SPD) { cls.push('deploying'); style = ` style="animation-delay:${dl * SPD}ms"`; } else delete G.deployFx[c.uid];
+  }
+  const attrs = `data-uid="${c.uid}"${opts.zone ? ` data-zone="${opts.zone}"` : ''}${style} title="${d.name}：${cardTextPlain(d)}"`;
+  if (d.kind === 'robo') {
+    const onField = opts.zone === 'field';
+    const atk = onField ? E.atkOf(c) : shownAtk(c);
+    const boosted = atk > d.atk;
+    return `<button class="${cls.join(' ')}" ${attrs}>
+      <span class="cname${d.name.length >= 6 ? ' long' : ''}">${d.name}</span>
+      <span class="tag t-${d.eff}${onField && (d.eff === 'powered' || d.eff === 'release') ? (c.bat > 0 ? ' on' : ' off') : ''}">${EFF_LABEL[d.eff]}${onField && d.eff === 'powered' ? (c.bat > 0 ? ' ON' : ' OFF') : ''}</span>
+      <span class="frame">${img(c.id)}</span>
+      <span class="foot"><b class="atk${boosted ? ' up' : ''}">${atk}</b>${onField ? batPips(c) : batPips({ id: c.id, bat: d.enterBat || 0 })}</span>
+      ${opts.badge ? `<span class="badge">${opts.badge}</span>` : ''}${opts.extra || ''}
+    </button>`;
+  }
+  return `<button class="${cls.join(' ')}" ${attrs}>
+    <span class="cname${d.name.length >= 6 ? ' long' : ''}">${d.name}</span>
+    <span class="tag t-spell${d.token ? ' t-token' : ''}">${d.token ? '特' : '術'}</span>
+    <span class="frame">${img(c.id)}</span>
+    <span class="foot"><span class="spl">アクション</span></span>
+    ${opts.badge ? `<span class="badge">${opts.badge}</span>` : ''}
+  </button>`;
+}
+function backHTML(opts) {
+  opts = opts || {};
+  return `<button class="card back ${opts.size || ''}${opts.cls ? ' ' + opts.cls : ''}" ${opts.data || ''}><span class="backart">${img('gear', 'bart')}</span>${opts.label ? `<span class="backlbl">${opts.label}</span>` : ''}</button>`;
+}
+
+// ---------- 盤面描画 ----------
+function lifeHTML(p, pi) {
+  let pips = '';
+  for (let i = 0; i < E.LIFE_MAX; i++) pips += `<i class="${i < p.life ? 'on' : ''}"></i>`;
+  return `<div class="life${p.life <= 5 ? ' low' : ''}" id="life${pi}"><span class="lnum">${p.life}<small>/${E.LIFE_MAX}</small></span><span class="lbar" aria-label="ライフ ${p.life}">${pips}</span></div>`;
+}
+function setSlotHTML(s, pi) {
+  const p = s.players[pi];
+  const tgt = selValid(`set${pi}`) ? ' tgt' : '';
+  let inner;
+  const coach = G.tut && G.tut.hlSet === pi ? ' coach' : '';
+  if (!p.set) inner = `<div class="slot setslot empty${tgt}" data-set="${pi}" title="伏せ札なし"><span class="setlbl">伏せ札</span></div>`;
+  else if (pi === 0) inner = `<div class="slot setslot filled${tgt}" data-set="0">${cardHTML(p.set, { zone: 'set', cls: 'facedown-own' + tgt + coach, badge: '伏' })}</div>`;
+  else inner = `<div class="slot setslot filled${tgt}" data-set="1">${backHTML({ cls: 'opp-set' + tgt + coach, data: 'data-set="1"', label: '伏せ札' })}</div>`;
+  return inner;
+}
+function infoHTML(s, pi) {
+  const p = s.players[pi];
+  return `<div class="who">${pi === 0 ? 'あなた' : 'CPU'}</div>
+    ${lifeHTML(p, pi)}
+    <div class="counts">
+      <span class="cnt">山札<b>${p.deck.length}</b></span>
+      <span class="cnt">手札<b>${p.hand.length}</b></span>
+      <button class="cnt" data-scrap="${pi}">スクラップ<b>${p.scrap.length}</b></button>
+    </div>`;
+}
+function fieldHTML(s, pi) {
+  let f = s.players[pi].field.slice(); let h = '';
+  if (G.holes && G.holes.length) {
+    for (const hl of G.holes.filter(x => x.pi === pi).sort((a, b) => a.i - b.i)) if (hl.i <= f.length) f.splice(hl.i, 0, null);
+    f = f.slice(0, 3);
+  }
+  for (let i = 0; i < 3; i++) {
+    const y = f[i];
+    if (y) {
+      let cls = '';
+      if (selValid(y.uid) || (pi === 0 && battleIdle())) cls += ' tgt';
+      const pk = G.sel ? G.sel.picks.filter(u => u === y.uid).length : 0;
+      if (pk) cls += ' picked';
+      if (G.attackFx && (G.attackFx.att === y.uid)) cls += ' attacking';
+      if (G.attackFx && (G.attackFx.tgt === y.uid)) cls += ' defending';
+      if (G.tut && G.tut.hl && G.tut.hl.includes(y.id) && pi === 0) cls += ' coach';
+      if (y.lim) cls += ' lim';
+      if (y.home !== undefined && y.home !== pi) cls += ' hacked';
+      if (y.id === 'guard' && y.bat > 0) cls += ' guarding';
+      h += `<div class="slot">${cardHTML(y, { zone: 'field', cls, badge: pk ? '×' + pk : '', })}</div>`;
+    } else h += `<div class="slot empty"></div>`;
+  }
+  return h + setSlotHTML(s, pi);
+}
+function render() {
+  if (!G) return;
+  const s = G.s, me = s.players[0];
+  $('#oppInfo').innerHTML = infoHTML(s, 1);
+  $('#myInfo').innerHTML = infoHTML(s, 0);
+  $('#oppInfo').classList.toggle('turn', s.turn === 1 && !E.isOver(s));
+  $('#myInfo').classList.toggle('turn', s.turn === 0 && !E.isOver(s));
+  $('#oppField').innerHTML = fieldHTML(s, 1);
+  $('#oppField').classList.toggle('tgt-player', selValid('player'));
+  $('#myField').innerHTML = fieldHTML(s, 0);
+  // 手札
+  let hh = '';
+  for (const c of me.hand) {
+    const coach = G.tut && G.tut.hl && G.tut.hl.includes(c.id) ? 'coach' : '';
+    hh += cardHTML(c, { zone: 'hand', size: 'hand', cls: coach });
+  }
+  $('#hand').innerHTML = hh || '<p class="nohand">手札はありません</p>';
+  const mine = s.turn === 0 && !E.isOver(s);
+  let phase;
+  if (E.isOver(s)) phase = '決着';
+  else if (!mine) phase = 'CPUの手番';
+  else if (s.phase === 'main') phase = `メイン <span class="acts">${'●'.repeat(s.actions)}${'○'.repeat(2 - s.actions)}</span>`;
+  else phase = s.attacked ? 'バトル <span class="acts">済</span>' : 'バトル';
+  $('#phase').innerHTML = `<span class="turnno">手番${s.turnNo}</span>${phase}`;
+  const canEnd = mine && !G.busy && !s.pending && !G.sel;
+  $('#endBtn').disabled = !canEnd;
+  const bb = $('#battleBtn');
+  bb.disabled = !canEnd || s.attacked;
+  bb.textContent = s.phase === 'battle' ? '攻撃' : '戦闘';
+  bb.classList.toggle('off', !!(canEnd && !s.attacked && battleErr()));
+  $('#hint').textContent = hintText();
+  renderTicker();
+  renderSel();
+  G.flash = new Set();
+  fitLayout();
+}
+// 画面の幅と高さから札の大きさを決め、スクロールなしで盤面全体が収まるようにする
+function fitLayout() {
+  const game = $('#game'); if (game.hidden) return;
+  const wrap = game.querySelector('.game-wrap'), board = $('#board');
+  const cs = getComputedStyle(wrap);
+  const W = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const H = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const wide = window.matchMedia('(min-width: 960px)').matches;
+  const coach = $('#coach');
+  const gapW = parseFloat(cs.rowGap) || 6;
+  const bs = getComputedStyle(board), rowGap = parseFloat(bs.rowGap) || 6, colGap = parseFloat(bs.columnGap) || 6;
+  const dbar = $('#dbgbar');
+  let used = $('.topbar').offsetHeight + (coach.hidden ? 0 : coach.offsetHeight + gapW) + (dbar.hidden ? 0 : dbar.offsetHeight + gapW) + gapW + $('.midband').offsetHeight;
+  const fieldChrome = 16, handChrome = 10, R = 7 / 5, slotGap = 6, setSep = 12;
+  let fieldW;
+  if (wide) { fieldW = W - 220 - 168 - colGap * 2; used += rowGap * 3; }
+  else { fieldW = W; used += $('#oppInfo').offsetHeight + $('#myInfo').offsetHeight + rowGap * 5; }
+  const cwW = (fieldW - fieldChrome - slotGap * 3 - setSep) / 4;
+  const avail = H - used - handChrome;
+  let cw = Math.min(cwW, (avail - fieldChrome * 2) / (R * 2 + R * 0.9), wide ? 116 : 104);
+  if (wide) {
+    // 右の情報パネルが札より高い時は、その高さで行が決まる
+    const infoH = Math.max($('#oppInfo').scrollHeight, $('#myInfo').scrollHeight);
+    if (cw * R + fieldChrome < infoH) cw = Math.min(cw, (avail - infoH * 2) / (R * 0.9));
+  }
+  cw = Math.max(40, Math.floor(cw));
+  if (board.style.getPropertyValue('--cw') !== cw + 'px') board.style.setProperty('--cw', cw + 'px');
+}
+window.addEventListener('resize', () => { if (G) fitLayout(); });
+function hintText() {
+  const s = G.s;
+  if (E.isOver(s)) return '';
+  if (G.sel) return '';
+  if (s.turn !== 0) return 'CPUが考えています…';
+  if (battleIdle()) return '攻撃するロボをタップ（相手へドラッグでも可）';
+  if (s.phase === 'main' && s.actions > 0) return 'タップで行動・ドラッグで起動/攻撃・長押しで詳細';
+  if (s.phase === 'main' && !battleErr()) return '攻撃はロボを相手へドラッグ';
+  return 'ターン終了を押そう';
+}
+function renderTicker() {
+  const L = G.s.log.filter(l => l.msg);
+  $('#ticker').innerHTML = L.slice(-3).map(l => `<li>${l.msg}</li>`).join('');
+  const html = L.map(l => `<li class="${l.t === 'turn' ? 'lt' : ''}">${l.msg}</li>`).join('');
+  $('#logList').innerHTML = html;
+  const pane = $('#logPane');
+  if (pane.dataset.n !== String(L.length)) { pane.innerHTML = html; pane.dataset.n = String(L.length); pane.scrollTop = pane.scrollHeight; }
+}
+
+// ---------- エフェクト ----------
+// 状態を変える直前に盤面の札の位置と見た目を控えておき、変化後のログに合わせて演出する
+function snapRects() {
+  const m = { cards: {}, html: {}, idx: {} };
+  ['#myField', '#oppField'].forEach((sel, pi) => document.querySelectorAll(`${sel} .slot:not(.setslot)`).forEach((sl, i) => { const c = sl.querySelector('.card[data-uid]'); if (c) m.idx[c.dataset.uid] = { pi, i }; }));
+  document.querySelectorAll('#board .card[data-uid]').forEach(el => {
+    const u = el.dataset.uid; m.cards[u] = el.getBoundingClientRect(); m.html[u] = el.outerHTML;
+  });
+  for (const pi of [0, 1]) { const l = document.getElementById('life' + pi); if (l) m['life' + pi] = l.getBoundingClientRect(); }
+  for (const pi of [0, 1]) { const el = document.querySelector(`#board [data-set="${pi}"]`); if (el) { m['set' + pi] = el.getBoundingClientRect(); m['sethtml' + pi] = el.outerHTML; } }
+  return m;
+}
+const fxLayer = () => $('#fx');
+function rectOf(uid, snap) {
+  const el = document.querySelector(`#board .card[data-uid="${uid}"]`);
+  if (el) return el.getBoundingClientRect();
+  return snap && snap.cards[uid] || null;
+}
+function center(r) { return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+function addFx(cls, x, y, w, h, style) {
+  const d = document.createElement('div');
+  d.className = 'fxabs ' + cls;
+  d.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;` + (style || '');
+  fxLayer().appendChild(d);
+  return d;
+}
+function killLater(el, ms) { setTimeout(() => el.remove(), ms / SPD); }
+function particles(c, n, kind, spread, rise) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, r = spread * (0.5 + Math.random() * 0.6);
+    const dx = Math.cos(a) * r, dy = Math.sin(a) * r * 0.6 - (rise || 0) * (0.6 + Math.random() * 0.6);
+    const p = addFx('px ' + (kind || ''), c.x - 3, c.y - 3, 6, 6, `--dx:${dx}px;--dy:${dy}px;--d:${0.55 + Math.random() * 0.45}s`);
+    killLater(p, 1100);
+  }
+}
+const at = (t, fn) => setTimeout(fn, t / SPD);
+
+function fxSummon(uid, t) {
+  G.deployFx[uid] = Date.now() + t / SPD;
+  at(t + 30, () => {
+    const r = rectOf(uid); if (!r) return;
+    const c = center(r), w = r.width * 1.3;
+    killLater(addFx('ring', c.x - w / 2, c.y - w / 2, w, w), 800);
+    particles({ x: c.x, y: r.bottom - 8 }, 10, '', r.width * 0.5, 60);
+  });
+}
+function fxDestroy(uid, snap, t) {
+  const r = snap.cards[uid]; if (!r) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'fxabs';
+  wrap.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;`;
+  wrap.innerHTML = snap.html[uid];
+  const card = wrap.firstElementChild; card.classList.add('ghost'); card.classList.remove('attacking', 'defending', 'tgt', 'coach', 'deploying');
+  card.style.width = r.width + 'px'; card.style.height = r.height + 'px';
+  fxLayer().appendChild(wrap);
+  at(t, () => {
+    card.classList.add('burn');
+    const c = center(r);
+    particles(c, 8, 'ember', r.width * 0.6, 50);
+    particles(c, 10, 'ash', r.width * 0.7, 30);
+  });
+  killLater(wrap, t + 800);
+}
+function fxSetDestroy(pi, snap, t) {
+  const r = snap['set' + pi]; if (!r) return;
+  at(t, () => { const c = center(r); particles(c, 12, 'ember', 30, 30); killLater(addFx('boom', c.x - 30, c.y - 30, 60, 60), 500); });
+}
+function fxLunge(att, tgt, t) {
+  at(t, () => {
+    const el = document.querySelector(`#board .card[data-uid="${att}"]`); if (!el) return;
+    const a = center(el.getBoundingClientRect());
+    let tr;
+    if (tgt === 'player') { const s = G.s; const def = 1 - s.turn; const L = document.getElementById('life' + def); tr = L && L.getBoundingClientRect(); }
+    else { const te = document.querySelector(`#board .card[data-uid="${tgt}"]`); tr = te && te.getBoundingClientRect(); }
+    if (!tr) return;
+    const b = center(tr);
+    killLater(addFx('reticle', tr.left - 4, tr.top - 4, tr.width + 8, tr.height + 8), 650);
+    if (el.animate && !reduceMotion) el.animate([
+      { transform: 'none' },
+      { transform: `translate(${(b.x - a.x) * -0.06}px, ${(b.y - a.y) * -0.06}px) scale(1.04)`, offset: 0.25 },
+      { transform: `translate(${(b.x - a.x) * 0.42}px, ${(b.y - a.y) * 0.42}px) scale(1.12) rotate(${b.x > a.x ? 4 : -4}deg)`, offset: 0.6 },
+      { transform: 'none' }], { duration: 520, easing: 'ease-in-out' });
+  });
+}
+function fxImpact(r, t, big) {
+  at(t, () => {
+    const c = center(r), s = Math.max(r.width, 60) * (big ? 1.5 : 1.2);
+    killLater(addFx('boom', c.x - s / 2, c.y - s / 2, s, s), 500);
+    for (const [deg, dl] of [[-35, 0], [35, 90]]) {
+      at(dl, () => killLater(addFx('slash', c.x - s * 0.6, c.y - 3, s * 1.2, 6, `--r:${deg}deg`), 420));
+    }
+    particles(c, 10, 'ember', s * 0.6, 10);
+    const tb = $('#board'); tb.classList.remove('shake'); void tb.offsetWidth; tb.classList.add('shake');
+  });
+}
+// 電池は、入れる時はカードの上空から降り、抜く時は上空へ消える
+function fxVolt(fromR, toR, t) {
+  const above = r => ({ left: r.left + r.width / 2 - 11, top: r.top - Math.max(50, r.height * 0.6), width: 22, height: 22 });
+  if (!fromR && toR) fromR = above(toR);
+  if (fromR && !toR) toR = above(fromR);
+  if (!fromR || !toR) return;
+  at(t, () => {
+    const a = center(fromR), b = center(toR);
+    const w = document.createElement('img'); w.src = ART.battery; w.className = 'fxabs volt';
+    w.style.left = (a.x - 11) + 'px'; w.style.top = (a.y - 11) + 'px';
+    fxLayer().appendChild(w);
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (w.animate && !reduceMotion) w.animate([
+      { transform: 'translate(0,0) scale(.6)', opacity: 0 },
+      { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 40}px) scale(1.2)`, opacity: 1, offset: 0.5 },
+      { transform: `translate(${dx}px, ${dy}px) scale(.8)`, opacity: 0.9 }], { duration: 480, easing: 'ease-in-out', fill: 'forwards' });
+    killLater(w, 500);
+    at(470, () => particles(b, 6, '', 22, 10));
+  });
+}
+// 電池の出し入れ：カードを光らせ、+1 / −1 を浮かべる。plus=true で入れた時、false で抜いた時
+function fxBat(uid, n, plus, t, snap) {
+  at(t, () => {
+    const el = document.querySelector(`#board .card[data-uid="${uid}"]`);
+    const r = el ? el.getBoundingClientRect() : snap && snap.cards[uid]; if (!r) return;
+    if (el) { el.classList.remove('bat-in', 'bat-out'); void el.offsetWidth; el.classList.add(plus ? 'bat-in' : 'bat-out'); setTimeout(() => el.classList.remove('bat-in', 'bat-out'), 650); }
+    const f = document.createElement('span');
+    f.className = 'fxabs batfloat ' + (plus ? 'plus' : 'minus');
+    f.textContent = (plus ? '+' : '−') + n;
+    f.style.left = (r.left + r.width / 2) + 'px'; f.style.top = (r.top + r.height * 0.25) + 'px';
+    fxLayer().appendChild(f); killLater(f, 900);
+    particles(center(r), plus ? 8 : 10, plus ? '' : 'frost', r.width * 0.5, plus ? 14 : 22);
+  });
+}
+function fxCutin(id, pi, kind, t) {
+  at(t, () => {
+    const d = document.createElement('div');
+    d.className = 'cutin p' + pi;
+    const who = pi === 0 ? 'あなた' : 'CPU';
+    d.innerHTML = `<div class="band"></div><img class="cimg" src="${ART[id]}" alt=""><div class="ctext"><span>${kind === 'reveal' ? who + 'の伏せ札、オープン！' : who + 'のアクション'}</span><b>${CARDS[id].name}</b></div>`;
+    fxLayer().appendChild(d);
+    killLater(d, 1050);
+  });
+}
+// ターン交代・バトル開始のカットイン
+function fxBanner(kind, pi, title, sub, icon, t) {
+  at(t, () => {
+    const d = document.createElement('div');
+    d.className = `cutin banner ${kind} p${pi}`;
+    d.innerHTML = `<div class="band"></div>${icon ? `<img class="cimg" src="${ART[icon]}" alt="">` : ''}<div class="ctext"><span>${sub}</span><b>${title}</b></div>`;
+    fxLayer().appendChild(d);
+    killLater(d, 1050);
+  });
+}
+function floatDamage(pi, n, t) {
+  at(t || 30, () => {
+    const el = document.getElementById('life' + pi); if (!el) return;
+    const f = document.createElement('span'); f.className = 'dmg'; f.textContent = '-' + n;
+    el.appendChild(f); setTimeout(() => f.remove(), 1200);
+    el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 500);
+  });
+}
+// ログを読んで演出を予約。全体の所要時間(ms)を返す
+function playFx(events, snap) {
+  if (reduceMotion) { for (const e of events) { if (e.t === 'damage') floatDamage(e.pi, e.n, 0); if ((e.t === 'win' || e.t === 'tie') && G.mode === 'game') at(300, gameOver); } return 150; }
+  let t = 0, end = 0, skipSpell = false;
+  for (const e of events) {
+    switch (e.t) {
+      case 'turn': if (e.pi === undefined) break; fxBanner('turn', e.pi, e.pi === 0 ? 'あなたのターン' : 'CPUのターン', `手番 ${(e.msg.match(/（(\d+)）/) || [])[1] || ''}`, e.pi === 0 ? 'battery' : 'bomb', t); t += 1000; break;
+      case 'phase': fxBanner('battle', e.pi, 'バトル開始', e.pi === 0 ? 'あなたの攻撃' : 'CPUの攻撃', 'thunder', t); t += 1000; break;
+      case 'deploy': fxSummon(e.uid, t); end = Math.max(end, t + 750); t += 250; break;
+      case 'reveal': fxCutin(e.id, e.pi, 'reveal', t); t += 950; skipSpell = true; break;
+      case 'spell': if (skipSpell) { skipSpell = false; break; } fxCutin(e.id, e.pi, 'spell', t); t += 950; break;
+      case 'attack': fxLunge(e.att, e.tgt, t); t += 450; break;
+      case 'battle': { const r = rectOf(e.tgt, snap); if (r) fxImpact(r, t); t += 420; break; }
+      case 'direct': { const r = snap['life' + e.pi] || (document.getElementById('life' + e.pi) || {}).getBoundingClientRect?.(); if (r) fxImpact(r, t, true); t += 420; break; }
+      case 'destroy': fxDestroy(e.uid, snap, t); end = Math.max(end, t + 800); t += 150; break;
+      case 'short': { const r = rectOf(e.uid, snap); fxVolt(r, null, t); fxBat(e.uid, e.n || 1, false, t, snap); if (r) at(t, () => particles(center(r), 12, '', r.width * 0.6, 20)); end = Math.max(end, t + 900); t += 300; break; }
+      case 'setdestroy': fxSetDestroy(e.pi, snap, t); t += 300; break;
+      case 'damage': floatDamage(e.pi, e.n, t); end = Math.max(end, t + 600); break;
+      case 'place': case 'batfly': case 'enterbat': case 'solar': fxVolt(null, rectOf(e.uid, snap), t); fxBat(e.uid, 1, true, t + 450, snap); end = Math.max(end, t + 1350); t += 200; break;
+      case 'batmove': fxBat(e.from, 1, false, t, snap); fxVolt(rectOf(e.from, snap), rectOf(e.to, snap), t); fxBat(e.to, 1, true, t + 450, snap); end = Math.max(end, t + 1350); t += 250; break;
+      case 'release': { const r = rectOf(e.uid, snap); fxVolt(r, null, t); fxBat(e.uid, 1, false, t, snap); if (r) at(t, () => particles(center(r), 10, '', r.width * 0.6, 20)); end = Math.max(end, t + 900); t += 300; break; }
+      case 'rocket': { const r = rectOf(e.uid, snap); if (r) { fxImpact(r, t); at(t, () => particles(center(r), 18, '', r.width * 0.9, 30)); } end = Math.max(end, t + 600); t += 450; break; }
+      case 'daruma': { const r = rectOf(e.uid, snap); if (r) at(t, () => particles(center(r), 14, 'frost', r.width * 0.7, 10)); fxBat(e.uid, 1, false, t, snap); end = Math.max(end, t + 900); t += 250; break; }
+      case 'swap': t += 200; break;
+      case 'win': case 'tie': if (G.mode === 'game') at(Math.max(t, end) + 600, gameOver); break;
+    }
+  }
+  return Math.max(t, end);
+}
+let toastTimer = null;
+function toast(msg, kind) {
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast show' + (kind ? ' ' + kind : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = 'toast'; }, 1800);
+}
+// 状態変更のあと：ログを演出に変えて再描画。演出の所要時間を返す
+function refresh(snap) {
+  const L = G.s.log, ev = L.slice(G.logIdx);
+  G.logIdx = L.length;
+  for (const e of ev) if (e.uid !== undefined && e.t !== 'deploy') G.flash.add(e.uid);
+  const holes = [];
+  if (snap) for (const e of ev) if (e.t === 'destroy' && snap.idx[e.uid]) holes.push(snap.idx[e.uid]);
+  if (holes.length) G.holes = (G.holes || []).concat(holes);
+  render();
+  const ms = snap ? playFx(ev, snap) : 0;
+  if (holes.length) { const gid = G.id; setTimeout(() => { if (!G || G.id !== gid) return; G.holes = []; render(); }, (ms + 150) / SPD); }
+  return ms;
+}
+// fn で状態を変え、演出が終わるまで待つ
+async function step(fn) {
+  const snap = snapRects();
+  fn();
+  const ms = refresh(snap);
+  if (ms) await sleep(ms);
+  return ms;
+}
+
+// ---------- 対象選択モード ----------
+// sel = { prompt, valid:Set, picks:[], max, min, repeat, cap(uid)->n, onDone(picks), onCancel }
+function selValid(key) { return !!(G && G.sel && G.sel.valid.has(key)); }
+function startSel(o) {
+  G.sel = Object.assign({ picks: [], max: 1, min: 1, repeat: false }, o);
+  closeSheet(); render();
+}
+function renderSel() {
+  const bar = $('#selbar');
+  if (!G.sel) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const s = G.sel;
+  $('#selPrompt').textContent = s.prompt + (s.max > 1 ? `（${s.picks.length}/${s.max}）` : '');
+  $('#selOk').hidden = !(s.max > 1);
+  $('#selOk').disabled = s.picks.length < s.min;
+}
+function selPick(key) {
+  const s = G.sel; if (!s || !s.valid.has(key)) return false;
+  if (s.max === 1) { const done = s.onDone; G.sel = null; done([key]); return true; }
+  const cnt = s.picks.filter(k => k === key).length;
+  if (!s.repeat && cnt) { s.picks = s.picks.filter(k => k !== key); render(); return true; }
+  const cap = s.cap ? s.cap(key) : 1;
+  if (cnt >= cap) { if (s.repeat) s.picks = s.picks.filter(k => k !== key); render(); return true; }
+  if (s.picks.length >= s.max) { toast(`選べるのは${s.max}つまでです`); return true; }
+  s.picks.push(key); render(); return true;
+}
+function selCancel() { const s = G.sel; G.sel = null; if (s && s.onCancel) s.onCancel(); render(); }
+function selOk() { const s = G.sel; if (!s || s.picks.length < s.min) return; G.sel = null; s.onDone(s.picks.slice()); }
+
+// アクションの対象を集める（casterPi視点）。cb(ch) / cancel()
+function gatherSpell(id, casterPi, cb, cancel) {
+  const s = G.s;
+  const all = E.allField(s);
+  switch (id) {
+    case 'onemore': return cb({});
+    case 'manual': {
+      const ok = E.maintTargets(s, casterPi);
+      if (!ok.length) return cb({});
+      if (ok.length === 1) return cb({ target: ok[0].uid });
+      return startSel({ prompt: '2枚引いたあと、電池を入れる自分のロボを選ぶ', valid: new Set(ok.map(y => y.uid)), onDone: p => cb({ target: p[0] }), onCancel: cancel });
+    }
+    case 'ebattery': {
+      const ok = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < CARDS[y.id].max);
+      const n = Math.min(2, ok.reduce((a, y) => a + CARDS[y.id].max - y.bat, 0));
+      if (!n) { toast('電池を入れられるロボがいません'); return cancel && cancel(); }
+      return startSel({ prompt: '電池を入れるロボを選ぶ（同じロボを何度でも）', valid: new Set(ok.map(y => y.uid)), max: n, min: 1, repeat: true,
+        cap: u => { const y = E.findRobo(s, u).y; return CARDS[y.id].max - y.bat; }, onDone: p => cb({ targets: p }), onCancel: cancel });
+    }
+    case 'short': {
+      const ok = all.filter(y => y.bat > 0 && !E.immuneFrom(y, s, casterPi));
+      if (!ok.length) { toast('電池が入ったロボがいません'); return cancel && cancel(); }
+      return startSel({ prompt: '電池を外すロボを選ぶ（2体まで）', valid: new Set(ok.map(y => y.uid)), max: Math.min(2, ok.length), min: 1, onDone: p => cb({ targets: p }), onCancel: cancel });
+    }
+    case 'thunder': {
+      const c = E.thunderCandidates(s, casterPi);
+      if (!c.length) { toast('破壊できるロボがいません（相手のバリアロボは効果を受けません）'); return cancel && cancel(); }
+      if (c.length === 1) return cb({ target: c[0].uid });
+      return startSel({ prompt: '破壊するロボを選ぶ（攻撃力が最も高いロボ）', valid: new Set(c.map(y => y.uid)), onDone: p => cb({ target: p[0] }), onCancel: cancel });
+    }
+    case 'hack': {
+      if (s.players[casterPi].field.length >= 3) { toast('自分の場がいっぱいです（ロボは3体まで）'); return cancel && cancel(); }
+      const ok = E.hackCandidates(s, casterPi);
+      if (!ok.length) { toast('乗っ取れる相手のロボがいません（相手のバリアロボは効果を受けません）'); return cancel && cancel(); }
+      if (ok.length === 1) return cb({ target: ok[0].uid });
+      return startSel({ prompt: '乗っ取るロボを選ぶ（相手の場で攻撃力が最も高いロボ）', valid: new Set(ok.map(y => y.uid)), onDone: p => cb({ target: p[0] }), onCancel: cancel });
+    }
+    case 'limiter': {
+      const ok = all.filter(y => !E.immuneFrom(y, s, casterPi));
+      if (!ok.length) { toast('対象にできるロボがいません'); return cancel && cancel(); }
+      return startSel({ prompt: 'リミッターを外すロボを選ぶ（' + E.LIM_LABEL + '・手番終了時に破壊）', valid: new Set(ok.map(y => y.uid)), onDone: p => cb({ target: p[0] }), onCancel: cancel });
+    }
+    case 'swap': {
+      const from = all.filter(y => y.bat > 0 && !E.immuneFrom(y, s, casterPi));
+      const to = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < CARDS[y.id].max);
+      if (!from.length || to.length < 1) { toast('電池を移せるロボがいません'); return cancel && cancel(); }
+      return startSel({ prompt: '電池を取るロボを選ぶ', valid: new Set(from.map(y => y.uid)), onCancel: cancel,
+        onDone: p => {
+          const v = to.filter(y => y.uid !== p[0]);
+          if (!v.length) { toast('移す先がありません'); return cancel && cancel(); }
+          startSel({ prompt: '電池を移す先のロボを選ぶ', valid: new Set(v.map(y => y.uid)), onCancel: cancel, onDone: q => cb({ from: p[0], to: q[0] }) });
+        } });
+    }
+    case 'repair': {
+      if (s.players[casterPi].field.length >= 3) { toast('場のロボは3体までです'); return cancel && cancel(); }
+      const list = [];
+      for (const gpi of [0, 1]) for (const c of s.players[gpi].scrap) if (CARDS[c.id].kind === 'robo') list.push({ gpi, c });
+      if (!list.length) { toast('スクラップにロボがいません'); return cancel && cancel(); }
+      return openSheet(`<h3>スクラップから起動するロボ</h3><p class="sub">どちらのスクラップからでも選べます</p>
+        <div class="glist">${list.map(o => `<div class="gitem"><span class="gown">${o.gpi === 0 ? 'あなたのスクラップ' : 'CPUのスクラップ'}</span>${cardHTML(o.c, { size: 'hand', cls: 'pickg', zone: 'g' + o.gpi })}</div>`).join('')}</div>
+        <div class="row"><button class="btn ghost" id="hkCancel">やめる</button></div>`, sh => {
+          sh.querySelectorAll('.pickg').forEach(b => b.addEventListener('click', () => {
+            const uid = +b.dataset.uid, gpi = +b.dataset.zone.slice(1); closeSheet(); cb({ gpi, uid });
+          }));
+          sh.querySelector('#hkCancel').addEventListener('click', () => { closeSheet(); cancel && cancel(); });
+        });
+    }
+  }
+}
+
+// ---------- 人間の行動 ----------
+async function humanAct(a) {
+  const s = G.s, my = G.id;
+  if (G.busy) return;
+  if (G.mode === 'tut' && !tutGate(a)) { render(); return; }
+  const err = E.checkAction(s, a);
+  if (err) { toast(err, 'err'); render(); return; }
+  closePop();
+  if (a.t === 'attack') {
+    G.busy = true; G.attackFx = { att: a.att, tgt: a.tgt };
+    await step(() => E.apply(s, a));
+    if (!G || G.id !== my) return;
+    G.busy = false; render();
+  } else {
+    // 起動・電池・アクションなどは演出の終了を待たずに次の操作を受け付ける
+    const snap = snapRects(); E.apply(s, a); const ms = refresh(snap);
+    if ((a.t === 'end' || a.t === 'battle') && ms) {
+      G.busy = true; render();
+      await sleep(ms);
+      if (!G || G.id !== my) return;
+      G.busy = false; render();
+    }
+  }
+  tutAfter(a);
+  if (s.pending) return finishMyAttack();
+  if (a.t !== 'end') maybeAutoEnd();
+  if (a.t === 'end' && !E.isOver(s) && !(G.mode === 'tut' && !LESSONS[G.tut.i].cpuScript)) runCpu();
+}
+// メインの行動を使い切り、戦闘にも移れない（先攻1手番目・場にロボがいない・メガトンロボ）なら自動でターン終了
+async function maybeAutoEnd() {
+  const s = G.s, my = G.id;
+  if (G.mode !== 'game' || s.turn !== 0 || E.isOver(s) || s.pending || s.phase !== 'main' || s.actions > 0) return;
+  const why = battleErr(); if (!why) return;
+  if (s.players[0].hand.some(c => CARDS[c.id].noCost)) return; // ワンモアが残っていればまだ行動できる
+  G.busy = true; render();
+  await sleep(reduceMotion ? 300 : 900);
+  if (!G || G.id !== my || s.turn !== 0 || E.isOver(s)) return;
+  toast('行動を使い切ったのでターン終了');
+  G.busy = false;
+  humanAct({ t: 'end' });
+}
+async function finishMyAttack() {
+  const s = G.s, my = G.id;
+  G.busy = true; render();
+  await sleep(reduceMotion ? 50 : 150);
+  if (!G || G.id !== my) return;
+  if (E.needsResponse(s)) {
+    let r;
+    if (G.mode === 'tut') r = G.tut.cpuRespond ? G.tut.cpuRespond(s) : null;
+    else r = AI.chooseResponseFor(s, G.opt);
+    await step(() => E.respond(s, r));
+  } else await step(() => E.resolveBattle(s));
+  if (!G || G.id !== my) return;
+  G.attackFx = null; G.busy = false;
+  render();
+  tutAfter({ t: 'attack-resolved' });
+  if (G.mode === 'debug') return dbgAfterMyBattle();
+  // 攻撃は1手番に1回なので、戦闘が終わったら自動でターン終了
+  if (G.mode === 'game' && !E.isOver(s) && s.turn === 0) {
+    G.busy = true; render();
+    await sleep(reduceMotion ? 200 : 600);
+    if (!G || G.id !== my || E.isOver(s) || s.turn !== 0) return;
+    G.busy = false;
+    humanAct({ t: 'end' });
+  }
+}
+
+// ---------- CPU ----------
+async function runCpu() {
+  const s = G.s; G.busy = true; render();
+  const my = G.id;
+  let guard = 0;
+  while (G && G.id === my && s.turn === 1 && !E.isOver(s) && guard++ < 30) {
+    await sleep(reduceMotion ? 150 : 650);
+    if (!G || G.id !== my) return;
+    let a;
+    if (G.mode === 'tut') a = (G.tut.cpuScript && G.tut.cpuScript.shift()) || { t: 'end' };
+    else if (G.mode === 'debug') a = dbgCpuAction(s);
+    else a = AI.chooseAction(s, G.opt) || { t: 'end' };
+    if (a.t === 'attack') G.attackFx = { att: a.att, tgt: a.tgt };
+    await step(() => { try { E.apply(s, a); } catch (e) { console.warn(e); E.apply(s, { t: 'end' }); } });
+    if (!G || G.id !== my) return;
+    if (s.pending) {
+      await sleep(reduceMotion ? 100 : 200);
+      if (!G || G.id !== my) return;
+      if (E.needsResponse(s)) { const r = await humanRespond(); await step(() => E.respond(s, r)); }
+      else await step(() => E.resolveBattle(s));
+      if (!G || G.id !== my) return;
+      G.attackFx = null; render();
+      tutAfter({ t: 'cpu-attack-resolved' });
+    }
+  }
+  if (!G || G.id !== my) return;
+  G.busy = false; render();
+  tutAfter({ t: 'cpu-turn-done' });
+  if (G.mode === 'debug') dbgTurnStart(false);
+}
+function humanRespond() {
+  return new Promise(resolve => {
+    const s = G.s, p = s.pending;
+    const A = E.findRobo(s, p.att).y;
+    const tn = p.tgt === 'player' ? 'あなた' : 'あなたの' + CARDS[E.findRobo(s, p.tgt).y.id].name;
+    const set = s.players[0].set;
+    const ask = () => openSheet(`<h3 class="warn">${CARDS[A.id].name}（攻撃力${E.atkOf(A)}）が${tn}に攻撃！</h3>
+      <p class="sub">セットしたアクションを表にして発動できます。</p>
+      <div class="respond">${cardHTML(set, { size: 'big' })}<p>${CARDS[set.id].text}</p></div>
+      ${statusHTML()}
+      <div class="row"><button class="btn" id="rNo">発動しない</button><button class="btn primary" id="rYes">発動する</button></div>`, sh => {
+        sh.querySelector('#rNo').addEventListener('click', () => {
+          if (G.mode === 'tut' && !tutGate({ t: 'respond', resp: null })) return;
+          closeSheet(); resolve(null);
+        });
+        sh.querySelector('#rYes').addEventListener('click', () => {
+          closeSheet();
+          gatherSpell(set.id, 0, ch => {
+            const err = E.respondChoiceError(s, ch);
+            if (err) { toast(err, 'err'); return ask(); }
+            if (G.mode === 'tut' && !tutGate({ t: 'respond', resp: { ch }, id: set.id })) { render(); return ask(); }
+            render(); resolve({ ch });
+          }, () => ask());
+        });
+      }, true);
+    ask();
+  });
+}
+
+// ---------- 詳細シート ----------
+function openSheet(html, bind, modal) {
+  const sh = $('#sheet'), bd = $('#sheetBack');
+  sh.innerHTML = html; sh.hidden = false; bd.hidden = false;
+  bd.dataset.modal = modal ? '1' : '';
+  if (bind) bind(sh);
+}
+function closeSheet() { $('#sheet').hidden = true; $('#sheetBack').hidden = true; }
+
+function cardInfoHTML(c, zone) {
+  const d = CARDS[c.id];
+  let meta = '';
+  if (d.kind === 'robo') {
+    const atkNow = zone === 'field' ? E.atkOf(c) : shownAtk(c);
+    meta = `<dl class="meta"><div><dt>攻撃力</dt><dd>${atkNow}${atkNow !== d.atk ? `<small>（基本${d.atk}）</small>` : ''}</dd></div>
+      <div><dt>電池上限</dt><dd>${zone === 'field' ? c.bat + ' / ' : ''}${d.max}</dd></div>
+      <div><dt>効果の種類</dt><dd>${EFF_LABEL[d.eff]}</dd></div></dl>
+      <p class="effhelp">${EFF_HELP[d.eff]}</p>`;
+  } else meta = `<p class="effhelp">手札から発動（行動1回）するか、セットして相手の攻撃宣言時に発動できます。</p>`;
+  const idle = zone === 'field' && d.kind === 'robo' && (d.eff === 'powered' || d.eff === 'release') && c.bat <= 0;
+  const idleNote = idle ? `<p class="idlenote">${d.eff === 'powered' ? '電池が入っていないので、この効果は止まっています（OFF）。' : '電池が入っていないので、放電効果は使えません。'}</p>` : '';
+  return `<div class="info">${cardHTML(c, { size: 'big', zone })}<div class="itext"><h3>${d.name}</h3>${meta}<p class="etext${idle ? ' idle' : ''}">${cardText(d)}</p>${kwList(d).map(k => `<p class="kwhelp"><b>${k.name}</b>：${k.help}</p>`).join('')}${idleNote}</div></div>`;
+}
+function openCard(uid, zoneHint) {
+  const s = G.s;
+  if (G.sel) return;
+  const me = s.players[0];
+  let c, zone, owner;
+  const f = E.findRobo(s, uid);
+  if (f) { c = f.y; zone = 'field'; owner = f.pi; }
+  else if (me.hand.find(x => x.uid === uid)) { c = me.hand.find(x => x.uid === uid); zone = 'hand'; owner = 0; }
+  else if (me.set && me.set.uid === uid) { c = me.set; zone = 'set'; owner = 0; }
+  else { for (const p of s.players) { const g = p.scrap.find(x => x.uid === uid); if (g) { c = g; zone = 'scrap'; } } }
+  if (!c) return;
+  const d = CARDS[c.id];
+  const myTurn = s.turn === 0 && !G.busy && !E.isOver(s) && !s.pending;
+  const acts = [];
+  const can = a => myTurn && !E.checkAction(s, a);
+  const why = a => myTurn ? E.checkAction(s, a) : 'いまはあなたの手番ではありません';
+  if (owner === 0 && (zone === 'hand' || zone === 'set')) {
+    if (d.kind === 'robo') acts.push({ k: 'play', label: '起動する', a: { t: 'play', uid } });
+    else {
+      acts.push({ k: 'cast', label: '発動する', a: { t: 'play', uid, ch: {} }, spell: true });
+      if (zone === 'hand') acts.push({ k: 'set', label: 'セットする', a: { t: 'set', uid } });
+    }
+  }
+  if (zone === 'field' && owner === 0) {
+    acts.push({ k: 'place', label: '電池を入れる', a: { t: 'place', target: uid } });
+    if (d.eff === 'release') acts.push({ k: 'release', label: '放電効果を使う', a: null });
+  }
+  let btns = '';
+  for (const x of acts) {
+    let err;
+    if (x.k === 'cast') err = myTurn ? (E.isJammed(s, 0) ? 'ジャマーロボがいるので、アクションを使えません' : s.phase !== 'main' || s.actions <= 0 ? 'この手番の行動は使い切りました' : null) : why({});
+    else if (x.k === 'release') {
+      err = !myTurn ? why({}) : (s.actions <= 0 || s.phase !== 'main') ? '行動がありません' : c.bat <= 0 ? '電池が入っていません' :
+        (c.id === 'souji' && !s.players[0].set && !s.players[1].set) ? 'セットされたアクションがありません' :
+        (c.id === 'magnet' && !s.players[1].field.some(y => !E.immuneFrom(y, s, 0))) ? '入れ替えられる相手のロボがいません' :
+        (c.id === 'sniper' && !E.sniperCandidates(s, c.uid).length) ? 'ほかに場にロボがいません' : null;
+    } else if (x.k === 'attack') {
+      err = !myTurn ? why({}) : s.firstTurn ? '先攻の最初の手番は攻撃できません' : s.attacked ? 'この手番はもう攻撃しました' : s.noAttack ? 'メガトンロボの効果で攻撃できません' : null;
+    } else err = why(x.a);
+    btns += `<button class="btn${err ? ' off' : ' primary'}" data-k="${x.k}" ${err ? `data-why="${err}"` : ''}>${x.label}</button>`;
+  }
+  openSheet(`${cardInfoHTML(c, zone)}${btns ? `<div class="row acts">${btns}</div>` : ''}<p class="why" id="why"></p>
+    <div class="row"><button class="btn ghost" id="shClose">閉じる</button></div>`, sh => {
+      sh.querySelector('#shClose').addEventListener('click', closeSheet);
+      sh.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
+        if (b.dataset.why) { sh.querySelector('#why').textContent = b.dataset.why; return; }
+        doCardAction(b.dataset.k, c);
+      }));
+    });
+}
+function doCardAction(k, c) {
+  const s = G.s, uid = c.uid;
+  closeSheet();
+  if (k === 'play') return humanAct({ t: 'play', uid });
+  if (k === 'set') return humanAct({ t: 'set', uid });
+  if (k === 'place') return humanAct({ t: 'place', target: uid });
+  if (k === 'cast') return gatherSpell(c.id, 0, ch => humanAct({ t: 'play', uid, ch }), () => render());
+  if (k === 'release') {
+    if (c.id === 'souji') {
+      const v = new Set(); if (s.players[0].set) v.add('set0'); if (s.players[1].set) v.add('set1');
+      return startSel({ prompt: '破壊するセットアクションを選ぶ', valid: v, onDone: p => humanAct({ t: 'release', src: uid, ch: { pi: p[0] === 'set0' ? 0 : 1 } }) });
+    }
+    if (c.id === 'sniper') {
+      const cand = E.sniperCandidates(s, uid);
+      if (cand.length === 1) return humanAct({ t: 'release', src: uid, ch: { target: cand[0].uid } });
+      return startSel({ prompt: '破壊するロボを選ぶ（場で攻撃力が最も高いロボ）', valid: new Set(cand.map(y => y.uid)), onDone: p => humanAct({ t: 'release', src: uid, ch: { target: p[0] } }) });
+    }
+    if (c.id === 'magnet') return startSel({ prompt: 'マグネットロボと入れ替える相手のロボを選ぶ', valid: new Set(s.players[1].field.filter(y => !E.immuneFrom(y, s, 0)).map(y => y.uid)), onDone: p => humanAct({ t: 'release', src: uid, ch: { target: p[0] } }) });
+  }
+  if (k === 'attack') {
+    if (!s.players[1].field.length) return humanAct({ t: 'attack', att: uid, tgt: 'player' });
+    return startSel({ prompt: `${CARDS[c.id].name}の攻撃対象を選ぶ`, valid: new Set(s.players[1].field.map(y => y.uid)), onDone: p => humanAct({ t: 'attack', att: uid, tgt: p[0] }) });
+  }
+}
+function openScrap(pi) {
+  const g = G.s.players[pi].scrap;
+  openSheet(`<h3>${pi === 0 ? 'あなた' : 'CPU'}のスクラップ（${g.length}枚）</h3>
+    <div class="glist">${g.map(c => cardHTML(c, { size: 'hand', zone: 'scrap' })).join('') || '<p class="sub">まだありません</p>'}</div>
+    <div class="row"><button class="btn ghost" id="gClose">閉じる</button></div>`, sh => {
+      sh.querySelector('#gClose').addEventListener('click', closeSheet);
+      sh.querySelectorAll('.glist .card').forEach(b => b.addEventListener('click', () => openCard(+b.dataset.uid)));
+    });
+}
+
+// ---------- ワンタップ操作 ----------
+// 手札のロボはタップで即起動、アクションはタップで小メニュー。場のロボには +電池 / ⚔ / 解 のボタンを直接出す。
+// 詳細は長押し（右クリック）で開く。
+function canQuick() { const s = G.s; return s.turn === 0 && !G.busy && !s.pending && !E.isOver(s) && !G.sel; }
+function quickErr(k, c) {
+  const s = G.s;
+  if (!canQuick()) return 'いまは操作できません';
+  if (k === 'place') return E.checkAction(s, { t: 'place', target: c.uid });
+  if (k === 'attack') {
+    const O = s.players[1].field;
+    return E.checkAction(s, { t: 'attack', att: c.uid, tgt: O.length ? O[0].uid : 'player' });
+  }
+  if (k === 'release') {
+    if (c.id === 'souji') { const pi = s.players[1].set ? 1 : s.players[0].set ? 0 : 1; return E.checkAction(s, { t: 'release', src: c.uid, ch: { pi } }); }
+    if (c.id === 'magnet') { const O = s.players[1].field.filter(y => !E.immuneFrom(y, s, 0)); return E.checkAction(s, { t: 'release', src: c.uid, ch: { target: O.length ? O[0].uid : -1 } }); }
+    if (c.id === 'sniper') { const t = E.sniperCandidates(s, c.uid)[0]; return t ? E.checkAction(s, { t: 'release', src: c.uid, ch: { target: t.uid } }) : 'ほかに場にロボがいません'; }
+    return '放電効果を持っていません';
+  }
+  return null;
+}
+function cardByUid(uid) {
+  const s = G.s, me = s.players[0];
+  const f = E.findRobo(s, uid); if (f) return f.y;
+  return me.hand.find(x => x.uid === uid) || (me.set && me.set.uid === uid ? me.set : null);
+}
+// 手札・伏せ札のアクション用の小メニュー
+function openPop(anchor, items) {
+  const pop = $('#pop');
+  pop.innerHTML = items.map((it, i) => `<button class="btn${it.primary ? ' primary' : ''}${it.err ? ' off' : ''}" data-i="${i}">${it.label}</button>`).join('');
+  pop.hidden = false;
+  const r = anchor.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let x = r.left + r.width / 2 - pw / 2; x = Math.max(8, Math.min(window.innerWidth - pw - 8, x));
+  let y = r.top - ph - 8; if (y < 8) y = r.bottom + 8;
+  pop.style.left = x + 'px'; pop.style.top = y + 'px';
+  pop.onclick = e => {
+    const b = e.target.closest('[data-i]'); if (!b) return;
+    const it = items[+b.dataset.i];
+    if (it.err) { toast(it.err, 'err'); return; }
+    closePop(); it.run();
+  };
+}
+function closePop() { const p = $('#pop'); if (p) p.hidden = true; }
+function spellPop(el, c, zone) {
+  const s = G.s;
+  const items = [{ label: '発動', primary: true, err: castErr(c), run: () => doCardAction('cast', c) }];
+  if (zone === 'hand' && !CARDS[c.id].noSet) items.push({ label: 'セット', primary: true, err: canQuick() ? E.checkAction(s, { t: 'set', uid: c.uid }) : 'いまは操作できません', run: () => doCardAction('set', c) });
+  items.push({ label: '詳細', run: () => openCard(c.uid) });
+  openPop(el, items);
+}
+function onQuick(qa) {
+  const c = cardByUid(+qa.dataset.uid); if (!c) return;
+  const k = qa.dataset.qa, err = quickErr(k, c);
+  if (err) { toast(err, 'err'); return; }
+  doCardAction(k, c);
+}
+function onHandTap(el) {
+  const c = cardByUid(+el.dataset.uid); if (!c) return;
+  if (CARDS[c.id].kind === 'spell') return spellPop(el, c, 'hand');
+  const err = canQuick() ? E.checkAction(G.s, { t: 'play', uid: c.uid }) : 'いまは操作できません';
+  openPop(el, [
+    { label: '起動', primary: true, err, run: () => humanAct({ t: 'play', uid: c.uid }) },
+    { label: '詳細', run: () => openCard(c.uid) },
+  ]);
+}
+function onMyFieldTap(el) {
+  const c = cardByUid(+el.dataset.uid); if (!c) return;
+  if (battleIdle()) return pickTarget(c.uid);
+  const items = [{ label: '+電池', primary: true, err: quickErr('place', c), run: () => humanAct({ t: 'place', target: c.uid }) }];
+  if (CARDS[c.id].eff === 'release') items.push({ label: '放電', primary: true, err: quickErr('release', c), run: () => doCardAction('release', c) });
+  items.push({ label: '詳細', run: () => openCard(c.uid) });
+  openPop(el, items);
+}
+// ---------- バトルフェイズ ----------
+function battleIdle() { const s = G.s; return !!G && s.turn === 0 && s.phase === 'battle' && !s.attacked && !s.pending && !G.busy && !G.sel && !E.isOver(s); }
+function battleErr() {
+  const s = G.s;
+  if (s.phase === 'battle') return s.attacked ? 'この手番はもう攻撃しました' : null;
+  return E.checkAction(s, { t: 'battle' });
+}
+function pickAttacker() {
+  const own = G.s.players[0].field;
+  if (own.length === 1) return pickTarget(own[0].uid);
+  startSel({ prompt: '攻撃するロボを選ぶ', valid: new Set(own.map(y => y.uid)), onDone: p => pickTarget(p[0]), onCancel: () => render() });
+}
+function pickTarget(att) {
+  const s = G.s, O = s.players[1].field, name = CARDS[cardByUid(att).id].name;
+  if (!O.length) return humanAct({ t: 'attack', att, tgt: 'player' });
+  const gs = E.guardsOf(s, 1), cand = gs.length ? gs : O;
+  startSel({ prompt: gs.length ? `${name}の攻撃対象を選ぶ（ガードロボしか狙えません）` : `${name}の攻撃対象を選ぶ`, valid: new Set(cand.map(y => y.uid)), onDone: p => humanAct({ t: 'attack', att, tgt: p[0] }), onCancel: () => render() });
+}
+async function onBattleBtn() {
+  if (!G || !canQuick()) return;
+  if (!(await enterBattle())) { render(); return; }
+  pickAttacker();
+}
+// 長押し・右クリックで詳細
+let lpTimer = null, lpFired = false;
+function bindLongPress(root) {
+  root.addEventListener('pointerdown', e => {
+    const c = e.target.closest('.card[data-uid]'); if (!c || e.button > 0) return;
+    lpFired = false; clearTimeout(lpTimer);
+    const x0 = e.clientX, y0 = e.clientY;
+    lpTimer = setTimeout(() => { lpFired = true; closePop(); if (!G.sel) openCard(+c.dataset.uid); }, 450);
+    const cancel = ev => { if (ev.type !== 'pointermove' || Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) { clearTimeout(lpTimer); off(); } };
+    const off = () => { ['pointerup', 'pointercancel', 'pointermove', 'pointerleave'].forEach(t => root.removeEventListener(t, cancel)); };
+    ['pointerup', 'pointercancel', 'pointermove', 'pointerleave'].forEach(t => root.addEventListener(t, cancel));
+  });
+  root.addEventListener('contextmenu', e => {
+    const c = e.target.closest('.card[data-uid]'); if (!c) return;
+    e.preventDefault(); closePop(); if (!G.sel) openCard(+c.dataset.uid);
+  });
+}
+
+// ---------- ドラッグ＆ドロップ ----------
+// 手札のロボ → 自分の場で起動。
+// アクション（手札・伏せ札）→ 伏せ札枠でセット、場に落とすと確認のうえ発動。
+// スマホでは横方向のスワイプは手札のスクロールに残し、上方向に引いたときだけドラッグにする。
+let dragFired = false;
+function castErr(c) {
+  const s = G.s;
+  if (!canQuick()) return 'いまは操作できません';
+  if (s.phase !== 'main') return 'バトルフェイズ中はアクションを発動できません';
+  if (E.isJammed(s, 0)) return 'ジャマーロボがいるので、アクションを使えません';
+  if (s.actions <= 0 && !(c && CARDS[c.id].noCost)) return 'この手番の行動は使い切りました';
+  return null;
+}
+// ドロップ先の候補（先に書いたものが優先）
+function dropZones(c, fromSet) {
+  const s = G.s;
+  if (CARDS[c.id].kind === 'robo') return [{ el: $('#myField'), act: 'play', label: '起動', err: E.checkAction(s, { t: 'play', uid: c.uid }) }];
+  const z = [];
+  if (!fromSet) z.push({ el: document.querySelector('#myField .setslot'), act: 'set', label: 'セット', err: E.checkAction(s, { t: 'set', uid: c.uid }) });
+  else z.push({ el: document.querySelector('#myField .setslot'), act: 'none' });
+  const ce = castErr(c);
+  z.push({ el: $('#myField'), act: 'cast', label: '発動', err: ce });
+  z.push({ el: $('#oppField'), act: 'cast', label: '発動', err: ce });
+  return z.filter(x => x.el);
+}
+// 確認ダイアログ用：両者のライフとスクラップ（新しい順）を表示
+function statusHTML() {
+  const s = G.s;
+  const side = pi => {
+    const P = s.players[pi], g = P.scrap.slice().reverse();
+    const list = g.length ? g.map(c => `<span class="chip ${CARDS[c.id].kind}">${CARDS[c.id].name}</span>`).join('') : '<span class="sub">なし</span>';
+    return `<div class="st-side"><div class="st-head"><b>${pi === 0 ? 'あなた' : 'CPU'}</b><span class="st-life">ライフ <b>${P.life}</b>/${E.LIFE_MAX}</span></div>
+      <details><summary>スクラップ ${g.length}枚（新しい順）</summary><div class="st-chips">${list}</div></details></div>`;
+  };
+  return `<div class="statusbox">${side(1)}${side(0)}</div>`;
+}
+function confirmCast(c) {
+  return new Promise(resolve => {
+    openSheet(`<h3>${CARDS[c.id].name}を発動しますか？</h3>
+      <div class="respond">${cardHTML(c, { size: 'big' })}<p>${CARDS[c.id].text}</p></div>
+      ${statusHTML()}
+      <div class="row"><button class="btn" id="ccNo">いいえ</button><button class="btn primary" id="ccYes">はい</button></div>`, sh => {
+        sh.querySelector('#ccNo').addEventListener('click', () => { closeSheet(); resolve(false); });
+        sh.querySelector('#ccYes').addEventListener('click', () => { closeSheet(); resolve(true); });
+      }, true);
+  });
+}
+function bindDrag(root) {
+  root.addEventListener('pointerdown', e => {
+    const el = e.target.closest('#hand .card[data-uid], #myField .setslot .card[data-uid]');
+    if (!el || e.button > 0 || !G || !canQuick()) return;
+    const c = cardByUid(+el.dataset.uid); if (!c) return;
+    const fromSet = el.dataset.zone === 'set';
+    const x0 = e.clientX, y0 = e.clientY, id = e.pointerId;
+    let ghost = null, zones = [], over = null, offX = 0, offY = 0;
+    const start = ev => {
+      clearTimeout(lpTimer); closePop();
+      const r = el.getBoundingClientRect(); offX = x0 - r.left; offY = y0 - r.top;
+      ghost = el.cloneNode(true); ghost.classList.add('drag-ghost'); ghost.removeAttribute('title');
+      ghost.style.width = r.width + 'px'; ghost.style.height = r.height + 'px';
+      document.body.appendChild(ghost);
+      el.classList.add('dragging');
+      zones = dropZones(c, fromSet);
+      for (const z of zones) if (z.act !== 'none') { z.el.classList.add(z.err ? 'drop-ng' : 'drop-ok'); z.el.dataset.drop = z.label; }
+      place(ev);
+    };
+    const place = ev => {
+      ghost.style.transform = `translate(${ev.clientX - offX}px, ${ev.clientY - offY}px) rotate(-4deg)`;
+      const hit = document.elementFromPoint(ev.clientX, ev.clientY);
+      const z = hit ? zones.find(z => z.el.contains(hit)) : null;
+      if (over !== z) {
+        if (over) over.el.classList.remove('drop-over');
+        over = z || null;
+        if (over && over.act !== 'none') over.el.classList.add('drop-over');
+      }
+    };
+    const move = ev => {
+      if (ev.pointerId !== id) return;
+      const dx = ev.clientX - x0, dy = ev.clientY - y0;
+      if (!ghost) {
+        if (Math.hypot(dx, dy) < 10) return;
+        // タッチの横スワイプは手札のスクロールに任せる
+        if (!fromSet && ev.pointerType !== 'mouse' && Math.abs(dx) > Math.abs(dy)) return end();
+        start(ev);
+      }
+      ev.preventDefault();
+      place(ev);
+    };
+    const up = async ev => {
+      if (ev.pointerId !== id) return;
+      const z = over, dragged = !!ghost;
+      end();
+      if (!dragged) return;
+      dragFired = true; setTimeout(() => { dragFired = false; }, 0);
+      if (!z || z.act === 'none') return;
+      if (z.err) { toast(z.err, 'err'); return; }
+      if (z.act === 'play') return humanAct({ t: 'play', uid: c.uid });
+      if (z.act === 'set') return humanAct({ t: 'set', uid: c.uid });
+      if (z.act === 'cast') { if (await confirmCast(c)) doCardAction('cast', c); else render(); }
+    };
+    const end = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', end);
+      if (ghost) ghost.remove();
+      el.classList.remove('dragging');
+      for (const z of zones) { z.el.classList.remove('drop-ok', 'drop-ng', 'drop-over'); delete z.el.dataset.drop; }
+    };
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', end);
+  });
+}
+
+// ---------- 戦闘：確認ダイアログとドラッグ攻撃 ----------
+// メインの行動が残っている時に戦闘へ移る場合だけ確認する
+function confirmBattle() {
+  const n = G.s.actions;
+  return new Promise(resolve => {
+    openSheet(`<h3>戦闘に移行しますか？</h3>
+      <p class="sub">メインフェイズの行動が<b class="hl">あと${n}回</b>残っています。戦闘に入ると、この手番は起動・電池の配置・アクションなどができなくなります。</p>
+      <div class="row"><button class="btn" id="cbNo">まだ行動する</button><button class="btn battle" id="cbYes">戦闘へ</button></div>`, sh => {
+        sh.querySelector('#cbNo').addEventListener('click', () => { closeSheet(); resolve(false); });
+        sh.querySelector('#cbYes').addEventListener('click', () => { closeSheet(); resolve(true); });
+      }, true);
+  });
+}
+// 必要ならバトルフェイズへ移る。移れたら true
+async function enterBattle() {
+  const s = G.s;
+  const err = battleErr();
+  if (err) { toast(err, 'err'); return false; }
+  if (s.phase === 'battle') return true;
+  if (s.actions > 0 && G.mode !== 'debug' && !(await confirmBattle())) return false;
+  await humanAct({ t: 'battle' });
+  return G && G.s.phase === 'battle';
+}
+async function requestAttack(att, tgt) {
+  if (!(await enterBattle())) { render(); return; }
+  humanAct({ t: 'attack', att, tgt });
+}
+// 場のロボをドラッグ → 照準の矢印を伸ばし、相手のロボ（いなければ相手）に落とすと攻撃
+function bindAim(root) {
+  root.addEventListener('pointerdown', e => {
+    const el = e.target.closest('#myField .card[data-uid]');
+    if (!el || el.dataset.zone !== 'field' || e.button > 0 || !G || !canQuick()) return;
+    const att = +el.dataset.uid;
+    const r0 = el.getBoundingClientRect(), ox = r0.left + r0.width / 2, oy = r0.top + r0.height * 0.35;
+    const x0 = e.clientX, y0 = e.clientY, id = e.pointerId;
+    let svg = null, err = null, targets = [], hover = null;
+    const start = () => {
+      clearTimeout(lpTimer); closePop();
+      err = battleErr();
+      const O = G.s.players[1].field;
+      const gs = E.guardsOf(G.s, 1).map(y => String(y.uid));
+      targets = O.length ? [...document.querySelectorAll('#oppField .card[data-uid]')].filter(el => !gs.length || gs.includes(el.dataset.uid)) : [$('#oppField'), $('#oppInfo')];
+      targets.forEach(t => t.classList.add(err ? 'aim-ng' : 'aim-ok'));
+      el.classList.add('aiming');
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'aim' + (err ? ' ng' : ''));
+      svg.innerHTML = '<line class="aim-shadow"/><line class="aim-line"/><polygon class="aim-head" points="0,-9 16,0 0,9"/>';
+      fxLayer().appendChild(svg);
+    };
+    const draw = ev => {
+      const x = ev.clientX, y = ev.clientY;
+      for (const l of svg.querySelectorAll('line')) { l.setAttribute('x1', ox); l.setAttribute('y1', oy); l.setAttribute('x2', x); l.setAttribute('y2', y); }
+      const ang = Math.atan2(y - oy, x - ox) * 180 / Math.PI;
+      svg.querySelector('.aim-head').setAttribute('transform', `translate(${x},${y}) rotate(${ang})`);
+      const hit = document.elementFromPoint(x, y);
+      const t = hit && targets.find(tg => tg.contains(hit));
+      if (hover !== t) { if (hover) hover.classList.remove('aim-over'); hover = t || null; if (hover) hover.classList.add('aim-over'); }
+    };
+    const move = ev => {
+      if (ev.pointerId !== id) return;
+      if (!svg) { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 10) return; start(); }
+      ev.preventDefault(); draw(ev);
+    };
+    const up = ev => {
+      if (ev.pointerId !== id) return;
+      const tgtEl = hover, wasErr = err, dragged = !!svg;
+      end();
+      if (!dragged) return;
+      dragFired = true; setTimeout(() => { dragFired = false; }, 0);
+      if (!tgtEl) {
+        const hit = document.elementFromPoint(ev.clientX, ev.clientY);
+        if (hit && hit.closest('#oppField .card[data-uid]') && E.guardsOf(G.s, 1).length) toast('ガードロボがいるので、ガードロボしか狙えません', 'err');
+        return;
+      }
+      if (wasErr) { toast(wasErr, 'err'); return; }
+      const tgt = tgtEl.dataset && tgtEl.dataset.uid ? +tgtEl.dataset.uid : 'player';
+      requestAttack(att, tgt);
+    };
+    const end = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', end);
+      if (svg) svg.remove();
+      el.classList.remove('aiming');
+      targets.forEach(t => t.classList.remove('aim-ok', 'aim-ng', 'aim-over'));
+    };
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', end);
+  });
+}
+
+// ---------- 盤面イベント ----------
+function onBoardClick(e) {
+  if (!G) return;
+  closePop();
+  const gb = e.target.closest('[data-scrap]');
+  if (gb) return G.sel ? null : openScrap(+gb.dataset.scrap);
+  const setEl = e.target.closest('[data-set]');
+  if (G.sel) {
+    if (setEl && selPick('set' + setEl.dataset.set)) return;
+    const c = e.target.closest('.card[data-uid]');
+    if (c && selPick(+c.dataset.uid)) return;
+    if (e.target.closest('#oppField') && selPick('player')) return;
+    return;
+  }
+  if (lpFired) { lpFired = false; return; }
+  if (dragFired) return;
+  const qa = e.target.closest('[data-qa]');
+  if (qa) return onQuick(qa);
+  const c = e.target.closest('.card[data-uid]');
+  if (c && c.closest('#hand')) return onHandTap(c);
+  if (c && c.dataset.zone === 'set') return spellPop(c, cardByUid(+c.dataset.uid), 'set');
+  if (c && c.closest('#myField')) return onMyFieldTap(c);
+  if (c) return openCard(+c.dataset.uid);
+  if (setEl && setEl.dataset.set === '1' && G.s.players[1].set) toast('CPUがセットしたアクション。あなたが攻撃を宣言すると発動されるかもしれません');
+}
+
+// ---------- 対戦開始・終了 ----------
+let gameSeq = 0;
+function startGame(diff, firstPref) {
+  const rng = E.mulberry32((Math.random() * 2 ** 31) | 0);
+  const first = firstPref === 'first' ? 0 : firstPref === 'second' ? 1 : (Math.random() < 0.5 ? 0 : 1);
+  const s = E.newGame(rng, first);
+  $('#dbgbar').hidden = true; SPD = 1;
+  G = { id: ++gameSeq, s, diff, opt: Object.assign({ rng: Math.random }, DIFF[diff].opt), mode: 'game', busy: false, sel: null, tut: null, logIdx: 0, flash: new Set(), deployFx: {}, first };
+  $('#modeLabel').textContent = `CPU：${DIFF[diff].label}`;
+  $('#coach').hidden = true;
+  show('game');
+  G.busy = true;
+  const ms = refresh(snapRects()), gid = G.id;
+  toast(first === 0 ? 'あなたが先攻です' : 'CPUが先攻です');
+  setTimeout(() => {
+    if (!G || G.id !== gid) return;
+    G.busy = false; render();
+    if (s.turn === 1) runCpu();
+  }, ms);
+}
+// ---------- リザルトのスコアボード ----------
+function findAnyCard(s, uid) {
+  for (const p of s.players) for (const z of [p.field, p.scrap, p.hand, p.deck]) { const c = z.find(c => c.uid === uid); if (c) return c; }
+  for (const p of s.players) if (p.set && p.set.uid === uid) return p.set;
+  return null;
+}
+function computeScore(s) {
+  const P = [0, 1].map(() => ({ dmg: 0, direct: 0, battle: 0, attacks: 0, kills: 0, deploys: 0, spells: 0, reveals: 0, bat: 0, releases: 0, draws: 0, heat: 0, sets: 0 }));
+  const cardDmg = {};
+  let lastBattle = null, lastCaster = null;
+  for (const e of s.log) {
+    switch (e.t) {
+      case 'attack': P[e.pi].attacks++; break;
+      case 'battle': lastBattle = e; break;
+      case 'direct': lastBattle = { direct: true, att: e.att }; break;
+      case 'damage': {
+        const by = 1 - e.pi;
+        if (/ヒートロボ/.test(e.msg)) { P[e.pi].heat += e.n; break; }
+        P[by].dmg += e.n;
+        if (/直接/.test(e.msg)) { P[by].direct += e.n; if (lastBattle) cardDmg[lastBattle.att] = (cardDmg[lastBattle.att] || 0) + e.n; }
+        else { P[by].battle += e.n; if (lastBattle && !lastBattle.direct) { const w = lastBattle.a > lastBattle.d ? lastBattle.att : lastBattle.tgt; cardDmg[w] = (cardDmg[w] || 0) + e.n; } }
+        break;
+      }
+      case 'destroy': P[1 - e.pi].kills++; break;
+      case 'deploy': P[e.pi].deploys++; break;
+      case 'reveal': P[e.pi].reveals++; break;
+      case 'spell': P[e.pi].spells++; lastCaster = e.pi; break;
+      case 'set': P[e.pi].sets++; break;
+      case 'place': P[e.pi].bat++; break;
+      case 'batfly': if (lastCaster !== null) P[lastCaster].bat++; break;
+      case 'release': P[e.pi].releases++; break;
+      case 'draw': P[e.pi].draws += e.n; break;
+    }
+  }
+  let mvp = null;
+  for (const [u, d] of Object.entries(cardDmg)) {
+    const c = findAnyCard(s, +u); if (!c) continue;
+    if (!mvp || d > mvp.dmg) mvp = { c, dmg: d };
+  }
+  return { P, mvp };
+}
+function scoreboardHTML(s) {
+  const { P, mvp } = computeScore(s);
+  // more: 多い方が良い項目は 1、少ない方が良い項目は -1、比較しない項目は 0
+  const rows = [
+    ['先攻・後攻', p => (P.indexOf(p) === G.first ? '先攻' : '後攻'), 0],
+    ['残りライフ', p => s.players[P.indexOf(p)].life, 1],
+    ['与えたダメージ', p => p.dmg, 1],
+    ['└ 直接攻撃', p => p.direct, 0, 'sub'],
+    ['└ 戦闘の差分', p => p.battle, 0, 'sub'],
+    ['攻撃した回数', p => p.attacks, 0],
+    ['倒したロボ', p => p.kills, 1],
+    ['起動したロボ', p => p.deploys, 0],
+    ['アクション発動', p => p.spells, 0],
+    ['└ 伏せ札から', p => p.reveals, 0, 'sub'],
+    ['電池を入れた', p => p.bat, 0],
+    ['放電効果', p => p.releases, 0],
+    ['引いたカード', p => p.draws, 0],
+    ['ヒートロボの自傷', p => p.heat, -1],
+  ];
+  const tr = rows.map(([label, f, more, cls]) => {
+    const a = f(P[0]), b = f(P[1]);
+    const win = more === 0 || a === b ? -1 : (more > 0 ? (a > b ? 0 : 1) : (a < b ? 0 : 1));
+    return `<tr class="${cls || ''}"><th scope="row">${label}</th><td class="${win === 0 ? 'best' : ''}">${a}</td><td class="${win === 1 ? 'best' : ''}">${b}</td></tr>`;
+  }).join('');
+  const mv = mvp ? `<div class="mvp">${img(mvp.c.id, 'mvpart')}<div><span>MVP</span><b>${mvp.c.owner === 0 ? 'あなた' : 'CPU'}の${CARDS[mvp.c.id].name}</b><small>${mvp.dmg}ダメージを与えた</small></div></div>` : '';
+  return `${mv}<div class="scorewrap"><table class="score"><thead><tr><th></th><th scope="col">あなた</th><th scope="col">CPU</th></tr></thead><tbody>${tr}</tbody></table></div>`;
+}
+
+function gameOver() {
+  if (!G || !E.isOver(G.s) || $('#sheet').dataset.over === String(G.id)) return;
+  const s = G.s;
+  let title, cls;
+  if (s.draw) { title = '引き分け'; cls = 'draw'; }
+  else if (s.winner === 0) { title = '勝利！'; cls = 'win'; }
+  else { title = '敗北…'; cls = 'lose'; }
+  if (G.mode === 'game') {
+    if (s.winner === 0) stats[G.diff][0]++; else if (s.winner === 1) stats[G.diff][1]++;
+    saveStats();
+  }
+  const st = G.mode === 'game' ? `<p class="sub">「${DIFF[G.diff].label}」の通算成績：${stats[G.diff][0]}勝 ${stats[G.diff][1]}敗</p>` : '';
+  openSheet(`<div class="over ${cls}"><div class="overhead">${img(s.winner === 1 ? 'megaton' : 'battery', 'overart')}<div><h2>${title}</h2><p class="sub">${G.first === 0 ? 'あなたが先攻' : 'CPUが先攻'}・${s.turnNo}手番で決着</p></div></div>
+    ${scoreboardHTML(s)}${st}</div>
+    <div class="row">${G.mode === 'game' ? '<button class="btn primary" id="again">もう一度</button>' : ''}<button class="btn" id="toTitle">タイトルへ</button></div>`, sh => {
+      const ag = sh.querySelector('#again'); if (ag) ag.addEventListener('click', () => { closeSheet(); startGame(G.diff, $('#firstSel').value); });
+      sh.querySelector('#toTitle').addEventListener('click', () => { closeSheet(); toTitle(); });
+    }, true);
+  $('#sheet').dataset.over = String(G.id);
+}
+function toTitle() { G = null; SPD = 1; $('#dbgbar').hidden = true; closeSheet(); renderTitleStats(); show('title'); }
+function renderTitleStats() {
+  const rows = Object.keys(DIFF).map(k => `<span>${DIFF[k].label} <b>${stats[k][0]}</b>勝<b>${stats[k][1]}</b>敗</span>`).join('');
+  $('#titleStats').innerHTML = rows;
+}
+
+// ---------- チュートリアル ----------
+function mkState(cfg) {
+  let uid = 1000;
+  const mk = (id, owner, bat) => ({ uid: uid++, id, owner, bat: bat || 0 });
+  const P = [0, 1].map(pi => {
+    const c = cfg.p[pi];
+    return {
+      life: c.life || 15,
+      deck: (c.deck || []).map(id => mk(id, pi)), hand: (c.hand || []).map(id => mk(id, pi)),
+      field: (c.field || []).map(([id, bat]) => mk(id, pi, bat)), set: c.set ? mk(c.set, pi) : null,
+      scrap: (c.scrap || []).map(id => mk(id, pi)),
+    };
+  });
+  return { players: P, turn: 0, turnNo: cfg.turnNo || 1, actions: 2, phase: 'main', attacked: false,
+    firstTurn: !!cfg.firstTurn, eot: [], noAttack: false, winner: null, draw: false, stall: 0, lifeSnap: '', pending: null,
+    log: [{ msg: '―― チュートリアル ――', t: 'turn' }], uidSeq: uid + 100 };
+}
+// ================= デバッグモード（戦闘テスト） =================
+// 好きな配置で「戦闘 → ターン終了 → 戦闘」を繰り返す。演出の確認用にスロー再生もできる。
+let SPD = 1;
+(function speedLoop() {
+  if (SPD !== 1 && document.getAnimations) for (const a of document.getAnimations()) if (a.playbackRate !== SPD) a.playbackRate = SPD;
+  requestAnimationFrame(speedLoop);
+})();
+const DBG_DEFAULT = {
+  p: [
+    { life: 15, field: [['turbo', 1], ['daruma', 1], ['bomb', 1]], set: '' },
+    { life: 15, field: [['souji', 0], ['magnet', 1], ['', 0]], set: 'thunder' },
+  ],
+  attacker: 'me', restore: true, speed: 1,
+};
+let DBG = JSON.parse(JSON.stringify(DBG_DEFAULT));
+try {
+  const v = JSON.parse(localStorage.getItem('denchi-debug') || 'null');
+  // 保存された配置に今は存在しないカードがあれば外す
+  if (v && v.p) { for (const p of v.p) { p.field = (p.field || []).map(f => (f[0] && CARDS[f[0]] ? f : ['', 0])); if (p.set && !CARDS[p.set]) p.set = ''; } DBG = Object.assign(DBG, v); }
+} catch (e) {}
+function saveDbg() { try { localStorage.setItem('denchi-debug', JSON.stringify(DBG)); } catch (e) {} }
+
+function dbgState(turnNo, owner) {
+  const cfg = { turnNo, p: DBG.p.map(p => ({ life: Math.max(1, Math.min(15, +p.life || 15)), field: p.field.filter(f => f[0]).map(([id, bat]) => [id, Math.min(+bat || 0, CARDS[id].max)]), set: p.set || null })) };
+  const s = mkState(cfg);
+  s.turn = owner; s.log = [{ msg: '―― 配置をセット ――', t: 'turn' }];
+  return s;
+}
+function dbgRenderEditor() {
+  // デバッグでは、トークンや不採用カードも置けるようにする
+  const tag = id => E.RETIRED_IDS.includes(id) ? '・不採用' : CARDS[id].token ? '・トークン' : '';
+  const yIds = E.ROBO_IDS.concat(E.TOKEN_IDS, E.RETIRED_IDS).filter(id => CARDS[id].kind === 'robo');
+  const sIds = E.SPELL_IDS.concat(E.RETIRED_IDS.filter(id => CARDS[id].kind === 'spell'));
+  const yOpt = sel => `<option value="">（なし）</option>` + yIds.map(id => `<option value="${id}"${sel === id ? ' selected' : ''}>${CARDS[id].name}（${CARDS[id].atk}${tag(id)}）</option>`).join('');
+  const sOpt = sel => `<option value="">（なし）</option>` + sIds.map(id => `<option value="${id}"${sel === id ? ' selected' : ''}>${CARDS[id].name}${tag(id) ? '（' + tag(id).slice(1) + '）' : ''}</option>`).join('');
+  const batOpt = (n, max) => Array.from({ length: (max ?? 3) + 1 }, (_, i) => `<option value="${i}"${+n === i ? ' selected' : ''}>電池${i}</option>`).join('');
+  const side = pi => {
+    const p = DBG.p[pi];
+    return `<fieldset class="dbgside"><legend>${pi === 0 ? 'あなた（下）' : 'CPU（上）'}</legend>
+      <label class="dbgrow">ライフ <input type="number" min="1" max="15" id="dbgLife${pi}" value="${p.life}"></label>
+      ${[0, 1, 2].map(i => { const [id, bat] = p.field[i] || ['', 0]; return `<div class="dbgrow"><span>ロボ${i + 1}</span>
+        <select id="dbgY${pi}_${i}">${yOpt(id)}</select>
+        <select id="dbgH${pi}_${i}">${batOpt(bat, id ? CARDS[id].max : 0)}</select></div>`; }).join('')}
+      <label class="dbgrow"><span>伏せ札</span><select id="dbgS${pi}">${sOpt(p.set)}</select></label>
+    </fieldset>`;
+  };
+  $('#dbgEditor').innerHTML = `${side(1)}${side(0)}
+    <fieldset class="dbgside"><legend>ループ設定</legend>
+      <label class="dbgrow"><span>攻撃する側</span><select id="dbgAtk">
+        <option value="me"${DBG.attacker === 'me' ? ' selected' : ''}>あなた（毎回）</option>
+        <option value="cpu"${DBG.attacker === 'cpu' ? ' selected' : ''}>CPU（毎回）</option>
+        <option value="alt"${DBG.attacker === 'alt' ? ' selected' : ''}>交互</option></select></label>
+      <label class="dbgrow"><span>速度</span><select id="dbgSpd">
+        <option value="1"${DBG.speed == 1 ? ' selected' : ''}>等速</option><option value="0.5"${DBG.speed == 0.5 ? ' selected' : ''}>1/2</option><option value="0.25"${DBG.speed == 0.25 ? ' selected' : ''}>1/4</option></select></label>
+      <label class="dbgrow chk"><input type="checkbox" id="dbgRestore"${DBG.restore ? ' checked' : ''}> 戦闘のたびに配置を元に戻す</label>
+    </fieldset>`;
+  // ロボを変えたら電池の上限を合わせる
+  $('#dbgEditor').querySelectorAll('select[id^="dbgY"]').forEach(sel => sel.addEventListener('change', () => {
+    const [pi, i] = sel.id.slice(4).split('_'); const h = $(`#dbgH${pi}_${i}`);
+    const max = sel.value ? CARDS[sel.value].max : 0; const cur = Math.min(+h.value, max);
+    h.innerHTML = batOpt(cur, max);
+  }));
+}
+function dbgReadEditor() {
+  for (const pi of [0, 1]) {
+    DBG.p[pi].life = +$(`#dbgLife${pi}`).value || 15;
+    DBG.p[pi].field = [0, 1, 2].map(i => [$(`#dbgY${pi}_${i}`).value, +$(`#dbgH${pi}_${i}`).value]);
+    DBG.p[pi].set = $(`#dbgS${pi}`).value;
+  }
+  DBG.attacker = $('#dbgAtk').value; DBG.speed = +$('#dbgSpd').value; DBG.restore = $('#dbgRestore').checked;
+  saveDbg();
+}
+function openDebugEditor() { dbgRenderEditor(); show('debug'); }
+function startDebug() {
+  dbgReadEditor();
+  SPD = DBG.speed;
+  const s = dbgState(1, 0);
+  G = { id: ++gameSeq, s, diff: null, opt: { w: AI.BASE_W, rng: Math.random }, mode: 'debug', busy: false, sel: null, tut: null, logIdx: 0, flash: new Set(), deployFx: {},
+    dbg: { loop: 0, cpuTurn: false } };
+  $('#modeLabel').textContent = 'デバッグ（戦闘テスト）';
+  $('#coach').hidden = true; $('#dbgbar').hidden = false;
+  dbgSyncBar();
+  show('game'); refresh();
+  dbgTurnStart(true);
+}
+function dbgSyncBar() {
+  $('#dbgAtk2').value = DBG.attacker; $('#dbgSpd2').value = String(DBG.speed); $('#dbgRestore2').checked = DBG.restore;
+  $('#dbgLoop').textContent = G && G.dbg ? `ループ ${G.dbg.loop}` : '';
+}
+// 配置に戻す（手番は owner のまま）
+function dbgReset(owner, note) {
+  const old = G.s;
+  G.s = dbgState(old.turnNo + 1, owner);
+  G.logIdx = 0; G.sel = null; G.attackFx = null; G.flash = new Set(); G.deployFx = {};
+  if (note) toast(note);
+}
+// 自分の手番の頭で呼ぶ：戻す・誰が攻撃するかを決める
+async function dbgTurnStart(first) {
+  if (!G || G.mode !== 'debug') return;
+  const my = G.id;
+  G.dbg.loop++;
+  if (E.isOver(G.s) || (!first && DBG.restore)) dbgReset(0, E.isOver(G.s) ? '決着したので配置に戻しました' : null);
+  const s = G.s;
+  s.stall = 0; s.firstTurn = false; s.actions = 2; s.phase = 'main';
+  const cpuAttacks = DBG.attacker === 'cpu' || (DBG.attacker === 'alt' && G.dbg.loop % 2 === 0);
+  G.dbg.cpuTurn = cpuAttacks;
+  // 最初だけ自分の手番のバナーを出す（以降はターン交代の演出が出る）
+  if (first) s.log.push({ msg: `―― あなたの手番（1） ――`, t: 'turn', pi: 0 });
+  dbgSyncBar();
+  G.busy = true;
+  const ms = refresh(snapRects());
+  await sleep(ms);
+  if (!G || G.id !== my) return;
+  G.busy = false; render();
+  if (cpuAttacks) { await sleep(300); if (!G || G.id !== my) return; humanAct({ t: 'end' }); }
+}
+// CPUの行動：攻撃する番なら適当な攻撃、そうでなければ何もせず終了
+function dbgCpuAction(s) {
+  if (!G.dbg.cpuTurn || s.attacked) return { t: 'end' };
+  const opts = AI.attackOptions(s);
+  if (!opts.length) { toast('CPUは攻撃できるロボがいません'); return { t: 'end' }; }
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+// 自分の攻撃が終わった後
+async function dbgAfterMyBattle() {
+  const my = G.id;
+  G.busy = true; render();
+  await sleep(600);
+  if (!G || G.id !== my) return;
+  G.busy = false;
+  if (E.isOver(G.s)) return dbgTurnStart(false);
+  humanAct({ t: 'end' });
+}
+
+const uidOf = (pi, id) => { const s = G.s; const y = s.players[pi].field.find(y => y.id === id) || s.players[pi].hand.find(y => y.id === id) || (s.players[pi].set && s.players[pi].set.id === id ? s.players[pi].set : null); return y && y.uid; };
+
+const LESSONS = [
+  { title: '1. カードを出そう',
+    setup: { firstTurn: true, p: [{ hand: ['turbo', 'crane', 'ebattery', 'manual'], deck: ['daruma', 'heat'] }, { hand: ['souji'], deck: ['magnet', 'bomb'] }] },
+    steps: [
+      { say: 'ようこそ！ 上がCPU、下があなたの陣地です。ライフはお互い15。<b>先に相手のライフを0にした方が勝ち</b>です。' },
+      { say: '自分の手番は「メインフェイズ → バトルフェイズ → 交代」の順に進みます。メインフェイズでは<b>行動を合計2回まで</b>行えます。残り回数は中央の●で表示されます。カードを<b>長押し（PCは右クリック）</b>すると効果を確認できます。' },
+      { say: '手札の<b>ターボロボ</b>を自分の場へ<b>ドラッグ</b>しよう（タップして「起動」でもOK）。ロボは場に3体まで出せます。', hl: ['turbo'], want: a => a.t === 'play' && cardIdOf(a.uid) === 'turbo', miss: '手札のターボロボを自分の場へドラッグしよう' },
+      { say: 'ロボに<b>電池</b>を入れると攻撃力が1上がります。ターボロボは特別で、電池1本につき<b>さらに+1</b>。場のターボロボをタップして<b>「+電池」</b>を選ぼう。', hl: ['turbo'], want: a => a.t === 'place' && cardIdOf(a.target) === 'turbo', miss: '場のターボロボをタップして「+電池」を選ぼう' },
+      { say: 'ターボロボの攻撃力が2→4になりました。これで行動2回を使い切りです。<b>先攻の最初の手番だけは攻撃できない</b>ので、「ターン終了」を押そう。', want: a => a.t === 'end', miss: '「ターン終了」を押そう' },
+    ] },
+  { title: '2. バトルしよう',
+    setup: { turnNo: 3, p: [{ field: [['turbo', 1], ['crane', 0]], hand: [], deck: ['daruma'] }, { field: [['souji', 0]], hand: ['magnet'], deck: ['heat'] }] },
+    steps: [
+      { say: '攻撃は、自分のロボを<b>相手のロボへドラッグ</b>するだけ。これでバトルフェイズに移って攻撃します（行動の●の横にある「戦闘」ボタンでも可）。攻撃できるのは1手番に<b>1体だけ</b>です。' },
+      { say: '戦闘は攻撃力の比べ合い。<b>低い方が破壊され、その持ち主は差の分だけダメージ</b>を受けます。同じ攻撃力なら両方破壊、ダメージはなし。' },
+      { say: '<b>ターボロボ</b>（攻撃力4）を相手の<b>そうじロボ</b>（攻撃力2）へドラッグしよう。まだ行動が残っているので確認が出ます。「戦闘へ」を選ぼう。', hl: ['turbo'], battle: true, want: a => a.t === 'attack' && cardIdOf(a.att) === 'turbo', miss: 'ターボロボをそうじロボへドラッグしよう' },
+      { say: 'そうじロボは破壊され、CPUは4−2＝<b>2ダメージ</b>。破壊されたロボの電池はなくなります。' },
+      { say: '攻撃は1手番に1回だけなので、対戦では<b>戦闘が終わると自動でターン終了</b>します。これでレッスン完了です。', final: true },
+    ] },
+  { title: '3. セットアクションと放電効果',
+    setup: { turnNo: 5, p: [{ field: [['turbo', 1], ['souji', 1]], hand: [], deck: ['daruma'] }, { field: [], set: 'thunder', hand: ['magnet'], deck: ['heat'], life: 8 }] },
+    steps: [
+      { say: 'CPUの場の右端にある裏向きのカードは<b>セットされたアクション（伏せ札）</b>です。あなたが攻撃を宣言すると、相手はそれを表にして発動できます。' },
+      { say: '<b>そうじロボの放電効果</b>なら、セットされたアクションを破壊できます。放電効果は電池を1本抜いて使います（行動1回）。そうじロボは<b>付属電池</b>（電池を1本入れた状態で場に出る）なので、すぐに使えます。' },
+      { say: 'そうじロボをタップして<b>「放電」</b>を選び、CPUの場の右端にある<b>伏せ札</b>をタップしよう。', hlSet: 1, hl: ['souji'], want: a => a.t === 'release' && a.ch && a.ch.pi === 1, miss: 'そうじロボをタップして「放電」→ CPUの伏せ札' },
+      { say: '中身は<b>かみなり</b>（場で最も攻撃力の高いロボを破壊）でした。そのまま攻撃していたらターボロボがやられていたところです。' },
+      { say: '相手の場にロボがいない時は、<b>相手プレイヤーに直接攻撃</b>できます。<b>ターボロボをCPUの場（またはライフの帯）へドラッグ</b>しよう。', hl: ['turbo'], battle: true, want: a => a.t === 'attack' && cardIdOf(a.att) === 'turbo', miss: 'ターボロボをCPUの場へドラッグしよう' },
+      { say: '直接攻撃は攻撃力の分だけダメージ。CPUのライフが8→4になりました。' },
+      { say: '戦闘が終わったので、対戦ではここで<b>自動的にターン終了</b>します。これでレッスン完了です。', final: true },
+    ] },
+  { title: '4. アクションで守ろう',
+    setup: { turnNo: 7, p: [{ field: [['bomb', 1]], hand: ['thunder', 'manual'], deck: ['daruma', 'turbo'] }, { field: [['heat', 0]], hand: ['magnet'], deck: ['crane', 'souji'], life: 12 }] },
+    cpuScript: () => [{ t: 'attack', att: uidOf(1, 'heat'), tgt: uidOf(0, 'bomb') }, { t: 'end' }],
+    steps: [
+      { say: 'アクションは手札から<b>すぐ発動</b>（場へドラッグ）するか、裏向きに<b>セット</b>（伏せ札枠へドラッグ）して相手の手番に使えます。どちらも行動1回で、セットできるのは1枚までです。' },
+      { say: '手札の<b>かみなり</b>を自分の場の右端の<b>伏せ札</b>枠へドラッグしよう（タップして「セット」でもOK）。', hl: ['thunder'], want: a => a.t === 'set' && cardIdOf(a.uid) === 'thunder', miss: 'かみなりをセットしよう' },
+      { say: '準備完了。「ターン終了」を押してCPUの手番を見てみよう。', want: a => a.t === 'end', miss: '「ターン終了」を押そう' },
+      { say: 'CPUの手番。<b>ヒートロボ</b>（攻撃力4）は強い代わりに、持ち主が毎手番2ダメージを受けます。ヒートロボが攻撃してきたら「発動する」を押して、かみなりでヒートロボを破壊しよう。', want: a => a.t === 'respond' && !!a.resp, miss: 'かみなりを発動しよう' },
+      { say: '攻撃したロボがいなくなったので攻撃は中止。アクションは相手の攻撃宣言に合わせて使えるのが強みです。', waitFor: 'cpu-turn-done' },
+      { say: 'これでルールはひと通りです！ 効果の種類は「通電（電池が入っている間だけ働く）」「放電（電池を抜いて使う）」「常時（いつでも）」の3つ。カード図鑑でいつでも確認できます。', final: true },
+    ] },
+];
+function cardIdOf(uid) {
+  const s = G.s;
+  const f = E.findRobo(s, uid); if (f) return f.y.id;
+  for (const p of s.players) { const c = p.hand.find(c => c.uid === uid) || (p.set && p.set.uid === uid ? p.set : null); if (c) return c.id; }
+  return null;
+}
+function startLesson(i) {
+  const L = LESSONS[i];
+  const s = mkState(L.setup);
+  $('#dbgbar').hidden = true; SPD = 1;
+  G = { id: ++gameSeq, s, diff: null, opt: {}, mode: 'tut', busy: false, sel: null, logIdx: 0, flash: new Set(), deployFx: {},
+    tut: { i, step: 0, hl: null, cpuScript: null } };
+  $('#modeLabel').textContent = 'チュートリアル ' + L.title;
+  show('game'); refresh();
+  G.tut.cpuScript = L.cpuScript ? L.cpuScript() : [];
+  coachStep();
+}
+function curStep() { const t = G.tut; return LESSONS[t.i].steps[t.step]; }
+function coachStep() {
+  const t = G.tut, st = curStep();
+  t.hl = st.hl || null; t.hlSet = st.hlSet;
+  $('#coach').hidden = false;
+  const L = LESSONS[t.i];
+  $('#coachTitle').textContent = `${L.title}（${t.step + 1}/${L.steps.length}）`;
+  $('#coachText').innerHTML = st.say;
+  const nb = $('#coachNext');
+  if (st.final) { nb.hidden = false; nb.textContent = t.i < LESSONS.length - 1 ? '次のレッスンへ' : 'タイトルへ'; }
+  else if (!st.want && !st.waitFor) { nb.hidden = false; nb.textContent = '次へ'; }
+  else nb.hidden = true;
+  render();
+}
+function coachNext() {
+  const t = G.tut, st = curStep();
+  if (st.final) { if (t.i < LESSONS.length - 1) return startLesson(t.i + 1); return toTitle(); }
+  advance();
+}
+function advance() {
+  const t = G.tut, L = LESSONS[t.i];
+  t.step++;
+  if (t.step >= L.steps.length) return lessonClear();
+  coachStep();
+}
+function lessonClear() {
+  const t = G.tut;
+  const last = t.i >= LESSONS.length - 1;
+  openSheet(`<div class="over win">${img('battery', 'overart')}<h2>レッスン${t.i + 1} クリア</h2><p>${LESSONS[t.i].title.slice(3)}を覚えました。</p></div>
+    <div class="row"><button class="btn" id="toTitle2">タイトルへ</button>${last ? '' : '<button class="btn primary" id="nextL">次のレッスンへ</button>'}</div>`, sh => {
+      sh.querySelector('#toTitle2').addEventListener('click', () => { closeSheet(); toTitle(); });
+      const n = sh.querySelector('#nextL'); if (n) n.addEventListener('click', () => { closeSheet(); startLesson(t.i + 1); });
+    }, true);
+}
+// 人間の行動がいまのステップに合っているか
+function tutGate(a) {
+  const st = curStep();
+  if (st.want && st.want(a)) return true;
+  if (a.t === 'battle' && st.battle) return true;
+  const c = $('#coach'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+  toast(st.miss || (st.want ? 'ガイドに沿って進めよう' : 'まずは「次へ」を押そう'));
+  return false;
+}
+function tutAfter(a) {
+  if (!G || G.mode !== 'tut') return;
+  const st = curStep();
+  if (a.t === 'attack-resolved' && G.tut.afterAttack) { G.tut.afterAttack = false; return advance(); }
+  if (st.want && st.want(a)) {
+    if (a.t === 'attack') { G.tut.afterAttack = true; return; }
+    if (a.t === 'end') {
+      // CPUの手番がある時は後続ステップへ、ないレッスンは終了
+      if (LESSONS[G.tut.i].cpuScript) return advance();
+      return lessonClear();
+    }
+    return advance();
+  }
+  if (st.waitFor && st.waitFor === a.t) return advance();
+}
+// チュートリアル中の応答プロンプト：説明ステップを先に進める
+const _humanRespond = humanRespond;
+humanRespond = function () {
+  return _humanRespond().then(r => { if (G && G.mode === 'tut' && r) { const st = curStep(); if (st.want && st.want({ t: 'respond', resp: r })) advance(); } return r; });
+};
+
+// ---------- ルール・図鑑 ----------
+function renderRules() {
+  const ys = E.ROBO_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  const ss = E.SPELL_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  // デッキに入らないカード（後攻が持つワンモア、コブンロボから出るアニキロボ）
+  const ts = ['onemore', 'aniki'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  const rs = E.RETIRED_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  const row = c => { const d = CARDS[c.id]; return `<div class="dex">${cardHTML(c, { size: 'hand' })}<div><h4>${d.name}${d.kind === 'robo' ? `<span class="dexmeta">攻撃力${shownAtk(c)}${d.enterBat ? '（電池込み）' : ''}・電池上限${d.max}・${EFF_LABEL[d.eff]}</span>` : '<span class="dexmeta">アクション</span>'}</h4><p>${cardText(d)}</p></div></div>`; };
+  // ロボは効果の種類ごとにまとめ、グループ内は攻撃力→名前の順。アクションは名前順
+  const ROBO_GROUPS = [['const', '【常時】場にいる間ずっと働く'], ['powered', '【通電中】電池が入っている間だけ働く'], ['release', '【放電】電池を1本抜いて使う'], ['none', '効果なし']];
+  const byAtk = (a, b) => (CARDS[a.id].kind === 'robo' ? shownAtk(a) - shownAtk(b) : 0) || CARDS[a.id].name.localeCompare(CARDS[b.id].name, 'ja');
+  const grouped = (list, keyOf, groups) => groups.map(([k, label]) => {
+    const g = list.filter(c => keyOf(c) === k).sort(byAtk);
+    return g.length ? `<h3 class="dexgrp">${label}</h3>` + g.map(row).join('') : '';
+  }).join('');
+  const roboKey = c => CARDS[c.id].eff;
+  const byName = list => list.slice().sort((a, b) => CARDS[a.id].name.localeCompare(CARDS[b.id].name, 'ja')).map(row).join('');
+  $('#dexRobo').innerHTML = grouped(ys, roboKey, ROBO_GROUPS);
+  $('#dexSpell').innerHTML = byName(ss);
+  $('#dexToken').innerHTML = ts.map(row).join('');
+  const rr = rs.filter(c => CARDS[c.id].kind === 'robo'), rsp = rs.filter(c => CARDS[c.id].kind !== 'robo');
+  $('#dexRetired').innerHTML = (grouped(rr, roboKey, ROBO_GROUPS) + (rsp.length ? '<h3 class="dexgrp">アクション</h3>' + byName(rsp) : '')) || '<p class="sub">まだありません</p>';
+}
+
+// ---------- 初期化 ----------
+// 夜空の星（ドット）を背景タイルとして生成
+function makeStars() {
+  const c = document.createElement('canvas'); c.width = 96; c.height = 96;
+  const g = c.getContext('2d'); let seed = 7;
+  const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const cols = ['#3a3b6e', '#4d4f8a', '#7fd8f0', '#e3b54d', '#ece4cf'];
+  for (let i = 0; i < 46; i++) {
+    const x = Math.floor(r() * 96), y = Math.floor(r() * 96), col = cols[Math.floor(r() * r() * cols.length)];
+    g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    if (r() > .9) { g.fillRect(x - 1, y, 3, 1); g.fillRect(x, y - 1, 1, 3); }
+  }
+  document.documentElement.style.setProperty('--stars', `url(${c.toDataURL()})`);
+}
+function init() {
+  makeStars();
+  $('#titleArt').innerHTML = ['souji', 'bomb', 'battery', 'magnet', 'daruma'].map((id, i) => img(id, 'tart t' + i)).join('');
+  renderTitleStats(); renderRules();
+  document.querySelectorAll('[data-diff]').forEach(b => b.addEventListener('click', () => startGame(b.dataset.diff, $('#firstSel').value)));
+  $('#tutBtn').addEventListener('click', () => { $('#lessonPick').hidden = !$('#lessonPick').hidden; });
+  $('#lessonPick').innerHTML = LESSONS.map((L, i) => `<button class="btn lesson" data-lesson="${i}">${L.title}</button>`).join('');
+  $('#lessonPick').addEventListener('click', e => { const b = e.target.closest('[data-lesson]'); if (b) startLesson(+b.dataset.lesson); });
+  $('#rulesBtn').addEventListener('click', () => show('rules'));
+  $('#dbgBtn').addEventListener('click', openDebugEditor);
+  $('#dbgStart').addEventListener('click', startDebug);
+  $('#dbgBack').addEventListener('click', () => { if (G && G.mode === 'debug') show('game'); else show('title'); });
+  $('#dbgDefault').addEventListener('click', () => { DBG = JSON.parse(JSON.stringify(DBG_DEFAULT)); dbgRenderEditor(); });
+  $('#dbgEdit').addEventListener('click', () => { if (!G || G.busy) return; openDebugEditor(); });
+  $('#dbgResetBtn').addEventListener('click', () => { if (!G || G.busy || G.s.turn !== 0) return; dbgReset(0, '配置に戻しました'); G.s.firstTurn = false; render(); });
+  $('#dbgAtk2').addEventListener('change', e => { DBG.attacker = e.target.value; saveDbg(); });
+  $('#dbgSpd2').addEventListener('change', e => { DBG.speed = +e.target.value; SPD = DBG.speed; saveDbg(); });
+  $('#dbgRestore2').addEventListener('change', e => { DBG.restore = e.target.checked; saveDbg(); });
+  $('#rulesBack').addEventListener('click', () => show(G ? 'game' : 'title'));
+  $('#board').addEventListener('click', onBoardClick);
+  bindLongPress($('#board'));
+  bindDrag($('#board'));
+  bindAim($('#board'));
+  document.addEventListener('click', e => { if (!e.target.closest('#pop') && !e.target.closest('#board')) closePop(); });
+  window.addEventListener('resize', closePop);
+  $('#endBtn').addEventListener('click', () => humanAct({ t: 'end' }));
+  $('#battleBtn').addEventListener('click', e => { e.stopPropagation(); closePop(); onBattleBtn(); });
+  $('#selCancel').addEventListener('click', selCancel);
+  $('#selOk').addEventListener('click', selOk);
+  $('#coachNext').addEventListener('click', coachNext);
+  $('#sheetBack').addEventListener('click', () => { if (!$('#sheetBack').dataset.modal) closeSheet(); });
+  $('#menuBtn').addEventListener('click', () => openSheet(`<h3>メニュー</h3>
+    <div class="col"><button class="btn" id="mRules">ルール・カード図鑑</button><button class="btn" id="mLog">これまでの経過</button><button class="btn danger" id="mQuit">対戦をやめてタイトルへ</button><button class="btn ghost" id="mClose">閉じる</button></div>`, sh => {
+      sh.querySelector('#mRules').addEventListener('click', () => { closeSheet(); show('rules'); });
+      sh.querySelector('#mLog').addEventListener('click', () => { closeSheet(); $('#logDrawer').hidden = false; const l = $('#logList'); l.scrollTop = l.scrollHeight; });
+      sh.querySelector('#mQuit').addEventListener('click', toTitle);
+      sh.querySelector('#mClose').addEventListener('click', closeSheet);
+    }));
+  $('#ticker').addEventListener('click', () => { $('#logDrawer').hidden = false; const l = $('#logList'); l.scrollTop = l.scrollHeight; });
+  $('#logClose').addEventListener('click', () => { $('#logDrawer').hidden = true; });
+  show('title');
+}
+init();
+})();
+
+</script>

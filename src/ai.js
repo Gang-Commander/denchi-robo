@@ -1,0 +1,282 @@
+// ===== CPU思考ルーチン =====
+// 方式: 手番の残りアクション(最大2)を全列挙 → 各終端で攻撃の有無/対象を全列挙 → 評価関数で採点。
+// 相手の伏せアクションは中身が見えないので「まだ相手が使っていないアクション」で平均を取る（ズルなし）。
+// 1アクション実行するたびに再計画する（引いたカードや相手の応答を反映するため）。
+(function (root) {
+'use strict';
+const E = (typeof module !== 'undefined' && module.exports) ? require('./engine.js') : root.Engine;
+const { CARDS, SPELL_IDS } = E;
+
+// 手調整の初期重み（「ふつう」）
+const BASE_W = {
+  life: 1.0, lowLife: 0.5, unit: 1.5, atk: 0.6, bat: 0.3, hand: 0.8, handSpell: 0.2, set: 1.0,
+  threat: 0.5, lethal: 12, coin: 0.8, // coin＝手札のワンモアの価値（調整済みの重みファイルと合わせるため旧名のまま）
+  souji: 0.3, magnet: 0.5, barrier: 0.5, bomb: 0.5, crane: 0.3, daruma: 0.4, heat: 1.0, megaton: 0.0,
+  solar: 0.4, guard: 0.5, turbo: 0.0, recycle: 0.0,
+  sniper: 1.5, rocket: 0.5, jammer: 1.0, kobun: 1.5,
+};
+
+// ---------- 評価関数 ----------
+function roboVal(y, w) {
+  let v = w.unit + w.atk * E.atkOf(y) + w.bat * y.bat;
+  const on = y.bat > 0 ? 1 : 0;
+  switch (y.id) {
+    case 'souji': v += w.souji * on; break;
+    case 'magnet': v += w.magnet * on; break;
+    case 'barrier': v += w.barrier * on; break;
+    case 'bomb': v += w.bomb * on; break;
+    case 'crane': v += w.crane * on; break;
+    case 'daruma': v += w.daruma * y.bat; break;
+    case 'heat': v -= w.heat; break;
+    case 'megaton': v += w.megaton; break;
+    case 'solar': v += (w.solar ?? 0.4) * (CARDS[y.id].max - y.bat); break;
+    case 'guard': v += (w.guard ?? 0.5) * on; break;
+    case 'turbo': v += (w.turbo ?? 0) * y.bat; break;
+    case 'recycle': v += (w.recycle ?? 0); break;
+    case 'sniper': v += (w.sniper ?? 1.5) * on; break;
+    case 'rocket': v += (w.rocket ?? 0.5) * on; break;
+    case 'jammer': v += (w.jammer ?? 1.0) * on; break;
+    case 'kobun': v += (w.kobun ?? 1.5); break;
+  }
+  return v;
+}
+// 攻撃側(ai)が次の手番に1回攻撃した時に防御側(di)が失う最大価値（相手の手札・行動は無視した概算）
+function threatOf(s, ai, di, w) {
+  const A = s.players[ai].field, D = s.players[di];
+  if (!A.length) return 0;
+  let best = 0;
+  for (const a of A) {
+    const av = E.battleAtk(a);
+    if (!D.field.length) {
+      let loss = w.life * av;
+      if (av >= D.life) loss += w.lethal;
+      best = Math.max(best, loss);
+    } else {
+      for (const t of D.field) {
+        const tv = E.battleAtk(t);
+        if (av > tv) {
+          let loss = (t.id === 'daruma' && t.bat > 0) ? w.bat + w.daruma : roboVal(t, w);
+          loss += w.life * (av - tv);
+          if (av - tv >= D.life) loss += w.lethal;
+          best = Math.max(best, loss);
+        }
+      }
+    }
+  }
+  return best;
+}
+function sideVal(s, pi, w) {
+  const p = s.players[pi];
+  let v = w.life * p.life + (p.life <= 5 ? -w.lowLife * (6 - p.life) : 0);
+  for (const y of p.field) v += roboVal(y, w);
+  v += w.hand * p.hand.length;
+  for (const c of p.hand) { if (CARDS[c.id].token) { v += (w.coin ?? 0.8) - w.hand; continue; } if (CARDS[c.id].kind === 'spell') v += w.handSpell; }
+  if (p.set) v += w.set;
+  return v;
+}
+// next: 次に手番を持つプレイヤー
+function evaluate(s, me, w, next) {
+  if (s.winner !== null) return s.winner === me ? 1e5 + s.players[me].life : -1e5 - s.players[1 - me].life;
+  if (s.draw) return 0;
+  const op = 1 - me;
+  let v = sideVal(s, me, w) - sideVal(s, op, w);
+  if (next === op) v -= w.threat * threatOf(s, op, me, w);
+  else v += w.threat * threatOf(s, me, op, w);
+  return v;
+}
+
+// ---------- 選択肢の列挙 ----------
+function multisets(items, k) {
+  const out = [];
+  (function rec(start, cur) {
+    if (cur.length === k) { out.push(cur.slice()); return; }
+    for (let i = start; i < items.length; i++) { cur.push(items[i]); rec(i, cur); cur.pop(); }
+  })(0, []);
+  return out;
+}
+// AI用のアクション選択肢（明らかに無意味なものは省く）
+function spellChoices(s, pi, id) {
+  const P = s.players[pi], O = s.players[1 - pi];
+  switch (id) {
+    case 'ebattery': {
+      // 自分のロボに置く。容量に収まる組み合わせのみ
+      const own = P.field.filter(y => !E.immuneFrom(y, s, pi));
+      const cap = own.reduce((a, y) => a + CARDS[y.id].max - y.bat, 0);
+      const k = Math.min(2, cap);
+      if (k <= 0) return [];
+      const res = [];
+      for (const ms of multisets(own.map(y => y.uid), k)) {
+        const cnt = {}; let ok = true;
+        for (const u of ms) cnt[u] = (cnt[u] || 0) + 1;
+        for (const y of own) if ((cnt[y.uid] || 0) > CARDS[y.id].max - y.bat) ok = false;
+        if (ok) res.push({ targets: ms });
+      }
+      return res;
+    }
+    case 'manual': {
+      const ok = E.maintTargets(s, pi);
+      if (ok.length) return ok.map(y => ({ target: y.uid }));
+      return P.deck.length ? [{}] : [];
+    }
+    case 'onemore': return [{}];
+    case 'short': {
+      const c = E.allField(s).filter(y => y.bat > 0 && !E.immuneFrom(y, s, pi)).map(y => y.uid);
+      const res = [];
+      for (let i = 0; i < c.length; i++) { res.push({ targets: [c[i]] }); for (let j = i + 1; j < c.length; j++) res.push({ targets: [c[i], c[j]] }); }
+      return res;
+    }
+    case 'repair': {
+      if (P.field.length >= 3) return [];
+      const res = [], seen = {};
+      for (const gpi of [0, 1]) for (const c of s.players[gpi].scrap) {
+        if (CARDS[c.id].kind !== 'robo' || seen[c.id]) continue; seen[c.id] = 1;
+        res.push({ gpi, uid: c.uid });
+      }
+      return res;
+    }
+    case 'swap': {
+      const all = E.allField(s), res = [];
+      for (const a of all) if (a.bat > 0 && !E.immuneFrom(a, s, pi))
+        for (const b of all) if (b !== a && !E.immuneFrom(b, s, pi) && b.bat < CARDS[b.id].max) res.push({ from: a.uid, to: b.uid });
+      return res;
+    }
+    case 'thunder': return E.thunderCandidates(s, pi).map(y => ({ target: y.uid }));
+    case 'hack': return P.field.length >= 3 ? [] : E.hackCandidates(s, pi).map(y => ({ target: y.uid }));
+    case 'limiter': return E.allField(s).filter(y => !E.immuneFrom(y, s, pi)).map(y => ({ target: y.uid }));
+  }
+  return [];
+}
+function mainActions(s) {
+  const pi = s.turn, P = s.players[pi], O = s.players[1 - pi], acts = [];
+  if (!(s.phase === 'main' && !E.isOver(s) && !s.pending)) return acts;
+  // 行動を消費しないカード（ワンモア）は行動0でも使える
+  const jam = E.isJammed(s, pi);
+  if (s.actions <= 0) { if (!jam) for (const c of P.hand) if (CARDS[c.id].noCost) acts.push({ t: 'play', uid: c.uid, ch: {} }); return acts; }
+  const cards = P.hand.slice(); if (P.set) cards.push(P.set);
+  const seenY = {};
+  for (const c of cards) {
+    const d = CARDS[c.id];
+    if (d.kind === 'robo') { if (P.field.length < 3 && !seenY[c.id]) { seenY[c.id] = 1; acts.push({ t: 'play', uid: c.uid }); } }
+    else if (!jam) for (const ch of spellChoices(s, pi, c.id)) acts.push({ t: 'play', uid: c.uid, ch });
+  }
+  for (const y of P.field) if (y.bat < CARDS[y.id].max) acts.push({ t: 'place', target: y.uid });
+  for (const y of P.field) if (y.bat > 0) {
+    if (y.id === 'souji') { for (const tp of [0, 1]) if (s.players[tp].set) acts.push({ t: 'release', src: y.uid, ch: { pi: tp } }); }
+    if (y.id === 'magnet') for (const t of O.field) if (!E.immuneFrom(t, s, pi)) acts.push({ t: 'release', src: y.uid, ch: { target: t.uid } });
+    if (y.id === 'sniper') for (const t of E.sniperCandidates(s, y.uid)) acts.push({ t: 'release', src: y.uid, ch: { target: t.uid } });
+  }
+  if (!P.set) for (const c of P.hand) if (CARDS[c.id].kind === 'spell' && !CARDS[c.id].noSet) acts.push({ t: 'set', uid: c.uid });
+  return acts;
+}
+function attackOptions(s) {
+  const pi = s.turn, O = s.players[1 - pi];
+  if (s.firstTurn || s.attacked || s.noAttack || E.isOver(s)) return [];
+  const res = [];
+  const gs = E.guardsOf(s, 1 - pi), targets = gs.length ? gs : O.field;
+  for (const a of s.players[pi].field) {
+    if (O.field.length) for (const t of targets) res.push({ t: 'attack', att: a.uid, tgt: t.uid });
+    else res.push({ t: 'attack', att: a.uid, tgt: 'player' });
+  }
+  return res;
+}
+
+// ---------- 応答（防御側の伏せアクション） ----------
+function respondOptions(s) {
+  const di = 1 - s.turn, c = s.players[di].set;
+  if (!c) return [null];
+  return [null].concat(spellChoices(s, di, c.id).filter(ch => !E.respondChoiceError(s, ch)).map(ch => ({ ch })));
+}
+// 攻撃宣言後の状態で、防御側として最善の応答を選ぶ
+function chooseResponse(s, w) {
+  const di = 1 - s.turn;
+  let best = null, bv = -Infinity;
+  for (const r of respondOptions(s)) {
+    const t = E.clone(s); E.respond(t, r); E.resolveEot(t);
+    const v = evaluate(t, di, w, di);
+    if (v > bv) { bv = v; best = r; }
+  }
+  return best;
+}
+
+// ---------- 攻撃の評価（相手の伏せアクションは期待値） ----------
+function unknownSpells(s, op) {
+  // 相手のアクションで、まだ公開領域（スクラップ）に出ていないもの = 伏せカードの候補
+  const known = {};
+  for (const gp of s.players) for (const c of gp.scrap) if (c.owner === op) known[c.id] = 1;
+  return SPELL_IDS.filter(id => !known[id]);
+}
+function finishVal(s, me, w) { const t = E.clone(s); E.resolveEot(t); return evaluate(t, me, w, 1 - me); }
+function evalAttack(s, act, me, w, opt) {
+  const op = 1 - me, O = s.players[op];
+  if (!O.set || opt.ignoreSet || E.isJammed(s, op)) {
+    const t = E.clone(s);
+    if (t.players[op].set && opt.ignoreSet) { // 伏せを無視する（甘い読み）
+      E.apply(t, act); E.resolveBattle(t);
+    } else E.attackFull(t, act.att, act.tgt, null);
+    return finishVal(t, me, w);
+  }
+  const cands = unknownSpells(s, op);
+  if (!cands.length) cands.push(O.set.id); // 理論上起きない保険
+  let sum = 0;
+  for (const id of cands) {
+    const t = E.clone(s);
+    t.players[op].set = { uid: O.set.uid, id, owner: op, bat: 0 };
+    E.apply(t, act);
+    const r = chooseResponse(t, w);
+    E.respond(t, r);
+    sum += finishVal(t, me, w);
+  }
+  return sum / cands.length;
+}
+function bestBattle(s, me, w, opt) {
+  let bv = finishVal(s, me, w), ba = null;
+  for (const a of attackOptions(s)) {
+    const v = evalAttack(s, a, me, w, opt);
+    if (v > bv) { bv = v; ba = a; }
+  }
+  return { v: bv, a: ba };
+}
+
+// ---------- メイン：次の1手を決める ----------
+// opt: { w, ignoreSet, noise, rng, randomRate }
+function chooseAction(s, opt) {
+  const me = s.turn, w = opt.w || BASE_W, rng = opt.rng || Math.random;
+  if (E.isOver(s)) return null;
+  // 計画用の状態：自分の山札順は分からないものとして混ぜる
+  const root = E.clone(s);
+  E.shuffle(root.players[me].deck, rng);
+  E.shuffle(root.players[1 - me].deck, rng);
+
+  if (opt.randomRate && rng() < opt.randomRate) {
+    const pool = mainActions(root).concat(attackOptions(root));
+    if (pool.length && rng() < 0.7) return pool[Math.floor(rng() * pool.length)];
+  }
+
+  let best = null, bv = -Infinity;
+  const consider = (first, v) => {
+    if (opt.noise) v += (rng() - 0.5) * opt.noise;
+    if (v > bv) { bv = v; best = first; }
+  };
+  // 深さ優先でメインアクション列を列挙
+  const dfs = (st, first, depth) => {
+    const bb = bestBattle(st, me, w, opt);
+    consider(first || bb.a || { t: 'end' }, bb.v);
+    const acts = opt.filter ? mainActions(st).filter(a => opt.filter(a, st)) : mainActions(st);
+    if (!acts.length) return;
+    for (const a of acts) {
+      const t = E.clone(st);
+      try { E.apply(t, a); } catch (e) { continue; }
+      if (E.isOver(t)) { consider(first || a, evaluate(t, me, w, 1 - me)); continue; }
+      dfs(t, first || a, t.actions);
+    }
+  };
+  dfs(root, null, root.actions);
+  return best;
+}
+
+// 自分が防御側の時（相手の攻撃宣言中）の応答
+function chooseResponseFor(s, opt) { return chooseResponse(s, opt.w || BASE_W); }
+
+const api = { BASE_W, evaluate, chooseAction, chooseResponseFor, mainActions, attackOptions, spellChoices };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.AI = api;
+})(typeof window !== 'undefined' ? window : globalThis);
