@@ -17,5 +17,16 @@ const map = {
   '/*AINOTE*/': note,
 };
 for (const [k, v] of Object.entries(map)) { if (!h.includes(k)) throw new Error('placeholder not found: ' + k); h = h.split(k).join(v); }
+// 単体のHTMLとして開いても正しく表示されるように、文書の頭（文字コード・スマホ用の表示幅）を付ける。
+// これが無いとスマホのブラウザがPC幅（約980px）で描画し、互換モードにもなる。
+h = `<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13142a">
+` + h + `
+</html>
+`;
 fs.writeFileSync(out, h);
 console.log('built', out, h.length, 'bytes, weights from', path.basename(tf));
