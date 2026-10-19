@@ -37,6 +37,17 @@ function roboVal(y, w) {
     case 'rocket': v += (w.rocket ?? 0.5) * on; break;
     case 'jammer': v += (w.jammer ?? 1.0) * on; break;
     case 'kobun': v += (w.kobun ?? 1.5); break;
+    // ローグライト用（手で決めた初期値。チューニングはまだ）
+    case 'dynamo': v += 1.0 * on; break;
+    case 'medic': v += 0.8 * on; break;
+    case 'fortress': v += 0.8 * on; break;
+    case 'drill': v += 0.4 * on; break;
+    case 'reboot': v += 1.0; break;
+    case 'garakuta': v += 0.6; break;
+    case 'bakushin': v += 0.5; break;
+    case 'socket': v += 0.3; break;
+    case 'gigant': if (!y.bat) v -= 1.5; break;
+    case 'wall': v -= 1.0; break;
   }
   return v;
 }
@@ -46,6 +57,7 @@ function threatOf(s, ai, di, w) {
   if (!A.length) return 0;
   let best = 0;
   for (const a of A) {
+    if (E.cantAttack(a)) continue;
     const av = E.battleAtk(a);
     if (!D.field.length) {
       let loss = w.life * av;
@@ -97,6 +109,14 @@ function multisets(items, k) {
 // AI用のアクション選択肢（明らかに無意味なものは省く）
 function spellChoices(s, pi, id) {
   const P = s.players[pi], O = s.players[1 - pi];
+  const pk = CARDS[id].pick;
+  if (pk) {
+    if (pk.zone === 'scrap') { const seen = {}; return E.pickPool(s, pi, pk).filter(c => !seen[c.id] && (seen[c.id] = 1)).map(c => ({ uid: c.uid })); }
+    const res = E.pickPool(s, pi, pk).map(y => ({ target: y.uid }));
+    if (pk.player) res.push({ target: 'player' });
+    if (!res.length && pk.optional) res.push({});
+    return res;
+  }
   switch (id) {
     case 'ebattery': {
       // 自分のロボに置く。容量に収まる組み合わせのみ
@@ -143,6 +163,7 @@ function spellChoices(s, pi, id) {
     case 'thunder': return E.thunderCandidates(s, pi).map(y => ({ target: y.uid }));
     case 'hack': return P.field.length >= 3 ? [] : E.hackCandidates(s, pi).map(y => ({ target: y.uid }));
     case 'limiter': return E.allField(s).filter(y => !E.immuneFrom(y, s, pi)).map(y => ({ target: y.uid }));
+    case 'overload': return [{}];
   }
   return [];
 }
@@ -156,7 +177,14 @@ function mainActions(s) {
   const seenY = {};
   for (const c of cards) {
     const d = CARDS[c.id];
-    if (d.kind === 'robo') { if (P.field.length < 3 && !seenY[c.id]) { seenY[c.id] = 1; acts.push({ t: 'play', uid: c.uid }); } }
+    if (d.kind === 'robo') {
+      if (P.field.length < 3 && !seenY[c.id]) {
+        seenY[c.id] = 1;
+        const pool = d.deployPick ? E.pickPool(s, pi, d.deployPick, c.uid) : [];
+        if (pool.length) for (const y of pool) acts.push({ t: 'play', uid: c.uid, ch: { target: y.uid } });
+        else acts.push({ t: 'play', uid: c.uid });
+      }
+    }
     else if (!jam) for (const ch of spellChoices(s, pi, c.id)) acts.push({ t: 'play', uid: c.uid, ch });
   }
   for (const y of P.field) if (y.bat < CARDS[y.id].max) acts.push({ t: 'place', target: y.uid });
@@ -164,6 +192,8 @@ function mainActions(s) {
     if (y.id === 'souji') { for (const tp of [0, 1]) if (s.players[tp].set) acts.push({ t: 'release', src: y.uid, ch: { pi: tp } }); }
     if (y.id === 'magnet') for (const t of O.field) if (!E.immuneFrom(t, s, pi)) acts.push({ t: 'release', src: y.uid, ch: { target: t.uid } });
     if (y.id === 'sniper') for (const t of E.sniperCandidates(s, y.uid)) acts.push({ t: 'release', src: y.uid, ch: { target: t.uid } });
+    if (CARDS[y.id].pick) for (const t of E.pickPool(s, pi, CARDS[y.id].pick, y.uid)) acts.push({ t: 'release', src: y.uid, ch: { target: t.uid } });
+    if (y.id === 'medic') acts.push({ t: 'release', src: y.uid, ch: {} });
   }
   if (!P.set) for (const c of P.hand) if (CARDS[c.id].kind === 'spell' && !CARDS[c.id].noSet) acts.push({ t: 'set', uid: c.uid });
   return acts;
@@ -174,8 +204,12 @@ function attackOptions(s) {
   const res = [];
   const gs = E.guardsOf(s, 1 - pi), targets = gs.length ? gs : O.field;
   for (const a of s.players[pi].field) {
-    if (O.field.length) for (const t of targets) res.push({ t: 'attack', att: a.uid, tgt: t.uid });
-    else res.push({ t: 'attack', att: a.uid, tgt: 'player' });
+    if (E.cantAttack(a)) continue;
+    const tg = O.field.length ? targets.map(t => t.uid) : ['player'];
+    for (const tgt of tg) {
+      res.push({ t: 'attack', att: a.uid, tgt });
+      if (a.id === 'rocket') res.push({ t: 'attack', att: a.uid, tgt, boost: true });
+    }
   }
   return res;
 }
@@ -183,8 +217,11 @@ function attackOptions(s) {
 // ---------- 応答（防御側の伏せアクション） ----------
 function respondOptions(s) {
   const di = 1 - s.turn, c = s.players[di].set;
-  if (!c) return [null];
-  return [null].concat(spellChoices(s, di, c.id).filter(ch => !E.respondChoiceError(s, ch)).map(ch => ({ ch })));
+  let base = [null];
+  if (c && E.canRespondSet(s)) base = base.concat(spellChoices(s, di, c.id).filter(ch => !E.respondChoiceError(s, ch)).map(ch => ({ ch })));
+  if (!E.rocketDefends(s)) return base;
+  // ロケットロボを点火するかどうか
+  return base.concat(base.map(r => Object.assign({}, r || {}, { boost: true })));
 }
 // 攻撃宣言後の状態で、防御側として最善の応答を選ぶ
 function chooseResponse(s, w) {
@@ -210,9 +247,10 @@ function evalAttack(s, act, me, w, opt) {
   const op = 1 - me, O = s.players[op];
   if (!O.set || opt.ignoreSet || E.isJammed(s, op)) {
     const t = E.clone(s);
-    if (t.players[op].set && opt.ignoreSet) { // 伏せを無視する（甘い読み）
-      E.apply(t, act); E.resolveBattle(t);
-    } else E.attackFull(t, act.att, act.tgt, null);
+    E.apply(t, act);
+    if (t.players[op].set && opt.ignoreSet) E.resolveBattle(t); // 伏せを無視する（甘い読み）
+    else if (E.needsResponse(t)) E.respond(t, chooseResponse(t, w)); // ロケットロボの点火だけ選ぶ
+    else E.resolveBattle(t);
     return finishVal(t, me, w);
   }
   const cands = unknownSpells(s, op);
@@ -267,10 +305,11 @@ function chooseAction(s, opt) {
       const t = E.clone(st);
       try { E.apply(t, a); } catch (e) { continue; }
       if (E.isOver(t)) { consider(first || a, evaluate(t, me, w, 1 - me)); continue; }
-      dfs(t, first || a, t.actions);
+      if (depth >= (opt.maxPly || 4)) { consider(first || a, bestBattle(t, me, w, opt).v); continue; } // オーバーロードなどで行動が多い時の打ち切り
+      dfs(t, first || a, depth + 1);
     }
   };
-  dfs(root, null, root.actions);
+  dfs(root, null, 1);
   return best;
 }
 

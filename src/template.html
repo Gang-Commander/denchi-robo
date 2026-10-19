@@ -318,6 +318,7 @@ button.cnt { cursor: pointer; text-decoration: underline dotted var(--night-3); 
 .batfloat { z-index: 60; transform: translate(-50%, 0); font-family: var(--f-dot); font-size: 22px; font-weight: 700; line-height: 1; text-shadow: 2px 2px 0 #1b1424, -1px -1px 0 #1b1424; animation: batfloat .9s ease-out forwards; }
 .batfloat.plus { color: var(--volt); }
 .batfloat.minus { color: #ff8a5c; }
+.batfloat.hurt { color: #ff4d5e; font-size: 26px; }
 @keyframes batfloat { 0% { opacity: 0; transform: translate(-50%, 8px) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.25); } 100% { opacity: 0; transform: translate(-50%, -34px) scale(1); } }
 .card.bat-in { animation: batin .6s ease-out; }
 .card.bat-out { animation: batout .6s ease-out; }
@@ -465,6 +466,10 @@ h1 { letter-spacing: .1em; text-shadow: var(--px) var(--px) 0 var(--red), calc(v
 .card .tag { border-radius: 0; box-shadow: 1px 1px 0 var(--line); }
 .card .atk { border-radius: 0; width: 1.5em; height: 1.4em; box-shadow: 0 -2px 0 var(--line), 0 2px 0 var(--line), -2px 0 0 var(--line), 2px 0 0 var(--line), inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.3); }
 .card .atk.up { background: #f07a2a; box-shadow: 0 -2px 0 var(--gold), 0 2px 0 var(--gold), -2px 0 0 var(--gold), 2px 0 0 var(--gold), inset 2px 2px 0 rgba(255,255,255,.35); }
+.card .rare { position: absolute; top: 1px; right: 3px; font-size: 11px; color: var(--gold); text-shadow: 1px 1px 0 #1b1424; z-index: 2; }
+.dmg.heal { color: #6fe38a; }
+.card .atk.hurt { background: #c8323f; color: #fff; }
+.card .dmgchip { font-family: var(--f-dot); font-size: 11px; font-weight: 700; color: #fff; background: #c8323f; border: 2px solid #1b1424; padding: 0 3px; margin-left: 2px; line-height: 1.2; }
 .pip { border-radius: 0; border: 0; background: #3a3550; box-shadow: inset 1px 1px 0 rgba(0,0,0,.5); transform: rotate(45deg) scale(.82); }
 .pip.on { background: var(--volt); box-shadow: inset 1px 1px 0 #e8fbff, 0 0 4px var(--volt); }
 .card .badge { border-radius: 0; box-shadow: var(--frame2); }
@@ -823,16 +828,25 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
       <li>リサイクルロボ：起動した時、起動したプレイヤーのスクラップにある一番新しいアクションを1枚手札に戻します（ワンモアは対象外）。リペアキットで起動した場合は「リペアキットの処理が終わってスクラップへ置かれる → リサイクルロボの効果」の順なので、そのリペアキットを回収できます。</li>
       <li>ドロボ：相手の場に電池入りのロボがいなければ何も起きません。攻撃力が同じなら左のロボから奪います。</li>
       <li>コブンロボ：破壊されると、同じ場所にアニキロボが出ます。アニキロボはデッキに入らないロボですが、破壊されるとスクラップへ行くので、リペアキットで起動し直せます。</li>
+      <li>ロボへのダメージ：ロボの攻撃力は体力も兼ねます。スパークボムなどでロボが受けたダメージは手番の終わりまで残り、その分だけ攻撃力が下がります（例：攻撃力5に3ダメージなら、攻撃力2として戦闘します）。ダメージを受けていて、ダメージが元の攻撃力以上になると破壊されます。電池が外れて攻撃力が下がった時も同じです。ダメージは手番の終わりにすべて消えます（消えたことで破壊されることはありません）。</li>
+      <li>ライフの回復は、上限を超えてもかまいません。</li>
+      <li>ロケットロボ：点火するかどうかは、攻撃する側は攻撃する時に、攻撃された側は伏せ札を使うかどうか決めたあとに選びます。点火すると自分が4ダメージを受け、その戦闘の間だけ攻撃力+5です。電池は使いません。</li>
+      <li>コピーロボ：起動した時にコピーした攻撃力が、このロボの元の攻撃力になります（あとでコピー元が変わっても変わりません）。電池を入れればその分上がります。選べるロボがいなければ攻撃力0です。リペアキットで起動した時は、選べるロボのうち攻撃力が一番高いロボをコピーします。</li>
+      <li>ワープ装置：伏せておけば、攻撃されたロボを手札に戻して攻撃を中止できます。アニキロボを戻すと、そのまま消えます。</li>
+      <li>ジャマーロボ：電池が入っている間、どちらのプレイヤーもアクションを使えません（伏せるのはできます）。</li>
     </ul>
-    <h2>ロボ</h2>
+    <h2>スタンダードのロボ</h2>
     <div class="dexlist" id="dexRobo"></div>
-    <h2>アクション</h2>
+    <h2>スタンダードのアクション</h2>
     <div class="dexlist" id="dexSpell"></div>
     <h2>デッキに入らないカード</h2>
     <div class="dexlist" id="dexToken"></div>
-    <h2>不採用カード</h2>
+    <h2>ローグライト用カード</h2>
+    <p class="note">勝ち抜きモード（準備中）の報酬で手に入るカードです。テーマごとに並べています。★はレア（出にくい）。</p>
+    <div class="dexlist" id="dexRogue"></div>
+    <div id="dexRetiredBox" hidden><h2>不採用カード</h2>
     <p class="note">試したものの採用しなかったカードです。デッキには入りません。</p>
-    <div class="dexlist retired" id="dexRetired"></div>
+    <div class="dexlist retired" id="dexRetired"></div></div>
   </div>
 </section>
 

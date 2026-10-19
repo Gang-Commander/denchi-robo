@@ -52,8 +52,8 @@ function batPips(y) {
 }
 // 場の外での攻撃力：最初から電池が入って出るロボは、その分を含めて表示する
 // キーワード能力（効果文の1行目に表示）
-const KEYWORDS = { enterBat: { name: '付属電池', help: 'このロボは電池を1本入れた状態で場に出る（リペアキットでの起動も含む）。' } };
-function kwList(d) { return d.enterBat ? [KEYWORDS.enterBat] : []; }
+const KEYWORDS = E.KEYWORDS;
+function kwList(d) { return (d.enterBat ? [KEYWORDS.enterBat] : []).concat((d.kw || []).map(k => KEYWORDS[k])); }
 function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b><br>` : '') + d.text; }
 function cardTextPlain(d) { const k = kwList(d); return (k.length ? k.map(x => x.name).join('・') + '／' : '') + d.text; }
 function shownAtk(c) { const d = CARDS[c.id]; return E.atkOf({ id: c.id, bat: d.enterBat || 0 }); }
@@ -76,17 +76,18 @@ function cardHTML(c, opts) {
   if (d.kind === 'robo') {
     const onField = opts.zone === 'field';
     const atk = onField ? E.atkOf(c) : shownAtk(c);
-    const boosted = atk > d.atk;
+    const hurt = onField && c.dmg > 0;
+    const boosted = !hurt && atk > d.atk;
     return `<button class="${cls.join(' ')}" ${attrs}>
-      <span class="cname${d.name.length >= 6 ? ' long' : ''}">${d.name}</span>
+      <span class="cname${d.name.length >= 6 ? ' long' : ''}">${d.name}</span>${d.rare ? '<span class="rare" title="レア">★</span>' : ''}
       <span class="tag t-${d.eff}${onField && (d.eff === 'powered' || d.eff === 'release') ? (c.bat > 0 ? ' on' : ' off') : ''}">${EFF_LABEL[d.eff]}${onField && d.eff === 'powered' ? (c.bat > 0 ? ' ON' : ' OFF') : ''}</span>
       <span class="frame">${img(c.id)}</span>
-      <span class="foot"><b class="atk${boosted ? ' up' : ''}">${atk}</b>${onField ? batPips(c) : batPips({ id: c.id, bat: d.enterBat || 0 })}</span>
+      <span class="foot"><b class="atk${boosted ? ' up' : ''}${hurt ? ' hurt' : ''}">${atk}</b>${hurt ? `<span class="dmgchip" title="この手番に受けたダメージ（手番の終わりに消える）">−${c.dmg}</span>` : ''}${onField ? batPips(c) : batPips({ id: c.id, bat: d.enterBat || 0 })}</span>
       ${opts.badge ? `<span class="badge">${opts.badge}</span>` : ''}${opts.extra || ''}
     </button>`;
   }
   return `<button class="${cls.join(' ')}" ${attrs}>
-    <span class="cname${d.name.length >= 6 ? ' long' : ''}">${d.name}</span>
+    <span class="cname${d.name.length >= 6 ? ' long' : ''}">${d.name}</span>${d.rare ? '<span class="rare" title="レア">★</span>' : ''}
     <span class="tag t-spell${d.token ? ' t-token' : ''}">${d.token ? '特' : '術'}</span>
     <span class="frame">${img(c.id)}</span>
     <span class="foot"><span class="spl">アクション</span></span>
@@ -344,7 +345,7 @@ function fxDischarge(uid, snap, t) {
 function fxNotice(id, text, t) {
   at(t, () => {
     const d = document.createElement('div'); d.className = 'notice';
-    d.innerHTML = `<img class="nimg" src="${ART[id] || ''}" alt=""><div><b>${CARDS[id].name}</b><span>${text}</span></div>`;
+    d.innerHTML = `${img(id, 'nimg')}<div><b>${CARDS[id].name}</b><span>${text}</span></div>`;
     fxLayer().appendChild(d); killLater(d, 1500);
   });
 }
@@ -410,12 +411,25 @@ function fxBat(uid, n, plus, t, snap) {
     particles(center(r), plus ? 8 : 10, plus ? '' : 'frost', r.width * 0.5, plus ? 14 : 22);
   });
 }
+// ロボへのダメージ：衝撃と赤い −N
+function fxRoboDmg(uid, n, t, snap) {
+  at(t, () => {
+    const el = document.querySelector(`#board .card[data-uid="${uid}"]`);
+    const r = el ? el.getBoundingClientRect() : snap && snap.cards[uid]; if (!r) return;
+    const f = document.createElement('span');
+    f.className = 'fxabs batfloat hurt'; f.textContent = '−' + n;
+    f.style.left = (r.left + r.width / 2) + 'px'; f.style.top = (r.top + r.height * 0.35) + 'px';
+    fxLayer().appendChild(f); killLater(f, 900);
+    particles(center(r), 12, '', r.width * 0.6, 24);
+  });
+  const r0 = rectOf(uid, snap); if (r0) fxImpact(r0, t);
+}
 function fxCutin(id, pi, kind, t) {
   at(t, () => {
     const d = document.createElement('div');
     d.className = 'cutin p' + pi;
     const who = pi === 0 ? 'あなた' : 'CPU';
-    d.innerHTML = `<div class="band"></div><img class="cimg" src="${ART[id]}" alt=""><div class="ctext"><span>${kind === 'reveal' ? who + 'の伏せ札、オープン！' : who + 'のアクション'}</span><b>${CARDS[id].name}</b></div>`;
+    d.innerHTML = `<div class="band"></div>${img(id, 'cimg')}<div class="ctext"><span>${kind === 'reveal' ? who + 'の伏せ札、オープン！' : who + 'のアクション'}</span><b>${CARDS[id].name}</b></div>`;
     fxLayer().appendChild(d);
     killLater(d, 1050);
   });
@@ -436,6 +450,13 @@ function floatDamage(pi, n, t) {
     const f = document.createElement('span'); f.className = 'dmg'; f.textContent = '-' + n;
     el.appendChild(f); setTimeout(() => f.remove(), 1200);
     el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 500);
+  });
+}
+function floatHeal(pi, n, t) {
+  at(t || 30, () => {
+    const el = document.getElementById('life' + pi); if (!el) return;
+    const f = document.createElement('span'); f.className = 'dmg heal'; f.textContent = '+' + n;
+    el.appendChild(f); setTimeout(() => f.remove(), 1200);
   });
 }
 // ログを読んで演出を予約。全体の所要時間(ms)を返す
@@ -470,6 +491,13 @@ function playFx(events, snap) {
       case 'short': { const r = rectOf(e.uid, snap); fxVolt(r, null, t); fxBat(e.uid, e.n || 1, false, t, snap); if (r) at(t, () => particles(center(r), 12, '', r.width * 0.6, 20)); end = Math.max(end, t + 900); t += 300; break; }
       case 'setdestroy': fxSetDestroy(e.pi, snap, t); t += 300; break;
       case 'damage': floatDamage(e.pi, e.n, t); end = Math.max(end, t + 600); break;
+      case 'robodmg': fxRoboDmg(e.uid, e.n, t, snap); end = Math.max(end, t + 900); t += 450; break;
+      case 'heal': floatHeal(e.pi, e.n, t); end = Math.max(end, t + 600); t += 300; break;
+      case 'bounce': { const r = rectOf(e.uid, snap); if (r) at(t, () => particles(center(r), 14, 'frost', r.width * 0.6, 18)); end = Math.max(end, t + 600); t += 300; break; }
+      case 'reboot': fxNotice('reboot', e.pi === 0 ? 'リブートロボが手札に戻った' : 'リブートロボがCPUの手札に戻った', Math.max(t, lastDestroyEnd)); t = Math.max(t, lastDestroyEnd) + 1200; break;
+      case 'junk': fxNotice(e.id, e.pi === 0 ? 'ジャンク回収で手札に戻った' : 'ジャンク回収でCPUの手札に戻った', t); t += 1500; break;
+      case 'copy': { const r = rectOf(e.uid, snap); if (r) at(t + 300, () => particles(center(r), 14, '', r.width * 0.6, 16)); t += 300; break; }
+      case 'bakushin': case 'scout': case 'garakuta': t += 150; break;
       case 'place': case 'batfly': case 'enterbat': case 'solar': fxVolt(null, rectOf(e.uid, snap), t); fxBat(e.uid, 1, true, t + 450, snap); end = Math.max(end, t + 1350); t += 200; break;
       case 'batmove': fxBat(e.from, 1, false, t, snap); fxVolt(rectOf(e.from, snap), rectOf(e.to, snap), t); fxBat(e.to, 1, true, t + 450, snap); end = Math.max(end, t + 1350); t += 250; break;
       case 'release': { fxDischarge(e.uid, snap, t); const r = rectOf(e.uid, snap); fxVolt(r, null, t + 150); fxBat(e.uid, 1, false, t + 150, snap); end = Math.max(end, t + 1000); t += 650; break; }
@@ -557,10 +585,56 @@ function selCancel() { const s = G.sel; G.sel = null; if (s && s.onCancel) s.onC
 function selOk() { const s = G.sel; if (!s || s.picks.length < s.min) return; G.sel = null; s.onDone(s.picks.slice()); }
 
 // アクションの対象を集める（casterPi視点）。cb(ch) / cancel()
+// pick（カード定義の対象指定）から対象を選ぶ。新しいカードは全部これを通る
+function gatherPick(spec, casterPi, selfUid, cb, cancel) {
+  const s = G.s;
+  if (spec.zone === 'scrap') {
+    const list = E.pickPool(s, casterPi, spec);
+    if (!list.length) { toast(spec.none, 'err'); return cancel && cancel(); }
+    return openSheet(`<h3>${spec.prompt}</h3><div class="glist">${list.map(c => cardHTML(c, { size: 'hand', cls: 'pickg' })).join('')}</div>
+      <div class="row"><button class="btn ghost" id="hkCancel">やめる</button></div>`, sh => {
+        sh.querySelectorAll('.pickg').forEach(b => b.addEventListener('click', () => { closeSheet(); cb({ uid: +b.dataset.uid }); }));
+        sh.querySelector('#hkCancel').addEventListener('click', () => { closeSheet(); cancel && cancel(); });
+      });
+  }
+  const pool = E.pickPool(s, casterPi, spec, selfUid);
+  if (spec.player) {
+    // スパークボム：相手プレイヤーか、ロボか
+    return openSheet(`<h3>3ダメージを与える先を選ぶ</h3>
+      <div class="row"><button class="btn primary" id="pkP">${casterPi === 0 ? 'CPU' : 'あなた'}に3ダメージ</button>
+      <button class="btn${pool.length ? ' primary' : ' off'}" id="pkR">ロボを選ぶ</button></div>
+      <div class="row"><button class="btn ghost" id="pkC">やめる</button></div>`, sh => {
+        sh.querySelector('#pkP').addEventListener('click', () => { closeSheet(); cb({ target: 'player' }); });
+        sh.querySelector('#pkR').addEventListener('click', () => {
+          if (!pool.length) { toast('選べるロボがいません', 'err'); return; }
+          startSel({ prompt: spec.prompt, valid: new Set(pool.map(y => y.uid)), onDone: p => cb({ target: p[0] }), onCancel: cancel });
+        });
+        sh.querySelector('#pkC').addEventListener('click', () => { closeSheet(); cancel && cancel(); });
+      });
+  }
+  if (!pool.length) { if (spec.optional) return cb({}); toast(spec.none || '選べる対象がいません', 'err'); return cancel && cancel(); }
+  return startSel({ prompt: spec.prompt, valid: new Set(pool.map(y => y.uid)), onDone: p => cb({ target: p[0] }), onCancel: cancel });
+}
+// 手札のロボを起動できるか（起動時に対象を選ぶロボは、選べる対象があるものとして調べる）
+function playErr(c) {
+  const d = CARDS[c.id];
+  const t = d.deployPick && E.pickPool(G.s, 0, d.deployPick, c.uid)[0];
+  return E.checkAction(G.s, { t: 'play', uid: c.uid, ch: t ? { target: t.uid } : {} });
+}
+// 手札のロボを起動する（コピーロボは起動時に対象を選ぶ）
+function playRobo(c) {
+  const d = CARDS[c.id];
+  if (!d.deployPick) return humanAct({ t: 'play', uid: c.uid });
+  const err = playErr(c);
+  if (err) { toast(err, 'err'); return; }
+  gatherPick(d.deployPick, 0, c.uid, ch => humanAct({ t: 'play', uid: c.uid, ch }), () => render());
+}
 function gatherSpell(id, casterPi, cb, cancel) {
   const s = G.s;
   const all = E.allField(s);
+  if (CARDS[id].pick) return gatherPick(CARDS[id].pick, casterPi, null, cb, cancel);
   switch (id) {
+    case 'overload': return cb({});
     case 'onemore': return cb({});
     case 'manual': {
       const ok = E.maintTargets(s, casterPi);
@@ -634,6 +708,13 @@ async function humanAct(a) {
   const err = E.checkAction(s, a);
   if (err) { toast(err, 'err'); render(); return; }
   closePop();
+  // ロケットロボで攻撃する時は、点火するか聞く
+  if (a.t === 'attack' && a.boost === undefined && E.findRobo(s, a.att).y.id === 'rocket') {
+    render();
+    const b = await askRocket(s.players[0].life);
+    if (b === null) { render(); return; }
+    a = Object.assign({}, a, { boost: b });
+  }
   if (a.t === 'attack') {
     G.busy = true; G.attackFx = { att: a.att, tgt: a.tgt };
     await step(() => E.apply(s, a));
@@ -723,7 +804,25 @@ async function runCpu() {
   tutAfter({ t: 'cpu-turn-done' });
   if (G.mode === 'debug') dbgTurnStart(false);
 }
-function humanRespond() {
+// ロケットロボの点火の確認。true / false / null（やめる＝攻撃をやめる）
+function askRocket(life, defending) {
+  return new Promise(resolve => openSheet(`<h3>ロケットロボを点火する？</h3>
+    <p class="sub">点火すると、あなたが4ダメージを受けて、この戦闘の間ロケットロボの攻撃力が+5されます（いまのライフ ${life}）。</p>
+    <div class="row"><button class="btn" id="rkNo">点火しない</button><button class="btn primary" id="rkYes">点火する</button></div>
+    ${defending ? '' : '<div class="row"><button class="btn ghost" id="rkC">攻撃をやめる</button></div>'}`, sh => {
+      sh.querySelector('#rkNo').addEventListener('click', () => { closeSheet(); resolve(false); });
+      sh.querySelector('#rkYes').addEventListener('click', () => { closeSheet(); resolve(true); });
+      const c = sh.querySelector('#rkC'); if (c) c.addEventListener('click', () => { closeSheet(); resolve(null); });
+    }, true));
+}
+// 攻撃された時の応答：伏せ札（あれば）→ ロケットロボの点火（攻撃されたのがロケットなら）
+async function humanRespond() {
+  const s = G.s;
+  let r = E.canRespondSet(s) ? await humanRespondSet() : null;
+  if (E.rocketDefends(s)) { if (await askRocket(s.players[0].life, true)) r = Object.assign({}, r || {}, { boost: true }); }
+  return r;
+}
+function humanRespondSet() {
   return new Promise(resolve => {
     const s = G.s, p = s.pending;
     const A = E.findRobo(s, p.att).y;
@@ -810,10 +909,12 @@ function openCard(uid, zoneHint) {
       err = !myTurn ? why({}) : (s.actions <= 0 || s.phase !== 'main') ? '行動がありません' : c.bat <= 0 ? '電池が入っていません' :
         (c.id === 'souji' && !s.players[0].set && !s.players[1].set) ? 'セットされたアクションがありません' :
         (c.id === 'magnet' && !s.players[1].field.some(y => !E.immuneFrom(y, s, 0))) ? '入れ替えられる相手のロボがいません' :
-        (c.id === 'sniper' && !E.sniperCandidates(s, c.uid).length) ? 'ほかに場にロボがいません' : null;
+        (c.id === 'sniper' && !E.sniperCandidates(s, c.uid).length) ? 'ほかに場にロボがいません' :
+        (CARDS[c.id].pick && !E.pickPool(s, 0, CARDS[c.id].pick, c.uid).length) ? CARDS[c.id].pick.none : null;
     } else if (x.k === 'attack') {
       err = !myTurn ? why({}) : s.firstTurn ? '先攻の最初の手番は攻撃できません' : s.attacked ? 'この手番はもう攻撃しました' : s.noAttack ? 'メガトンロボの効果で攻撃できません' : null;
-    } else err = why(x.a);
+    } else if (x.k === 'play') err = myTurn ? playErr(c) : why({});
+    else err = why(x.a);
     btns += `<button class="btn${err ? ' off' : ' primary'}" data-k="${x.k}" ${err ? `data-why="${err}"` : ''}>${x.label}</button>`;
   }
   openSheet(`${cardInfoHTML(c, zone)}${btns ? `<div class="row acts">${btns}</div>` : ''}<p class="why" id="why"></p>
@@ -828,7 +929,7 @@ function openCard(uid, zoneHint) {
 function doCardAction(k, c) {
   const s = G.s, uid = c.uid;
   closeSheet();
-  if (k === 'play') return humanAct({ t: 'play', uid });
+  if (k === 'play') return playRobo(c);
   if (k === 'set') return humanAct({ t: 'set', uid });
   if (k === 'place') return humanAct({ t: 'place', target: uid });
   if (k === 'cast') return gatherSpell(c.id, 0, ch => humanAct({ t: 'play', uid, ch }), () => render());
@@ -842,6 +943,8 @@ function doCardAction(k, c) {
       if (cand.length === 1) return humanAct({ t: 'release', src: uid, ch: { target: cand[0].uid } });
       return startSel({ prompt: '破壊するロボを選ぶ（場で攻撃力が最も高いロボ）', valid: new Set(cand.map(y => y.uid)), onDone: p => humanAct({ t: 'release', src: uid, ch: { target: p[0] } }) });
     }
+    if (CARDS[c.id].pick) return gatherPick(CARDS[c.id].pick, 0, uid, ch => humanAct({ t: 'release', src: uid, ch }), () => render());
+    if (c.id === 'medic') return humanAct({ t: 'release', src: uid, ch: {} });
     if (c.id === 'magnet') return startSel({ prompt: 'マグネットロボと入れ替える相手のロボを選ぶ', valid: new Set(s.players[1].field.filter(y => !E.immuneFrom(y, s, 0)).map(y => y.uid)), onDone: p => humanAct({ t: 'release', src: uid, ch: { target: p[0] } }) });
   }
   if (k === 'attack') {
@@ -875,6 +978,8 @@ function quickErr(k, c) {
     if (c.id === 'souji') { const pi = s.players[1].set ? 1 : s.players[0].set ? 0 : 1; return E.checkAction(s, { t: 'release', src: c.uid, ch: { pi } }); }
     if (c.id === 'magnet') { const O = s.players[1].field.filter(y => !E.immuneFrom(y, s, 0)); return E.checkAction(s, { t: 'release', src: c.uid, ch: { target: O.length ? O[0].uid : -1 } }); }
     if (c.id === 'sniper') { const t = E.sniperCandidates(s, c.uid)[0]; return t ? E.checkAction(s, { t: 'release', src: c.uid, ch: { target: t.uid } }) : 'ほかに場にロボがいません'; }
+    if (CARDS[c.id].pick) { const t = E.pickPool(s, 0, CARDS[c.id].pick, c.uid)[0]; return t ? E.checkAction(s, { t: 'release', src: c.uid, ch: { target: t.uid } }) : CARDS[c.id].pick.none; }
+    if (c.id === 'medic') return E.checkAction(s, { t: 'release', src: c.uid, ch: {} });
     return '放電効果を持っていません';
   }
   return null;
@@ -917,9 +1022,9 @@ function onQuick(qa) {
 function onHandTap(el) {
   const c = cardByUid(+el.dataset.uid); if (!c) return;
   if (CARDS[c.id].kind === 'spell') return spellPop(el, c, 'hand');
-  const err = canQuick() ? E.checkAction(G.s, { t: 'play', uid: c.uid }) : 'いまは操作できません';
+  const err = canQuick() ? playErr(c) : 'いまは操作できません';
   openPop(el, [
-    { label: '起動', primary: true, err, run: () => humanAct({ t: 'play', uid: c.uid }) },
+    { label: '起動', primary: true, err, run: () => playRobo(c) },
     { label: '詳細', run: () => openCard(c.uid) },
   ]);
 }
@@ -988,7 +1093,7 @@ function castErr(c) {
 // ドロップ先の候補（先に書いたものが優先）
 function dropZones(c, fromSet) {
   const s = G.s;
-  if (CARDS[c.id].kind === 'robo') return [{ el: $('#myField'), act: 'play', label: '起動', err: E.checkAction(s, { t: 'play', uid: c.uid }) }];
+  if (CARDS[c.id].kind === 'robo') return [{ el: $('#myField'), act: 'play', label: '起動', err: playErr(c) }];
   const z = [];
   if (!fromSet) z.push({ el: document.querySelector('#myField .setslot'), act: 'set', label: 'セット', err: E.checkAction(s, { t: 'set', uid: c.uid }) });
   else z.push({ el: document.querySelector('#myField .setslot'), act: 'none' });
@@ -1068,7 +1173,7 @@ function bindDrag(root) {
       dragFired = true; setTimeout(() => { dragFired = false; }, 0);
       if (!z || z.act === 'none') return;
       if (z.err) { toast(z.err, 'err'); return; }
-      if (z.act === 'play') return humanAct({ t: 'play', uid: c.uid });
+      if (z.act === 'play') return playRobo(c);
       if (z.act === 'set') return humanAct({ t: 'set', uid: c.uid });
       if (z.act === 'cast') { if (await confirmCast(c)) doCardAction('cast', c); else render(); }
     };
@@ -1350,32 +1455,37 @@ let DBG = JSON.parse(JSON.stringify(DBG_DEFAULT));
 try {
   const v = JSON.parse(localStorage.getItem('denchi-debug') || 'null');
   // 保存された配置に今は存在しないカードがあれば外す
-  if (v && v.p) { for (const p of v.p) { p.field = (p.field || []).map(f => (f[0] && CARDS[f[0]] ? f : ['', 0])); if (p.set && !CARDS[p.set]) p.set = ''; } DBG = Object.assign(DBG, v); }
+  if (v && v.p) { for (const p of v.p) { p.field = (p.field || []).map(f => (f[0] && CARDS[f[0]] ? f : ['', 0])); if (p.set && !CARDS[p.set]) p.set = ''; p.hand = (p.hand || []).filter(id => CARDS[id]); } DBG = Object.assign(DBG, v); }
 } catch (e) {}
 function saveDbg() { try { localStorage.setItem('denchi-debug', JSON.stringify(DBG)); } catch (e) {} }
 
 function dbgState(turnNo, owner) {
-  const cfg = { turnNo, p: DBG.p.map(p => ({ life: Math.max(1, Math.min(15, +p.life || 15)), field: p.field.filter(f => f[0]).map(([id, bat]) => [id, Math.min(+bat || 0, CARDS[id].max)]), set: p.set || null })) };
+  const cfg = { turnNo, p: DBG.p.map(p => ({ life: Math.max(1, Math.min(30, +p.life || 15)), field: p.field.filter(f => f[0]).map(([id, bat]) => [id, Math.min(+bat || 0, CARDS[id].max)]), set: p.set || null,
+    hand: (p.hand || []).filter(id => id && CARDS[id]) })) };
   const s = mkState(cfg);
   s.turn = owner; s.log = [{ msg: '―― 配置をセット ――', t: 'turn' }];
   return s;
 }
 function dbgRenderEditor() {
   // デバッグでは、トークンや不採用カードも置けるようにする
-  const tag = id => E.RETIRED_IDS.includes(id) ? '・不採用' : CARDS[id].token ? '・トークン' : '';
-  const yIds = E.ROBO_IDS.concat(E.TOKEN_IDS, E.RETIRED_IDS).filter(id => CARDS[id].kind === 'robo');
-  const sIds = E.SPELL_IDS.concat(E.RETIRED_IDS.filter(id => CARDS[id].kind === 'spell'));
+  const tag = id => E.RETIRED_IDS.includes(id) ? '・不採用' : CARDS[id].token ? '・トークン' : !E.DECK_IDS.includes(id) && CARDS[id].theme ? '・' + (CARDS[id].theme === 'basic' ? '基本' : E.THEMES[CARDS[id].theme].name) : '';
+  const order = E.DECK_IDS.concat(E.TOKEN_IDS, E.RETIRED_IDS, Object.keys(CARDS).filter(id => !E.DECK_IDS.includes(id) && !E.TOKEN_IDS.includes(id) && !E.RETIRED_IDS.includes(id)));
+  const yIds = order.filter(id => CARDS[id].kind === 'robo');
+  const sIds = order.filter(id => CARDS[id].kind === 'spell' && !CARDS[id].noSet);
+  const hIds = order.filter(id => !CARDS[id].token);
+  const hOpt = sel => `<option value="">（なし）</option>` + hIds.map(id => `<option value="${id}"${sel === id ? ' selected' : ''}>${CARDS[id].name}${tag(id) ? '（' + tag(id).slice(1) + '）' : ''}</option>`).join('');
   const yOpt = sel => `<option value="">（なし）</option>` + yIds.map(id => `<option value="${id}"${sel === id ? ' selected' : ''}>${CARDS[id].name}（${CARDS[id].atk}${tag(id)}）</option>`).join('');
   const sOpt = sel => `<option value="">（なし）</option>` + sIds.map(id => `<option value="${id}"${sel === id ? ' selected' : ''}>${CARDS[id].name}${tag(id) ? '（' + tag(id).slice(1) + '）' : ''}</option>`).join('');
   const batOpt = (n, max) => Array.from({ length: (max ?? 3) + 1 }, (_, i) => `<option value="${i}"${+n === i ? ' selected' : ''}>電池${i}</option>`).join('');
   const side = pi => {
     const p = DBG.p[pi];
     return `<fieldset class="dbgside"><legend>${pi === 0 ? 'あなた（下）' : 'CPU（上）'}</legend>
-      <label class="dbgrow">ライフ <input type="number" min="1" max="15" id="dbgLife${pi}" value="${p.life}"></label>
+      <label class="dbgrow">ライフ <input type="number" min="1" max="30" id="dbgLife${pi}" value="${p.life}"></label>
       ${[0, 1, 2].map(i => { const [id, bat] = p.field[i] || ['', 0]; return `<div class="dbgrow"><span>ロボ${i + 1}</span>
         <select id="dbgY${pi}_${i}">${yOpt(id)}</select>
         <select id="dbgH${pi}_${i}">${batOpt(bat, id ? CARDS[id].max : 0)}</select></div>`; }).join('')}
       <label class="dbgrow"><span>伏せ札</span><select id="dbgS${pi}">${sOpt(p.set)}</select></label>
+      ${pi === 0 ? [0, 1, 2].map(i => `<label class="dbgrow"><span>手札${i + 1}</span><select id="dbgHand${i}">${hOpt((p.hand || [])[i])}</select></label>`).join('') : ''}
     </fieldset>`;
   };
   $('#dbgEditor').innerHTML = `${side(1)}${side(0)}
@@ -1401,6 +1511,7 @@ function dbgReadEditor() {
     DBG.p[pi].field = [0, 1, 2].map(i => [$(`#dbgY${pi}_${i}`).value, +$(`#dbgH${pi}_${i}`).value]);
     DBG.p[pi].set = $(`#dbgS${pi}`).value;
   }
+  DBG.p[0].hand = [0, 1, 2].map(i => $(`#dbgHand${i}`).value).filter(Boolean);
   DBG.attacker = $('#dbgAtk').value; DBG.speed = +$('#dbgSpd').value; DBG.restore = $('#dbgRestore').checked;
   saveDbg();
 }
@@ -1598,7 +1709,7 @@ function renderRules() {
   // デッキに入らないカード（後攻が持つワンモア、コブンロボから出るアニキロボ）
   const ts = ['onemore', 'aniki'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const rs = E.RETIRED_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
-  const row = c => { const d = CARDS[c.id]; return `<div class="dex">${cardHTML(c, { size: 'hand' })}<div><h4>${d.name}${d.kind === 'robo' ? `<span class="dexmeta">攻撃力${shownAtk(c)}${d.enterBat ? '（電池込み）' : ''}・電池上限${d.max}・${EFF_LABEL[d.eff]}</span>` : '<span class="dexmeta">アクション</span>'}</h4><p>${cardText(d)}</p></div></div>`; };
+  const row = c => { const d = CARDS[c.id]; return `<div class="dex">${cardHTML(c, { size: 'hand' })}<div><h4>${d.name}${d.rare ? ' ★' : ''}${d.kind === 'robo' ? `<span class="dexmeta">攻撃力${shownAtk(c)}${d.enterBat ? '（電池込み）' : ''}・電池上限${d.max}・${EFF_LABEL[d.eff]}</span>` : '<span class="dexmeta">アクション</span>'}</h4><p>${cardText(d)}</p></div></div>`; };
   // ロボは効果の種類ごとにまとめ、グループ内は攻撃力→名前の順。アクションは名前順
   const ROBO_GROUPS = [['const', '【常時】場にいる間ずっと働く'], ['powered', '【通電中】電池が入っている間だけ働く'], ['release', '【放電】電池を1本抜いて使う'], ['none', '効果なし']];
   const byAtk = (a, b) => (CARDS[a.id].kind === 'robo' ? shownAtk(a) - shownAtk(b) : 0) || CARDS[a.id].name.localeCompare(CARDS[b.id].name, 'ja');
@@ -1612,7 +1723,13 @@ function renderRules() {
   $('#dexSpell').innerHTML = byName(ss);
   $('#dexToken').innerHTML = ts.map(row).join('');
   const rr = rs.filter(c => CARDS[c.id].kind === 'robo'), rsp = rs.filter(c => CARDS[c.id].kind !== 'robo');
-  $('#dexRetired').innerHTML = (grouped(rr, roboKey, ROBO_GROUPS) + (rsp.length ? '<h3 class="dexgrp">アクション</h3>' + byName(rsp) : '')) || '<p class="sub">まだありません</p>';
+  $('#dexRetired').innerHTML = grouped(rr, roboKey, ROBO_GROUPS) + (rsp.length ? '<h3 class="dexgrp">アクション</h3>' + byName(rsp) : '');
+  $('#dexRetiredBox').hidden = !rs.length;
+  // ローグライト用：テーマごと（ロボは攻撃力順、アクションは名前順）、最後に基本カード
+  const sortT = list => list.slice().sort((a, b) => (CARDS[a.id].kind === CARDS[b.id].kind ? 0 : CARDS[a.id].kind === 'robo' ? -1 : 1) || byAtk(a, b));
+  const asCards = ids => ids.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  $('#dexRogue').innerHTML = Object.keys(E.THEMES).map(k => `<h3 class="dexgrp">${E.THEMES[k].name}</h3>` + sortT(asCards(E.THEMES[k].ids)).map(row).join('')).join('')
+    + `<h3 class="dexgrp">基本カード（最初のデッキ）</h3>` + sortT(asCards(E.BASIC_IDS)).map(row).join('');
 }
 
 // ---------- 初期化 ----------
