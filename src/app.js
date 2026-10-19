@@ -295,6 +295,54 @@ function fxSetDestroy(pi, snap, t) {
   const r = snap['set' + pi]; if (!r) return;
   at(t, () => { const c = center(r); particles(c, 12, 'ember', 30, 30); killLater(addFx('boom', c.x - 30, c.y - 30, 60, 60), 500); });
 }
+// 攻撃宣言：照準を出し、攻撃するロボを光らせる（ぶつかるのは戦闘の解決時）
+function fxAim(att, tgt, t) {
+  at(t, () => {
+    const el = document.querySelector(`#board .card[data-uid="${att}"]`);
+    let tr;
+    if (tgt === 'player') { const def = 1 - G.s.turn; const L = document.getElementById('life' + def); tr = L && L.getBoundingClientRect(); }
+    else { const te = document.querySelector(`#board .card[data-uid="${tgt}"]`); tr = te && te.getBoundingClientRect(); }
+    if (tr) killLater(addFx('reticle', tr.left - 4, tr.top - 4, tr.width + 8, tr.height + 8), 900);
+    if (el && el.animate && !reduceMotion) el.animate([{ transform: 'none' }, { transform: 'translateY(-6px) scale(1.06)' }, { transform: 'none' }], { duration: 480, easing: 'ease-out' });
+  });
+}
+// 戦闘：両者の攻撃力を大きく出して比べる
+function fxClash(e, snap, t) {
+  at(t, () => {
+    for (const [uid, v, win] of [[e.att, e.a, e.a >= e.d], [e.tgt, e.d, e.d >= e.a]]) {
+      const r = rectOf(uid, snap); if (!r) continue;
+      const f = document.createElement('span');
+      f.className = 'fxabs clashnum' + (win ? ' win' : ' lose');
+      f.textContent = v;
+      f.style.left = (r.left + r.width / 2) + 'px'; f.style.top = (r.top + r.height * 0.42) + 'px';
+      fxLayer().appendChild(f); killLater(f, 1100);
+    }
+  });
+}
+// 放電：カードに稲妻が走り「放電！」と出る
+function fxDischarge(uid, snap, t) {
+  at(t, () => {
+    const el = document.querySelector(`#board .card[data-uid="${uid}"]`);
+    const r = el ? el.getBoundingClientRect() : snap && snap.cards[uid]; if (!r) return;
+    if (el) { el.classList.remove('discharge'); void el.offsetWidth; el.classList.add('discharge'); setTimeout(() => el.classList.remove('discharge'), 700); }
+    const z = document.createElement('span'); z.className = 'fxabs zap';
+    z.style.left = r.left + 'px'; z.style.top = r.top + 'px'; z.style.width = r.width + 'px'; z.style.height = r.height + 'px';
+    z.innerHTML = '<svg viewBox="0 0 20 40" preserveAspectRatio="none"><path d="M12 0 L4 18 L10 18 L6 40 L17 14 L11 14 L15 0 Z"/></svg>';
+    fxLayer().appendChild(z); killLater(z, 650);
+    const l = document.createElement('span'); l.className = 'fxabs zaplabel'; l.textContent = '放電！';
+    l.style.left = (r.left + r.width / 2) + 'px'; l.style.top = (r.top - 6) + 'px';
+    fxLayer().appendChild(l); killLater(l, 900);
+    particles(center(r), 14, '', r.width * 0.8, 24);
+  });
+}
+// 中央のお知らせ枠（カードの絵つき）
+function fxNotice(id, text, t) {
+  at(t, () => {
+    const d = document.createElement('div'); d.className = 'notice';
+    d.innerHTML = `<img class="nimg" src="${ART[id] || ''}" alt=""><div><b>${CARDS[id].name}</b><span>${text}</span></div>`;
+    fxLayer().appendChild(d); killLater(d, 1500);
+  });
+}
 function fxLunge(att, tgt, t) {
   at(t, () => {
     const el = document.querySelector(`#board .card[data-uid="${att}"]`); if (!el) return;
@@ -387,7 +435,7 @@ function floatDamage(pi, n, t) {
 }
 // ログを読んで演出を予約。全体の所要時間(ms)を返す
 function playFx(events, snap) {
-  if (reduceMotion) { for (const e of events) { if (e.t === 'damage') floatDamage(e.pi, e.n, 0); if ((e.t === 'win' || e.t === 'tie') && G.mode === 'game') at(300, gameOver); } return 150; }
+  if (reduceMotion) { for (const e of events) { if (e.t === 'damage') floatDamage(e.pi, e.n, 0); if (e.t === 'recycle') toast(`リサイクルロボの効果で${CARDS[e.id].name}が${e.pi === 0 ? '' : 'CPUの'}手札に戻った`); if ((e.t === 'win' || e.t === 'tie') && G.mode === 'game') at(300, gameOver); } return 150; }
   let t = 0, end = 0, skipSpell = false;
   for (const e of events) {
     switch (e.t) {
@@ -396,16 +444,17 @@ function playFx(events, snap) {
       case 'deploy': fxSummon(e.uid, t); end = Math.max(end, t + 750); t += 250; break;
       case 'reveal': fxCutin(e.id, e.pi, 'reveal', t); t += 950; skipSpell = true; break;
       case 'spell': if (skipSpell) { skipSpell = false; break; } fxCutin(e.id, e.pi, 'spell', t); t += 950; break;
-      case 'attack': fxLunge(e.att, e.tgt, t); t += 450; break;
-      case 'battle': { const r = rectOf(e.tgt, snap); if (r) fxImpact(r, t); t += 420; break; }
-      case 'direct': { const r = snap['life' + e.pi] || (document.getElementById('life' + e.pi) || {}).getBoundingClientRect?.(); if (r) fxImpact(r, t, true); t += 420; break; }
+      case 'attack': fxAim(e.att, e.tgt, t); t += 500; break;
+      case 'battle': { fxClash(e, snap, t); fxLunge(e.att, e.tgt, t + 350); const r = rectOf(e.tgt, snap); if (r) fxImpact(r, t + 650); t += 1000; break; }
+      case 'direct': { fxLunge(e.att, 'player', t); const r = snap['life' + e.pi] || (document.getElementById('life' + e.pi) || {}).getBoundingClientRect?.(); if (r) fxImpact(r, t + 300, true); t += 700; break; }
       case 'destroy': fxDestroy(e.uid, snap, t); end = Math.max(end, t + 800); t += 150; break;
       case 'short': { const r = rectOf(e.uid, snap); fxVolt(r, null, t); fxBat(e.uid, e.n || 1, false, t, snap); if (r) at(t, () => particles(center(r), 12, '', r.width * 0.6, 20)); end = Math.max(end, t + 900); t += 300; break; }
       case 'setdestroy': fxSetDestroy(e.pi, snap, t); t += 300; break;
       case 'damage': floatDamage(e.pi, e.n, t); end = Math.max(end, t + 600); break;
       case 'place': case 'batfly': case 'enterbat': case 'solar': fxVolt(null, rectOf(e.uid, snap), t); fxBat(e.uid, 1, true, t + 450, snap); end = Math.max(end, t + 1350); t += 200; break;
       case 'batmove': fxBat(e.from, 1, false, t, snap); fxVolt(rectOf(e.from, snap), rectOf(e.to, snap), t); fxBat(e.to, 1, true, t + 450, snap); end = Math.max(end, t + 1350); t += 250; break;
-      case 'release': { const r = rectOf(e.uid, snap); fxVolt(r, null, t); fxBat(e.uid, 1, false, t, snap); if (r) at(t, () => particles(center(r), 10, '', r.width * 0.6, 20)); end = Math.max(end, t + 900); t += 300; break; }
+      case 'release': { fxDischarge(e.uid, snap, t); const r = rectOf(e.uid, snap); fxVolt(r, null, t + 150); fxBat(e.uid, 1, false, t + 150, snap); end = Math.max(end, t + 1000); t += 650; break; }
+      case 'recycle': fxNotice(e.id, e.pi === 0 ? 'リサイクルロボの効果で手札に戻った' : 'リサイクルロボの効果でCPUの手札に戻った', t); t += 1500; break;
       case 'rocket': { const r = rectOf(e.uid, snap); if (r) { fxImpact(r, t); at(t, () => particles(center(r), 18, '', r.width * 0.9, 30)); } end = Math.max(end, t + 600); t += 450; break; }
       case 'daruma': { const r = rectOf(e.uid, snap); if (r) at(t, () => particles(center(r), 14, 'frost', r.width * 0.7, 10)); fxBat(e.uid, 1, false, t, snap); end = Math.max(end, t + 900); t += 250; break; }
       case 'swap': t += 200; break;
@@ -433,6 +482,17 @@ function refresh(snap) {
   return ms;
 }
 // fn で状態を変え、演出が終わるまで待つ
+// 伏せ札の応答がある攻撃を「伏せ発動 → 電池などの変化 → 戦闘 → ダメージ」の順に見せる。
+// 伏せ札の処理後にいったん画面を更新し、変化後の攻撃力を見せてから戦闘を解決する
+async function resolveAttackStaged(r) {
+  const s = G.s, my = G.id;
+  if (!r) return step(() => E.resolveBattle(s));
+  await step(() => E.respondReveal(s, r));
+  if (!G || G.id !== my) return;
+  await sleep(reduceMotion ? 100 : 450);
+  if (!G || G.id !== my) return;
+  return step(() => E.resolveBattle(s));
+}
 async function step(fn) {
   const snap = snapRects();
   fn();
@@ -590,7 +650,7 @@ async function finishMyAttack() {
     let r;
     if (G.mode === 'tut') r = G.tut.cpuRespond ? G.tut.cpuRespond(s) : null;
     else r = AI.chooseResponseFor(s, G.opt);
-    await step(() => E.respond(s, r));
+    await resolveAttackStaged(r);
   } else await step(() => E.resolveBattle(s));
   if (!G || G.id !== my) return;
   G.attackFx = null; G.busy = false;
@@ -625,7 +685,7 @@ async function runCpu() {
     if (s.pending) {
       await sleep(reduceMotion ? 100 : 200);
       if (!G || G.id !== my) return;
-      if (E.needsResponse(s)) { const r = await humanRespond(); await step(() => E.respond(s, r)); }
+      if (E.needsResponse(s)) { const r = await humanRespond(); await resolveAttackStaged(r); }
       else await step(() => E.resolveBattle(s));
       if (!G || G.id !== my) return;
       G.attackFx = null; render();

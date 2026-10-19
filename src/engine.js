@@ -551,13 +551,17 @@ function respondChoiceError(s, ch) {
   return checkSpell(s, di, c.id, ch || {});
 }
 // resp: null (発動しない) or {ch}
-function respond(s, resp) {
+// 伏せ札を表にして効果を処理するところまで（戦闘はまだ行わない）。画面で段階的に見せるために分けている
+function respondReveal(s, resp) {
   const di = 1 - s.turn, D = s.players[di];
   if (resp && D.set) {
     const c = D.set; D.set = null;
     log(s, `${pname(di)}はセットした${cname(c)}を表にした！`, { t: 'reveal', pi: di, id: c.id });
     resolveSpell(s, di, c, resp.ch);
   }
+}
+function respond(s, resp) {
+  respondReveal(s, resp);
   resolveBattle(s);
 }
 function resolveBattle(s) {
@@ -619,7 +623,7 @@ function invariant(s) {
 
 const api = { maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
   mulberry32, shuffle, newGame, clone, atkOf, immuneFrom, findRobo, allField, isOver,
-  checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondChoiceError, resolveBattle,
+  checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondReveal, respondChoiceError, resolveBattle,
   attackFull, endTurn, resolveEot, invariant, pname, cname };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;
 })(typeof window !== 'undefined' ? window : globalThis);
