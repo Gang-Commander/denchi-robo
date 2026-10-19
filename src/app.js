@@ -64,6 +64,10 @@ function cardHTML(c, opts) {
   if (opts.cls) cls.push(opts.cls);
   if (G && G.flash && G.flash.has(c.uid)) cls.push('flash');
   let style = '';
+  if (G && G.drawFx && G.drawFx[c.uid] && opts.zone === 'hand') {
+    const dl = G.drawFx[c.uid] - Date.now();
+    if (dl > -450 / SPD) { cls.push('drawing'); style = ` style="animation-delay:${dl * SPD}ms"`; } else delete G.drawFx[c.uid];
+  }
   if (G && G.deployFx && G.deployFx[c.uid] && opts.zone === 'field') {
     const dl = G.deployFx[c.uid] - Date.now();
     if (dl > -750 / SPD) { cls.push('deploying'); style = ` style="animation-delay:${dl * SPD}ms"`; } else delete G.deployFx[c.uid];
@@ -237,6 +241,7 @@ function snapRects() {
     const u = el.dataset.uid; m.cards[u] = el.getBoundingClientRect(); m.html[u] = el.outerHTML;
   });
   for (const pi of [0, 1]) { const l = document.getElementById('life' + pi); if (l) m['life' + pi] = l.getBoundingClientRect(); }
+  if (G && G.s) m.hand = G.s.players[0].hand.map(c => c.uid);   // 引いたカードを後から見せるため
   for (const pi of [0, 1]) { const el = document.querySelector(`#board [data-set="${pi}"]`); if (el) { m['set' + pi] = el.getBoundingClientRect(); m['sethtml' + pi] = el.outerHTML; } }
   return m;
 }
@@ -436,18 +441,32 @@ function floatDamage(pi, n, t) {
 // ログを読んで演出を予約。全体の所要時間(ms)を返す
 function playFx(events, snap) {
   if (reduceMotion) { for (const e of events) { if (e.t === 'damage') floatDamage(e.pi, e.n, 0); if (e.t === 'recycle') toast(`リサイクルロボの効果で${CARDS[e.id].name}が${e.pi === 0 ? '' : 'CPUの'}手札に戻った`); if ((e.t === 'win' || e.t === 'tie') && G.mode === 'game') at(300, gameOver); } return 150; }
-  let t = 0, end = 0, skipSpell = false;
+  let t = 0, end = 0, skipSpell = false, lastDestroyEnd = 0;
+  const drawn = new Set();
   for (const e of events) {
     switch (e.t) {
       case 'turn': if (e.pi === undefined) break; fxBanner('turn', e.pi, e.pi === 0 ? 'あなたのターン' : 'CPUのターン', `手番 ${(e.msg.match(/（(\d+)）/) || [])[1] || ''}`, e.pi === 0 ? 'battery' : 'bomb', t); t += 1000; break;
       case 'phase': fxBanner('battle', e.pi, 'バトル開始', e.pi === 0 ? 'あなたの攻撃' : 'CPUの攻撃', 'thunder', t); t += 1000; break;
-      case 'deploy': fxSummon(e.uid, t); end = Math.max(end, t + 750); t += 250; break;
+      case 'deploy': {
+        // 破壊で出てくるロボ（アニキロボ）は、元のロボが消え終わってから現れる
+        const st = e.token ? Math.max(t, lastDestroyEnd) : t;
+        fxSummon(e.uid, st); end = Math.max(end, st + 750); t = st + 250; break;
+      }
+      case 'crane': t = Math.max(t, lastDestroyEnd); break;   // 破壊し終わってから引く
+      case 'draw': {
+        // 引いたカードは、この時点で手札に現れる（それまでは隠しておく）
+        if (e.pi === 0 && snap && snap.hand) {
+          const fresh = G.s.players[0].hand.filter(c => !snap.hand.includes(c.uid) && !drawn.has(c.uid)).slice(-e.n);
+          for (const c of fresh) { drawn.add(c.uid); if (t > 0) G.drawFx[c.uid] = Date.now() + t / SPD; }
+        }
+        t += 200; break;
+      }
       case 'reveal': fxCutin(e.id, e.pi, 'reveal', t); t += 950; skipSpell = true; break;
       case 'spell': if (skipSpell) { skipSpell = false; break; } fxCutin(e.id, e.pi, 'spell', t); t += 950; break;
       case 'attack': fxAim(e.att, e.tgt, t); t += 500; break;
       case 'battle': { fxClash(e, snap, t); fxLunge(e.att, e.tgt, t + 350); const r = rectOf(e.tgt, snap); if (r) fxImpact(r, t + 650); t += 1000; break; }
       case 'direct': { fxLunge(e.att, 'player', t); const r = snap['life' + e.pi] || (document.getElementById('life' + e.pi) || {}).getBoundingClientRect?.(); if (r) fxImpact(r, t + 300, true); t += 700; break; }
-      case 'destroy': fxDestroy(e.uid, snap, t); end = Math.max(end, t + 800); t += 150; break;
+      case 'destroy': fxDestroy(e.uid, snap, t); end = Math.max(end, t + 800); lastDestroyEnd = Math.max(lastDestroyEnd, t + 800); t += 150; break;
       case 'short': { const r = rectOf(e.uid, snap); fxVolt(r, null, t); fxBat(e.uid, e.n || 1, false, t, snap); if (r) at(t, () => particles(center(r), 12, '', r.width * 0.6, 20)); end = Math.max(end, t + 900); t += 300; break; }
       case 'setdestroy': fxSetDestroy(e.pi, snap, t); t += 300; break;
       case 'damage': floatDamage(e.pi, e.n, t); end = Math.max(end, t + 600); break;
@@ -475,9 +494,16 @@ function refresh(snap) {
   for (const e of ev) if (e.uid !== undefined && e.t !== 'deploy') G.flash.add(e.uid);
   const holes = [];
   if (snap) for (const e of ev) if (e.t === 'destroy' && snap.idx[e.uid]) holes.push(snap.idx[e.uid]);
+  // 同じ場所に現れるロボ（コブン→アニキ）がいれば、その場所は空けておかなくてよい
+  for (const e of ev) if (e.t === 'deploy' && e.token) {
+    const i = G.s.players[e.pi].field.findIndex(y => y.uid === e.uid);
+    const k = holes.findIndex(h => h.pi === e.pi && h.i === i); if (k >= 0) holes.splice(k, 1);
+  }
   if (holes.length) G.holes = (G.holes || []).concat(holes);
   render();
   const ms = snap ? playFx(ev, snap) : 0;
+  // 演出で「後から現れる」カード（起動・引いたカード）の遅延を反映するため、もう一度描く
+  if (snap && ev.some(e => e.t === 'deploy' || e.t === 'draw')) render();
   if (holes.length) { const gid = G.id; setTimeout(() => { if (!G || G.id !== gid) return; G.holes = []; render(); }, (ms + 150) / SPD); }
   return ms;
 }
@@ -1181,7 +1207,7 @@ function startGame(diff, firstPref) {
   const first = firstPref === 'first' ? 0 : firstPref === 'second' ? 1 : (Math.random() < 0.5 ? 0 : 1);
   const s = E.newGame(rng, first);
   $('#dbgbar').hidden = true; SPD = 1;
-  G = { id: ++gameSeq, s, diff, opt: Object.assign({ rng: Math.random }, DIFF[diff].opt), mode: 'game', busy: false, sel: null, tut: null, logIdx: 0, flash: new Set(), deployFx: {}, first };
+  G = { id: ++gameSeq, s, diff, opt: Object.assign({ rng: Math.random }, DIFF[diff].opt), mode: 'game', busy: false, sel: null, tut: null, logIdx: 0, flash: new Set(), deployFx: {}, drawFx: {}, first };
   $('#modeLabel').textContent = `CPU：${DIFF[diff].label}`;
   $('#coach').hidden = true;
   show('game');
@@ -1383,7 +1409,7 @@ function startDebug() {
   dbgReadEditor();
   SPD = DBG.speed;
   const s = dbgState(1, 0);
-  G = { id: ++gameSeq, s, diff: null, opt: { w: AI.BASE_W, rng: Math.random }, mode: 'debug', busy: false, sel: null, tut: null, logIdx: 0, flash: new Set(), deployFx: {},
+  G = { id: ++gameSeq, s, diff: null, opt: { w: AI.BASE_W, rng: Math.random }, mode: 'debug', busy: false, sel: null, tut: null, logIdx: 0, flash: new Set(), deployFx: {}, drawFx: {},
     dbg: { loop: 0, cpuTurn: false } };
   $('#modeLabel').textContent = 'デバッグ（戦闘テスト）';
   $('#coach').hidden = true; $('#dbgbar').hidden = false;
@@ -1399,7 +1425,7 @@ function dbgSyncBar() {
 function dbgReset(owner, note) {
   const old = G.s;
   G.s = dbgState(old.turnNo + 1, owner);
-  G.logIdx = 0; G.sel = null; G.attackFx = null; G.flash = new Set(); G.deployFx = {};
+  G.logIdx = 0; G.sel = null; G.attackFx = null; G.flash = new Set(); G.deployFx = {}; G.drawFx = {};
   if (note) toast(note);
 }
 // 自分の手番の頭で呼ぶ：戻す・誰が攻撃するかを決める
@@ -1494,7 +1520,7 @@ function startLesson(i) {
   const L = LESSONS[i];
   const s = mkState(L.setup);
   $('#dbgbar').hidden = true; SPD = 1;
-  G = { id: ++gameSeq, s, diff: null, opt: {}, mode: 'tut', busy: false, sel: null, logIdx: 0, flash: new Set(), deployFx: {},
+  G = { id: ++gameSeq, s, diff: null, opt: {}, mode: 'tut', busy: false, sel: null, logIdx: 0, flash: new Set(), deployFx: {}, drawFx: {},
     tut: { i, step: 0, hl: null, cpuScript: null } };
   $('#modeLabel').textContent = 'チュートリアル ' + L.title;
   show('game'); refresh();

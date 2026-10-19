@@ -328,6 +328,8 @@ button.cnt { cursor: pointer; text-decoration: underline dotted var(--night-3); 
 @media (prefers-reduced-motion: reduce) { .batfloat, .card.bat-in, .card.bat-out { animation: none; } }
 /* 起動：上から舞い降りて青白く灯る */
 .card.deploying { animation: deployIn .75s cubic-bezier(.2,.8,.25,1) both; }
+.card.drawing { animation: drawIn .45s ease-out both; }
+@keyframes drawIn { 0% { opacity: 0; transform: translateY(24px) scale(.9); } 100% { opacity: 1; transform: none; } }
 @keyframes deployIn {
   0% { opacity: 0; transform: translateY(-26px) scale(1.3); filter: brightness(3) saturate(0); }
   55% { opacity: 1; transform: translateY(2px) scale(.97); filter: brightness(1.8); }
