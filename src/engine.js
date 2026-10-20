@@ -22,7 +22,7 @@ const CARDS = {
   limiter: { id:'limiter', name:'リミッター解除', kind:'spell', text:'場のロボを1体選ぶ。この手番の間、そのロボの攻撃力を@LIM@にする。手番終了時に、そのロボは破壊される。' },
   ebattery:    { id:'ebattery',    name:'非常用電池', kind:'spell', text:'場のロボを選び、電池を2本まで好きなように入れる。' },
   manual: { id:'manual', name:'整備マニュアル', kind:'spell', text:'山札を2枚引く。そのあと、自分の場のロボを1体選び、電池を1本入れる。' },
-  short:    { id:'short',    name:'ショート',   kind:'spell', kw:['batBreak'], text:'電池が入ったロボを1体選び、その電池をすべて破壊する。',
+  short:    { id:'short',    name:'ショート',   kind:'spell', text:'電池が入ったロボを1体選び、その電池をすべて破壊する。',
               pick:{ side:'any', cond:'bat', prompt:'電池を破壊するロボを選ぶ', none:'電池が入ったロボがいません' } },
   repair:    { id:'repair',    name:'リペアキット', kind:'spell', text:'自分か相手のスクラップのロボを1体選び、自分の場で起動する。' },
   swap:    { id:'swap',    name:'電池交換',   kind:'spell', text:'場のロボを2体選び、1体目の電池を1本、2体目に移す。' },
@@ -51,7 +51,7 @@ Object.assign(CARDS, {
   drill:   { id:'drill',   name:'ドリルロボ',     kind:'robo', atk:3, max:2, eff:'powered', text:'【通電中】このロボが攻撃した時、戦闘の前に相手のロボの電池を1本外す。' },
   hammer:  { id:'hammer',  name:'ハンマー',       kind:'spell', text:'攻撃力4以下のロボを1体選び、破壊する。',
              pick:{ side:'any', maxAtk:4, prompt:'破壊するロボを選ぶ（攻撃力4以下）', none:'攻撃力4以下のロボがいません' } },
-  emp:     { id:'emp',     name:'EMP',            kind:'spell', kw:['batBreak'], text:'相手の場のロボすべてから、電池を1本ずつ破壊する（選ばない効果）。' },
+  emp:     { id:'emp',     name:'EMP',            kind:'spell', text:'相手の場のロボすべてから、電池を1本ずつ破壊する（選ばない効果）。' },
   // スクラップ
   reboot:  { id:'reboot',  name:'リブートロボ',   kind:'robo', atk:3, max:2, eff:'const', text:'【常時】このロボが破壊された時、スクラップではなく持ち主の手札に戻る。' },
   parts:   { id:'parts',   name:'部品取り',       kind:'spell', salvage:true, text:'自分のロボを1体選んで破壊し、山札を3枚引く。破壊したロボの電池は、自分の場のロボに移す（攻撃力の高い順）。',
@@ -107,10 +107,13 @@ const BASIC_IDS = ['normal','mini','garakuta','drycell','static'];
 for (const k in THEMES) for (const id of THEMES[k].ids) CARDS[id].theme = k;
 for (const id of BASIC_IDS) CARDS[id].theme = 'basic';
 // キーワード
+// ルール用語：本文の中で使う言葉。カードの表面には見出しを出さず、詳細画面で本文に含まれていれば説明を添える
+const TERMS = [
+  { word:'電池を破壊', match:/電池を[^。]{0,6}破壊/, help:'破壊された電池1本につき、そのロボに1ダメージ（手番の終わりまで残り、そのぶん攻撃力が下がる）。「電池を外す」はダメージなし。' },
+];
 const KEYWORDS = {
   enterBat: { name:'付属電池', help:'このロボは電池を1本入れた状態で場に出る（リペアキットでの起動も含む）。' },
   full:     { name:'満充電',   help:'電池が上限まで入っている間だけ働く効果。' },
-  batBreak: { name:'電池を破壊', help:'電池を破壊されたロボは、破壊された電池1本につき1ダメージを受ける（ダメージは手番の終わりまで残る）。「外す」はダメージなし。' },
 };
 CARDS.limiter.text = CARDS.limiter.text.replace('@LIM@', LIM_BONUS === 'x2' ? '2倍' : '+' + LIM_BONUS).replace('+' + LIM_BONUS + 'にする', '+' + LIM_BONUS + 'する');
 const LIM_LABEL = LIM_BONUS === 'x2' ? '攻撃力2倍' : '攻撃力+' + LIM_BONUS;
@@ -1001,7 +1004,7 @@ function invariant(s) {
   for (const p of s.players) { if (p.field.length > 3) throw new Error('field>3'); for (const y of p.field) if (y.bat > CARDS[y.id].max) throw new Error('bat>max'); }
 }
 
-const api = { junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
+const api = { TERMS, junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
   mulberry32, shuffle, newGame, clone, atkOf, rawAtk, lethal, roboDamage, sweepDeaths, immuneFrom, findRobo, allField, isOver,
   checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondReveal, respondChoiceError, resolveBattle,
   attackFull, endTurn, resolveEot, invariant, pname, cname };

@@ -55,6 +55,11 @@ function batPips(y) {
 const KEYWORDS = E.KEYWORDS;
 function kwList(d) { return (d.enterBat ? [KEYWORDS.enterBat] : []).concat((d.kw || []).map(k => KEYWORDS[k])); }
 function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b><br>` : '') + d.text; }
+// 本文に出てくるルール用語の説明（詳細画面用）
+function termHelp(d) {
+  const hit = E.TERMS.filter(t => t.match.test(d.text));
+  return hit.map(t => `<p class="kwhelp"><b>${t.word}</b>：${t.help}</p>`).join('');
+}
 function cardTextPlain(d) { const k = kwList(d); return (k.length ? k.map(x => x.name).join('・') + '／' : '') + d.text; }
 function shownAtk(c) { const d = CARDS[c.id]; return E.atkOf({ id: c.id, bat: d.enterBat || 0 }); }
 function cardHTML(c, opts) {
@@ -885,7 +890,7 @@ function cardInfoHTML(c, zone) {
   } else meta = `<p class="effhelp">手札から発動（行動1回）するか、セットして相手の攻撃宣言時に発動できます。</p>`;
   const idle = zone === 'field' && d.kind === 'robo' && (d.eff === 'powered' || d.eff === 'release') && c.bat <= 0;
   const idleNote = idle ? `<p class="idlenote">${d.eff === 'powered' ? '電池が入っていないので、この効果は止まっています（OFF）。' : '電池が入っていないので、放電効果は使えません。'}</p>` : '';
-  return `<div class="info">${cardHTML(c, { size: 'big', zone })}<div class="itext"><h3>${d.name}</h3>${meta}<p class="etext${idle ? ' idle' : ''}">${cardText(d)}</p>${kwList(d).map(k => `<p class="kwhelp"><b>${k.name}</b>：${k.help}</p>`).join('')}${idleNote}</div></div>`;
+  return `<div class="info">${cardHTML(c, { size: 'big', zone })}<div class="itext"><h3>${d.name}</h3>${meta}<p class="etext${idle ? ' idle' : ''}">${cardText(d)}</p>${kwList(d).map(k => `<p class="kwhelp"><b>${k.name}</b>：${k.help}</p>`).join('')}${termHelp(d)}${idleNote}</div></div>`;
 }
 function openCard(uid, zoneHint) {
   const s = G.s;
