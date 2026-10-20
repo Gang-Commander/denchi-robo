@@ -84,7 +84,7 @@ const err = (s, a) => E.checkAction(s, a);
   ok(s.players[0].life === 7 && s.players[0].deck.length + s.players[0].hand.length === 10, 'newGame custom deck'); E.invariant(s); }
 { const s = board([{ id: 'gigant', bat: 1 }], [{ id: 'normal', bat: 0 }]);
   E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(F(s, 0, 0).bat === 0 && s.players[1].field.length === 0, 'gigant spends battery after attack'); }
-{ const s = board([{ id: 'gigant', bat: 1 }], []); E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(F(s, 0, 0).bat === 0 && s.players[1].life === 8, 'gigant direct 7 then battery off'); }
+{ const s = board([{ id: 'gigant', bat: 1 }], []); E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(F(s, 0, 0).bat === 0 && s.players[1].life === 9, 'gigant direct 6 then battery off'); }
 { const s = board([{ id: 'normal', bat: 0 }, { id: 'heat', bat: 0 }], [{ id: 'barrier', bat: 1 }, { id: 'turbo', bat: 1 }]); const u = hand(s, 0, 'press');
   play(s, u); ok(s.players[0].field.map(y => y.id).join() === 'heat,press' && s.players[1].field.map(y => y.id).join() === 'turbo', 'press kills lowest each side (barrier too)'); }
 { const s = board([], [{ id: 'turbo', bat: 2 }, { id: 'heat', bat: 0 }]); const u = hand(s, 0, 'press'); play(s, u);

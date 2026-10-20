@@ -949,7 +949,7 @@ Object.assign(CARDS, {
   charge:  { id:'charge',  name:'チャージロボ',   kind:'robo', atk:2, max:2, eff:'const', kw:['full'], text:'【満充電】このロボの攻撃力+2。' },
   dynamo:  { id:'dynamo',  name:'ダイナモロボ',   kind:'robo', atk:2, max:2, eff:'release', text:'【放電】自分の別のロボを1体選び、電池を2本入れる。',
              pick:{ side:'own', cond:'room', notSelf:true, prompt:'電池を2本入れる自分のロボを選ぶ', none:'電池を入れられる自分の別のロボがいません' } },
-  gigant:  { id:'gigant',  name:'ギガントロボ',   kind:'robo', atk:6, max:1, eff:'const', rare:true, afterAttackBat:1, text:'【常時】電池が入っていない間、このロボは攻撃できない。このロボが攻撃したら、戦闘のあとで電池を1本外す。' },
+  gigant:  { id:'gigant',  name:'ギガントロボ',   kind:'robo', atk:5, max:1, eff:'const', rare:true, afterAttackBat:1, text:'【常時】電池が入っていない間、このロボは攻撃できない。このロボが攻撃したら、戦闘のあとで電池を1本外す。' },
   // 解体
   drill:   { id:'drill',   name:'ドリルロボ',     kind:'robo', atk:3, max:2, eff:'powered', text:'【通電中】このロボが攻撃した時、戦闘の前に相手のロボの電池を1本外す。' },
   hammer:  { id:'hammer',  name:'ハンマー',       kind:'spell', text:'攻撃力3以下のロボを1体選び、破壊する。',
@@ -960,7 +960,7 @@ Object.assign(CARDS, {
              pick:{ side:'own', prompt:'部品を取る（破壊する）自分のロボを選ぶ', none:'自分の場にロボがいません' } },
   junk:    { id:'junk',    name:'ジャンク回収',   kind:'spell', text:'自分のスクラップから、ロボを1枚とアクションを1枚選び、手札に戻す（ワンモアは除く）。' },
   gattai:  { id:'gattai',  name:'ガッタイロボ',   kind:'robo', atk:3, max:3, eff:'const', rare:true, text:'【常時】このロボを起動した時、自分のスクラップにあるロボの数だけ、このロボに電池を入れる。' },
-  press:   { id:'press',   name:'プレスロボ',     kind:'robo', atk:5, max:1, eff:'const', text:'【常時】このロボを起動した時、お互いに、自分の場で攻撃力が一番低いロボを1体破壊する（このロボも含む。同じなら左のロボ。選ばない効果）。' },
+  press:   { id:'press',   name:'プレスロボ',     kind:'robo', atk:4, max:1, eff:'const', text:'【常時】このロボを起動した時、お互いに、自分の場で攻撃力が一番低いロボを1体破壊する（このロボも含む。同じなら左のロボ。選ばない効果）。' },
   proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'normal', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を1枚出す（新しく出たカードは、そのあと普通のカードとして扱う）。' },
   // 防衛
   wall:    { id:'wall',    name:'ウォールロボ',   kind:'robo', atk:5, max:0, eff:'const', text:'【常時】このロボは攻撃できない。' },
