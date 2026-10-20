@@ -150,12 +150,6 @@ function spellChoices(s, pi, id) {
       return P.deck.length ? [{}] : [];
     }
     case 'onemore': return [{}];
-    case 'short': {
-      const c = E.allField(s).filter(y => y.bat > 0 && !E.immuneFrom(y, s, pi)).map(y => y.uid);
-      const res = [];
-      for (let i = 0; i < c.length; i++) { res.push({ targets: [c[i]] }); for (let j = i + 1; j < c.length; j++) res.push({ targets: [c[i], c[j]] }); }
-      return res;
-    }
     case 'repair': {
       if (P.field.length >= 3) return [];
       const res = [], seen = {};

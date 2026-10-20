@@ -667,11 +667,6 @@ function gatherSpell(id, casterPi, cb, cancel) {
       return startSel({ prompt: '電池を入れるロボを選ぶ（同じロボを何度でも）', valid: new Set(ok.map(y => y.uid)), max: n, min: 1, repeat: true,
         cap: u => { const y = E.findRobo(s, u).y; return CARDS[y.id].max - y.bat; }, onDone: p => cb({ targets: p }), onCancel: cancel });
     }
-    case 'short': {
-      const ok = all.filter(y => y.bat > 0 && !E.immuneFrom(y, s, casterPi));
-      if (!ok.length) { toast('電池が入ったロボがいません'); return cancel && cancel(); }
-      return startSel({ prompt: '電池を外すロボを選ぶ（2体まで・外した本数だけダメージ）', valid: new Set(ok.map(y => y.uid)), max: Math.min(2, ok.length), min: 1, onDone: p => cb({ targets: p }), onCancel: cancel });
-    }
     case 'thunder': {
       const c = E.thunderCandidates(s, casterPi);
       if (!c.length) { toast('破壊できるロボがいません（相手のバリアロボは効果を受けません）'); return cancel && cancel(); }

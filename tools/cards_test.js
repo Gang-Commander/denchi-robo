@@ -100,8 +100,13 @@ const err = (s, a) => E.checkAction(s, a);
 { const s = board([{ id: 'turbo', bat: 2 }, { id: 'normal', bat: 0 }], []); deck(s, 0, ['normal', 'normal', 'normal']); const u = hand(s, 0, 'parts');
   play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).id === 'normal' && F(s, 0, 0).bat === 2, 'parts salvages batteries'); }
 { const s = board([], [{ id: 'turbo', bat: 3 }, { id: 'normal', bat: 1 }]); const u = hand(s, 0, 'short');
-  play(s, u, { targets: [F(s, 1, 0).uid, F(s, 1, 1).uid] });
-  ok(s.players[1].field.length === 1 && F(s, 1, 0).id === 'normal' && F(s, 1, 0).dmg === 1 && E.atkOf(F(s, 1, 0)) === 1, 'short: turbo(3) dies, normal(1) takes 1'); }
+  ok(!!err(s, { t: 'play', uid: u, ch: { targets: [F(s, 1, 0).uid] } }), 'short: one target via ch.target');
+  play(s, u, { target: F(s, 1, 0).uid });
+  ok(s.players[1].field.length === 1 && F(s, 1, 0).id === 'normal' && F(s, 1, 0).bat === 1, 'short: turbo(3 batteries broken) dies, other untouched'); }
+{ const s = board([], [{ id: 'normal', bat: 1 }]); const u = hand(s, 0, 'short'); play(s, u, { target: F(s, 1, 0).uid });
+  ok(F(s, 1, 0).dmg === 1 && E.atkOf(F(s, 1, 0)) === 1, 'short: normal 3 -> bat broken -> 2 -1dmg = 1'); }
+{ const s = board([], [{ id: 'mini', bat: 1 }, { id: 'turbo', bat: 2 }]); const u = hand(s, 0, 'emp'); play(s, u, {});
+  ok(s.players[1].field.map(y => y.id).join() === 'turbo' && F(s, 1, 0).bat === 1 && F(s, 1, 0).dmg === 1, 'emp: mini(1) dies, turbo takes 1'); }
 { const s = board([], [{ id: 'barrier', bat: 1 }, { id: 'turbo', bat: 2 }, { id: 'heat', bat: 0 }]); const u = hand(s, 0, 'emp'); play(s, u, {});
   ok(F(s, 1, 0).bat === 0 && F(s, 1, 1).bat === 1 && F(s, 1, 2).bat === 0, 'emp: -1 each, barrier too'); }
 { const s = board([], [{ id: 'heat', bat: 0 }, { id: 'turbo', bat: 1 }]); const u = hand(s, 0, 'hammer');

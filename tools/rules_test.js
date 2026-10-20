@@ -41,7 +41,7 @@ if (require.main !== module) return;
   E.roboDamage(s, F(s, 1, 0).uid, 3);
   ok(s.players[1].field.length === 1, '6 with 3dmg survives');
   s.players[0].hand.push({ uid: 1, id: 'short', owner: 0, bat: 0 });
-  E.apply(s, { t: 'play', uid: 1, ch: { targets: [F(s, 1, 0).uid] } });
+  E.apply(s, { t: 'play', uid: 1, ch: { target: F(s, 1, 0).uid } });
   ok(s.players[1].field.length === 0, 'short drops atk to 2 <= 3dmg -> destroyed');
 }
 { // 手番の終わりにダメージは消える。消えたことで壊れることはない
