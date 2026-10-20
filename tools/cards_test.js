@@ -87,9 +87,12 @@ const err = (s, a) => E.checkAction(s, a);
 { const s = board([{ id: 'gigant', bat: 1 }], []); E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(F(s, 0, 0).bat === 0 && s.players[1].life === 8, 'gigant direct 7 then battery off'); }
 { const s = board([{ id: 'normal', bat: 0 }, { id: 'heat', bat: 0 }], [{ id: 'barrier', bat: 1 }, { id: 'turbo', bat: 1 }]); const u = hand(s, 0, 'press');
   play(s, u); ok(s.players[0].field.map(y => y.id).join() === 'heat,press' && s.players[1].field.map(y => y.id).join() === 'turbo', 'press kills lowest each side (barrier too)'); }
-{ const s = board([], []); const u = hand(s, 0, 'press'); play(s, u); ok(s.players[0].field.length === 1, 'press alone survives'); }
+{ const s = board([], [{ id: 'turbo', bat: 2 }, { id: 'heat', bat: 0 }]); const u = hand(s, 0, 'press'); play(s, u);
+  ok(s.players[0].field.length === 0 && s.players[1].field.map(y => y.id).join() === 'turbo', 'press alone destroys itself = removal'); }
+{ const s = board([{ id: 'turbo', bat: 3 }, { id: 'heat', bat: 2 }], []); const u = hand(s, 0, 'press'); play(s, u);
+  ok(s.players[0].field.map(y => y.id).join() === 'turbo,heat', 'press is the weakest -> destroys itself'); }
 { const s = board([{ id: 'proto', bat: 0 }], [{ id: 'heat', bat: 0 }]);
-  E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(F(s, 0, 0) && F(s, 0, 0).id === 'protoN' && E.atkOf(F(s, 0, 0)) === 2, 'proto spawns normal token'); }
+  E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(F(s, 0, 0) && F(s, 0, 0).id === 'normal' && !E.CARDS.normal.token, 'proto spawns a real normal robo'); }
 { const s = board([], []); s.players[0].scrap.push({ uid: 800, id: 'heat', owner: 0, bat: 0 }, { uid: 801, id: 'thunder', owner: 0, bat: 0 }); const u = hand(s, 0, 'junk');
   ok(!!err(s, { t: 'play', uid: u, ch: { uid: 800 } }), 'junk must also pick action when present');
   play(s, u, { uid: 800, sid: 801 }); ok(s.players[0].hand.map(c => c.id).sort().join() === 'heat,thunder', 'junk returns robo + action'); }

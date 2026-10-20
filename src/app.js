@@ -29,7 +29,6 @@ const ART = {};
     rows.forEach((row, y) => { for (let x = 0; x < 16; x++) { const ch = row[x]; if (ch !== '.') { g.fillStyle = SP.PAL[ch]; g.fillRect(x, y, 1, 1); } } });
     ART[k] = c.toDataURL();
   }
-  ART.protoN = ART.normal; // プロトロボから出るノーマルロボは、ノーマルロボと同じ絵
 })();
 // イラストのないカード（不採用案など）は文字で代用する
 const img = (id, cls) => ART[id] ? `<img class="${cls || 'art'}" src="${ART[id]}" alt="" draggable="false">` : `<span class="${cls || 'art'} noart">NO<br>IMAGE</span>`;
@@ -1852,7 +1851,7 @@ function renderRules() {
   const ys = E.ROBO_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const ss = E.SPELL_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   // デッキに入らないカード（後攻が持つワンモア、コブンロボから出るアニキロボ）
-  const ts = ['onemore', 'aniki', 'protoN'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  const ts = ['onemore', 'aniki'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const rs = E.RETIRED_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const row = c => { const d = CARDS[c.id]; return `<div class="dex">${cardHTML(c, { size: 'hand' })}<div><h4>${d.name}${d.rare ? ' ★' : ''}${d.kind === 'robo' ? `<span class="dexmeta">攻撃力${shownAtk(c)}${d.enterBat ? '（電池込み）' : ''}・電池上限${d.max}・${EFF_LABEL[d.eff]}</span>` : '<span class="dexmeta">アクション</span>'}</h4><p>${cardText(d)}</p></div></div>`; };
   // ロボは効果の種類ごとにまとめ、グループ内は攻撃力→名前の順。アクションは名前順

@@ -56,9 +56,8 @@ Object.assign(CARDS, {
              pick:{ side:'own', prompt:'部品を取る（破壊する）自分のロボを選ぶ', none:'自分の場にロボがいません' } },
   junk:    { id:'junk',    name:'ジャンク回収',   kind:'spell', text:'自分のスクラップから、ロボを1枚とアクションを1枚選び、手札に戻す（ワンモアは除く）。' },
   gattai:  { id:'gattai',  name:'ガッタイロボ',   kind:'robo', atk:3, max:3, eff:'const', rare:true, text:'【常時】このロボを起動した時、自分のスクラップにあるロボの数だけ、このロボに電池を入れる。' },
-  press:   { id:'press',   name:'プレスロボ',     kind:'robo', atk:5, max:1, eff:'const', text:'【常時】このロボを起動した時、お互いに、自分の場で攻撃力が一番低いロボを1体破壊する（このロボは除く。同じなら左のロボ。選ばない効果）。' },
-  proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'protoN', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を出す（デッキ外のカード）。' },
-  protoN:  { id:'protoN',  name:'ノーマルロボ',   kind:'robo', atk:2, max:3, eff:'const', token:true, onAttack:{ atk:1 }, text:'プロトロボが破壊された時に出るロボ（デッキには入らない）。【常時】このロボが攻撃した時、その戦闘の間、攻撃力+1。' },
+  press:   { id:'press',   name:'プレスロボ',     kind:'robo', atk:5, max:1, eff:'const', text:'【常時】このロボを起動した時、お互いに、自分の場で攻撃力が一番低いロボを1体破壊する（このロボも含む。同じなら左のロボ。選ばない効果）。' },
+  proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'normal', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を1枚出す（新しく出たカードは、そのあと普通のカードとして扱う）。' },
   // 防衛
   wall:    { id:'wall',    name:'ウォールロボ',   kind:'robo', atk:5, max:0, eff:'const', text:'【常時】このロボは攻撃できない。' },
   medic:   { id:'medic',   name:'メディックロボ', kind:'robo', atk:2, max:2, eff:'release', enterBat:1, text:'【放電】自分のライフを2回復する（上限を超えてよい）。' },
@@ -118,7 +117,7 @@ const SPELL_IDS = ['ebattery','manual','short','repair','swap','thunder','limite
 // 以前の不採用カード（ソーラー・ガード・ハッキング・ジャマー・ロケット）は、ローグライトのテーマに復活した
 const RETIRED_IDS = [];
 // 本体以外で出てくるカード（デッキ外）
-const TOKEN_IDS = ['aniki','protoN','onemore'];
+const TOKEN_IDS = ['aniki','onemore'];
 const DECK_IDS = ROBO_IDS.concat(SPELL_IDS);
 const LIFE_MAX = 15, FIELD_MAX = 3, ACTIONS = 2;
 const STALL_TURNS = 8; // 両者の山札切れ後、この手番数ライフが動かなければ「互いにダメージを与えられない」とみなし、引き分け
@@ -338,6 +337,7 @@ function destroy(s, uid, byBattle) {
   const sp = CARDS[y.id].spawn;
   if (sp && s.players[f.pi].field.length < FIELD_MAX) {
     const t = { uid: s.uidSeq++, id: sp, owner: y.owner, bat: 0 };
+    if (!CARDS[sp].token) s.cardTotal = (s.cardTotal || DECK_IDS.length * 2) + 1; // 新しく作られた普通のカード（プロトロボのノーマルロボ）
     s.players[f.pi].field.splice(f.i, 0, t);
     log(s, `${CARDS[sp].name}が現れた！`, { t: 'deploy', pi: f.pi, uid: t.uid, token: true });
   }
@@ -391,12 +391,13 @@ function gattaiTrigger(s, pi, uid) {
   const k = placeBat(s, me.y, n);
   if (k) log(s, `ガッタイロボはスクラップのロボ${n}体分、電池を${k}本入れた`, { t: 'batfly', uid });
 }
-// プレスロボの起動時効果：お互いに、自分の場で攻撃力が一番低いロボ（プレスロボ自身は除く・同じなら左）を破壊。
+// プレスロボの起動時効果：お互いに、自分の場で攻撃力が一番低いロボ（プレスロボ自身も含む・同じなら左）を破壊。
+// 自分の場に小さいロボがいればそれが壊れてプレスは残り、いなければプレス自身が壊れて「除去」になる。
 // 選ばない効果なので、バリアロボも対象になる。両方の対象を先に決めてから壊す（コブンから出たアニキは巻き込まない）
 function pressTrigger(s, pi, uid) {
   const victims = [];
   for (const q of [pi, 1 - pi]) {
-    const c = s.players[q].field.filter(y => y.uid !== uid);
+    const c = s.players[q].field;
     if (!c.length) continue;
     const mn = Math.min(...c.map(atkOf));
     victims.push(c.find(y => atkOf(y) === mn).uid);
