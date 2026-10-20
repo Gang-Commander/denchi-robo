@@ -718,6 +718,31 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 .kwhelp { margin: 6px 0 0; font-size: 12px; color: var(--dim); }
 .dex .kw { color: #9fd6ff; }
 
+/* ---- 勝ち抜きモード ---- */
+.runpanel h2 small { font-size: 12px; color: var(--gold); margin-left: 6px; }
+.runhead { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; margin: 6px 0 10px; }
+.runhead .rnd { font-family: var(--f-dot); font-size: 26px; color: var(--gold); }
+.runsteps { display: flex; gap: 6px; margin: 4px 0 12px; }
+.runsteps i { flex: 1; height: 10px; background: #2a2b52; border: 2px solid #1b1424; }
+.runsteps i.won { background: var(--volt); } .runsteps i.now { background: var(--gold); } .runsteps i.lost { background: #c8323f; }
+.themechip { display: inline-block; padding: 2px 8px; margin-right: 4px; border: 2px solid #1b1424; background: #3b3d78; color: #fff; font-weight: 700; font-size: 13px; }
+.th-charge { background: #2f7d4f; } .th-demolish { background: #8a5a1e; } .th-scrap { background: #5a5f6e; } .th-defense { background: #2c5f9e; } .th-rampage { background: #a33040; } .th-common { background: #6b5aa0; } .th-basic { background: #4a4a4a; }
+.runbox { background: rgba(20,21,46,.85); border: 2px solid #3a3b6e; padding: 10px 12px; margin: 10px 0; }
+.runbox h3 { margin: 0 0 6px; font-size: 16px; }
+.pickgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; --cw: min(28vw, 120px); }
+.pickgrid .pick { position: relative; display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.pickgrid .pick .card { width: 100%; }
+.pickgrid .pick p { margin: 0; font-size: 11.5px; line-height: 1.35; color: #d8d4ee; }
+.pickgrid .pick.on .card { outline: 4px solid var(--volt); outline-offset: 1px; }
+.pickgrid .pick.on::after { content: '✓'; position: absolute; top: -6px; left: -6px; width: 24px; height: 24px; display: grid; place-items: center; background: var(--volt); color: #13142a; font-weight: 900; border: 2px solid #1b1424; z-index: 3; }
+.decklist { display: flex; flex-wrap: wrap; gap: 6px; }
+.decklist .dk { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 2px solid #1b1424; background: #26284f; color: #ece4cf; font-size: 13px; cursor: pointer; }
+.decklist .dk.spell { background: #4a2a3a; }
+.decklist .dk b { color: var(--gold); }
+.decklist .dk.on { outline: 3px solid #ff6b5a; }
+.runover { text-align: center; }
+.runover h2 { font-family: var(--f-dot); font-size: 30px; margin: 8px 0; }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 
@@ -739,6 +764,11 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
         <select id="firstSel"><option value="random">じゃんけん（ランダム）</option><option value="first">先攻</option><option value="second">後攻</option></select>
       </label>
       <div id="titleStats"></div>
+    </div>
+    <div class="panel runpanel">
+      <h2>勝ち抜きモード <small>試作</small></h2>
+      <p class="sub">基本カード10枚とライフ7から始めて、5連勝をめざす。勝つたびにカードを3枚もらって1枚抜く。</p>
+      <div class="row"><button class="btn primary" id="runNew">新しく始める</button><button class="btn" id="runCont" hidden>続きから</button></div>
     </div>
     <div class="menu2">
       <button class="btn" id="tutBtn">チュートリアル</button>
@@ -774,6 +804,13 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
       <div class="pinfo mine" id="myInfo"></div>
       <div class="handwrap"><div id="hand"></div></div>
     </div>
+  </div>
+</section>
+
+<section class="screen" id="run" hidden>
+  <div class="wrap">
+    <div class="topbar"><span class="dbgtitle">勝ち抜きモード</span><button class="btn iconbtn" id="runBack">タイトルへ</button></div>
+    <div id="runBody"></div>
   </div>
 </section>
 
@@ -842,7 +879,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
     <h2>デッキに入らないカード</h2>
     <div class="dexlist" id="dexToken"></div>
     <h2>ローグライト用カード</h2>
-    <p class="note">勝ち抜きモード（準備中）の報酬で手に入るカードです。テーマごとに並べています。★はレア（出にくい）。</p>
+    <p class="note">勝ち抜きモードの報酬で手に入るカードです。テーマごとに並べています。★はレア（出にくい）。</p>
     <div class="dexlist" id="dexRogue"></div>
     <div id="dexRetiredBox" hidden><h2>不採用カード</h2>
     <p class="note">試したものの採用しなかったカードです。デッキには入りません。</p>
@@ -863,6 +900,9 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 </script>
 <script>
 /*AI*/
+</script>
+<script>
+/*RUN*/
 </script>
 <script>
 /*SPRITES*/

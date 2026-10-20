@@ -11,6 +11,7 @@ const note = `「つよい」CPUは、CPU同士の対戦（自己対戦）で評
 const map = {
   '/*ENGINE*/': fs.readFileSync(here('engine.js'), 'utf8'),
   '/*AI*/': fs.readFileSync(here('ai.js'), 'utf8'),
+  '/*RUN*/': fs.readFileSync(here('run.js'), 'utf8'),
   '/*SPRITES*/': fs.readFileSync(here('sprites.js'), 'utf8'),
   '/*TUNED*/': JSON.stringify(T.w),
   '/*APP*/': fs.readFileSync(here('app.js'), 'utf8'),

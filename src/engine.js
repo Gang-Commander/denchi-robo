@@ -150,6 +150,7 @@ function newGame(rng, first, opts) {
     winner: null, draw: false, stall: 0, lifeSnap: '', pending: null,
     log: opts.log === false ? null : [], v: opts.v || null, uidSeq: 0,
     cardTotal: decks[0].length + decks[1].length, eotDmg: [],
+    lists: opts.decks ? [decks[0].slice(), decks[1].slice()] : null, // デッキリスト（公開情報。CPUが伏せ札の候補を絞るのに使う）
   };
   const v = s.v || {};
   for (const pi of [0, 1]) drawCards(s, pi, 4 + (pi !== first ? (v.secondExtraCards || 0) : 0), true);
@@ -173,7 +174,7 @@ function clone(s) {
     attacked: s.attacked, firstTurn: s.firstTurn, eot: s.eot.slice(), noAttack: s.noAttack,
     winner: s.winner, draw: s.draw, stall: s.stall, lifeSnap: s.lifeSnap,
     pending: s.pending ? Object.assign({}, s.pending) : null, log: null, v: s.v, uidSeq: s.uidSeq || 0,
-    cardTotal: s.cardTotal, eotDmg: (s.eotDmg || []).map(x => Object.assign({}, x)),
+    cardTotal: s.cardTotal, lists: s.lists, eotDmg: (s.eotDmg || []).map(x => Object.assign({}, x)),
   };
 }
 

@@ -100,10 +100,13 @@ function backHTML(opts) {
 }
 
 // ---------- 盤面描画 ----------
+// この対戦のライフの上限表示（勝ち抜きモードは回戦ごとに違う）
+function lifeMax() { return G && G.run ? G.run.lifeMax : E.LIFE_MAX; }
 function lifeHTML(p, pi) {
   let pips = '';
-  for (let i = 0; i < E.LIFE_MAX; i++) pips += `<i class="${i < p.life ? 'on' : ''}"></i>`;
-  return `<div class="life${p.life <= 5 ? ' low' : ''}" id="life${pi}"><span class="lnum">${p.life}<small>/${E.LIFE_MAX}</small></span><span class="lbar" aria-label="ライフ ${p.life}">${pips}</span></div>`;
+  const mx = lifeMax();
+  for (let i = 0; i < mx; i++) pips += `<i class="${i < p.life ? 'on' : ''}"></i>`;
+  return `<div class="life${p.life <= 5 ? ' low' : ''}" id="life${pi}"><span class="lnum">${p.life}<small>/${mx}</small></span><span class="lbar" aria-label="ライフ ${p.life}">${pips}</span></div>`;
 }
 function setSlotHTML(s, pi) {
   const p = s.players[pi];
@@ -1108,7 +1111,7 @@ function statusHTML() {
   const side = pi => {
     const P = s.players[pi], g = P.scrap.slice().reverse();
     const list = g.length ? g.map(c => `<span class="chip ${CARDS[c.id].kind}">${CARDS[c.id].name}</span>`).join('') : '<span class="sub">なし</span>';
-    return `<div class="st-side"><div class="st-head"><b>${pi === 0 ? 'あなた' : 'CPU'}</b><span class="st-life">ライフ <b>${P.life}</b>/${E.LIFE_MAX}</span></div>
+    return `<div class="st-side"><div class="st-head"><b>${pi === 0 ? 'あなた' : 'CPU'}</b><span class="st-life">ライフ <b>${P.life}</b>/${lifeMax()}</span></div>
       <details><summary>スクラップ ${g.length}枚（新しい順）</summary><div class="st-chips">${list}</div></details></div>`;
   };
   return `<div class="statusbox">${side(1)}${side(0)}</div>`;
@@ -1310,10 +1313,13 @@ let gameSeq = 0;
 function startGame(diff, firstPref) {
   const rng = E.mulberry32((Math.random() * 2 ** 31) | 0);
   const first = firstPref === 'first' ? 0 : firstPref === 'second' ? 1 : (Math.random() < 0.5 ? 0 : 1);
-  const s = E.newGame(rng, first);
+  beginGame(E.newGame(rng, first), diff, first, null, `CPU：${DIFF[diff].label}`);
+}
+// 対戦画面を開いて始める（通常の対戦と勝ち抜きモードで共通）
+function beginGame(s, diff, first, run, label) {
   $('#dbgbar').hidden = true; SPD = 1;
-  G = { id: ++gameSeq, s, diff, opt: Object.assign({ rng: Math.random }, DIFF[diff].opt), mode: 'game', busy: false, sel: null, tut: null, logIdx: 0, flash: new Set(), deployFx: {}, drawFx: {}, first };
-  $('#modeLabel').textContent = `CPU：${DIFF[diff].label}`;
+  G = { id: ++gameSeq, s, diff, opt: Object.assign({ rng: Math.random }, DIFF[diff].opt), mode: 'game', busy: false, sel: null, tut: null, logIdx: 0, flash: new Set(), deployFx: {}, drawFx: {}, first, run };
+  $('#modeLabel').textContent = label;
   $('#coach').hidden = true;
   show('game');
   G.busy = true;
@@ -1401,6 +1407,7 @@ function gameOver() {
   if (s.draw) { title = '引き分け'; cls = 'draw'; }
   else if (s.winner === 0) { title = '勝利！'; cls = 'win'; }
   else { title = '敗北…'; cls = 'lose'; }
+  if (G.run) return runGameOver(title, cls);
   if (G.mode === 'game') {
     if (s.winner === 0) stats[G.diff][0]++; else if (s.winner === 1) stats[G.diff][1]++;
     saveStats();
@@ -1416,8 +1423,110 @@ function gameOver() {
 }
 function toTitle() { G = null; SPD = 1; $('#dbgbar').hidden = true; closeSheet(); renderTitleStats(); show('title'); }
 function renderTitleStats() {
+  $('#runCont').hidden = !loadRun();
   const rows = Object.keys(DIFF).map(k => `<span>${DIFF[k].label} <b>${stats[k][0]}</b>勝<b>${stats[k][1]}</b>敗</span>`).join('');
   $('#titleStats').innerHTML = rows;
+}
+
+// ================= 勝ち抜きモード =================
+// 進行のルールは src/run.js（Run）。ここは画面と保存だけ。ランは対戦と対戦の間で保存する（対戦の途中は保存しない）
+let RUN = null;
+const RUN_KEY = 'denchi-run';
+function loadRun() { try { const v = JSON.parse(localStorage.getItem(RUN_KEY) || 'null'); return v && v.v === 1 ? v : null; } catch (e) { return null; } }
+function saveRun() {
+  try { if (RUN && RUN.phase !== 'over' && RUN.phase !== 'clear') localStorage.setItem(RUN_KEY, JSON.stringify(RUN)); else localStorage.removeItem(RUN_KEY); } catch (e) {}
+}
+const themeChip = k => `<span class="themechip th-${k}">${k === 'basic' ? '基本' : E.THEMES[k].name}</span>`;
+function startNewRun() {
+  if (loadRun() && !confirm('続きのランがあります。新しく始めると、いまのランは消えます。よろしいですか？')) return;
+  RUN = Run.newRun((Math.random() * 2 ** 31) | 0); saveRun(); openRun();
+}
+function continueRun() { RUN = loadRun(); if (!RUN) return toTitle(); openRun(); }
+function openRun() { G = null; closeSheet(); renderRun(); show('run'); }
+function runCardInfo(id) { openSheet(`${cardInfoHTML({ uid: -1, id, owner: 0, bat: 0 }, 'deck')}<div class="row"><button class="btn ghost" id="shClose">閉じる</button></div>`, sh => sh.querySelector('#shClose').addEventListener('click', closeSheet)); }
+function deckChips(deck, selId) {
+  return `<div class="decklist">${Run.deckSummary(deck).map(({ id, n }) => `<button class="dk ${CARDS[id].kind}${selId === id ? ' on' : ''}" data-id="${id}">${CARDS[id].name}${CARDS[id].rare ? '★' : ''} <b>×${n}</b></button>`).join('')}</div>`;
+}
+function renderRun() {
+  const r = RUN, body = $('#runBody');
+  const steps = Array.from({ length: Run.ROUNDS }, (_, i) => { const h = r.history.find(x => x.round === i + 1); return `<i class="${h ? (h.won ? 'won' : 'lost') : (i + 1 === r.round && r.phase === 'battle' ? 'now' : '')}"></i>`; }).join('');
+  const head = `<div class="runhead"><span class="rnd">第${Math.min(r.round, Run.ROUNDS)}戦 / ${Run.ROUNDS}</span><span>ライフ <b>${Run.lifeFor(Math.min(r.round, Run.ROUNDS))}</b></span><span>デッキ <b>${r.deck.length}</b>枚</span></div>
+    <div class="runsteps">${steps}</div><p>あなたのテーマ：${r.themes.map(themeChip).join('')}${themeChip('common')}</p>`;
+  let main = '';
+  if (r.phase === 'battle') {
+    const opp = Run.oppDeck(r, r.round), hard = r.round >= Run.HARD_FROM;
+    main = `<div class="runbox"><h3>次の相手</h3><p>${themeChip(opp.theme)}デッキ（CPU：${hard ? 'つよい' : 'ふつう'}・ライフ${Run.lifeFor(r.round)}・${opp.deck.length}枚）</p>
+      <div class="row"><button class="btn primary" id="runFight">対戦する</button></div></div>
+      <div class="runbox"><h3>あなたのデッキ（${r.deck.length}枚）</h3><p class="sub">タップでカードの説明</p>${deckChips(r.deck)}</div>
+      <div class="row"><button class="btn ghost danger" id="runQuit">このランをあきらめる</button></div>`;
+  } else if (r.phase === 'reward') {
+    const need = Math.min(r.need, r.offer.length), first = r.history.length === 0;
+    main = `<div class="runbox"><h3>${first ? '最初のカードを1枚選ぶ' : `勝利の報酬：${r.offer.length}枚から${need}枚選ぶ`}</h3>
+      <p class="sub">選んだカードはデッキに入ります。このあとデッキから1枚抜きます。</p>
+      <div class="pickgrid">${r.offer.map(id => `<div class="pick" data-id="${id}">${cardHTML({ uid: -1, id, owner: 0, bat: 0 }, { size: 'hand' })}<p>${themeChip(CARDS[id].theme)}<br>${cardTextPlain(CARDS[id])}</p></div>`).join('')}</div>
+      <div class="row"><button class="btn primary" id="runTake" disabled>決定（0/${need}）</button></div></div>
+      <div class="runbox"><h3>いまのデッキ（${r.deck.length}枚）</h3>${deckChips(r.deck)}</div>`;
+  } else if (r.phase === 'remove') {
+    main = `<div class="runbox"><h3>デッキから1枚抜く</h3><p class="sub">抜いたカードは、このランでは候補に出なくなります。</p>
+      <div id="rmList">${deckChips(r.deck)}</div>
+      <div class="row"><button class="btn" id="runInfo" disabled>説明を見る</button><button class="btn primary" id="runRemove" disabled>このカードを抜く</button></div></div>`;
+  } else {
+    const clear = r.phase === 'clear', last = r.history[r.history.length - 1];
+    main = `<div class="runbox runover"><h2>${clear ? '5連勝！ クリア' : `第${last.round}戦で敗退`}</h2>
+      <p>${r.history.map(h => `第${h.round}戦 ${themeChip(h.opp)} ${h.won ? '○' : '×'}`).join('　')}</p>
+      <h3>最後のデッキ（${r.deck.length}枚）</h3>${deckChips(r.deck)}
+      <div class="row"><button class="btn primary" id="runAgain">もう一度</button><button class="btn" id="runTitle">タイトルへ</button></div></div>`;
+  }
+  body.innerHTML = head + main;
+  // 共通：デッキのカードはタップで説明（抜く画面では選択）
+  body.querySelectorAll('.dk').forEach(b => b.addEventListener('click', () => {
+    if (r.phase !== 'remove') return runCardInfo(b.dataset.id);
+    body.querySelectorAll('.dk').forEach(x => x.classList.toggle('on', x === b));
+    $('#runRemove').disabled = false; $('#runInfo').disabled = false;
+    $('#runRemove').textContent = `${CARDS[b.dataset.id].name}を抜く`;
+  }));
+  const on = (id, f) => { const el = body.querySelector('#' + id); if (el) el.addEventListener('click', f); };
+  on('runFight', startRunBattle);
+  on('runQuit', () => { if (!confirm('このランをあきらめますか？（記録は残りません）')) return; RUN = null; saveRun(); toTitle(); });
+  on('runAgain', () => { RUN = Run.newRun((Math.random() * 2 ** 31) | 0); saveRun(); renderRun(); });
+  on('runTitle', toTitle);
+  if (r.phase === 'reward') {
+    const need = Math.min(r.need, r.offer.length), btn = $('#runTake');
+    const picked = () => [...body.querySelectorAll('.pick.on')].map(x => x.dataset.id);
+    body.querySelectorAll('.pick').forEach(el => el.addEventListener('click', () => {
+      if (!el.classList.contains('on') && picked().length >= need) { if (need === 1) body.querySelectorAll('.pick.on').forEach(x => x.classList.remove('on')); else return toast(`選べるのは${need}枚までです`); }
+      el.classList.toggle('on');
+      const n = picked().length; btn.disabled = n !== need; btn.textContent = `決定（${n}/${need}）`;
+    }));
+    btn.addEventListener('click', () => { Run.takeCards(r, picked()); saveRun(); renderRun(); window.scrollTo(0, 0); });
+  }
+  if (r.phase === 'remove') {
+    const sel = () => { const b = body.querySelector('.dk.on'); return b && b.dataset.id; };
+    on('runInfo', () => sel() && runCardInfo(sel()));
+    on('runRemove', () => { const id = sel(); if (!id) return; Run.removeCard(r, r.deck.indexOf(id)); saveRun(); renderRun(); window.scrollTo(0, 0); });
+  }
+}
+function startRunBattle() {
+  const r = RUN, opp = Run.oppDeck(r, r.round), L = Run.lifeFor(r.round);
+  const diff = r.round >= Run.HARD_FROM ? 'hard' : 'normal';
+  const rng = E.mulberry32((Math.random() * 2 ** 31) | 0);
+  const first = Math.random() < 0.5 ? 0 : 1;
+  const s = E.newGame(rng, first, { decks: [r.deck, opp.deck], lives: [L, L] });
+  beginGame(s, diff, first, { round: r.round, opp: opp.theme, lifeMax: L }, `勝ち抜き 第${r.round}戦：${E.THEMES[opp.theme].name}デッキ`);
+}
+function runGameOver(title, cls) {
+  const s = G.s, won = s.winner === 0;
+  const msg = s.draw ? '引き分けなので、もう一度戦います。' : won ? (RUN.round >= Run.ROUNDS ? '5連勝！' : '報酬のカードを選びに行こう。') : 'ランはここで終わりです。';
+  openSheet(`<div class="over ${cls}"><div class="overhead">${img(won ? 'battery' : 'megaton', 'overart')}<div><h2>${title}</h2><p class="sub">勝ち抜き 第${G.run.round}戦・${s.turnNo}手番で決着</p></div></div>
+    ${scoreboardHTML(s)}<p class="sub">${msg}</p></div>
+    <div class="row"><button class="btn primary" id="runNext">${s.draw ? '再戦する' : '次へ'}</button></div>`, sh => {
+      sh.querySelector('#runNext').addEventListener('click', () => {
+        closeSheet();
+        if (s.draw) return startRunBattle();
+        Run.finishBattle(RUN, won, { turns: s.turnNo }); saveRun(); openRun();
+      });
+    }, true);
+  $('#sheet').dataset.over = String(G.id);
 }
 
 // ---------- チュートリアル ----------
@@ -1751,6 +1860,9 @@ function init() {
   $('#titleArt').innerHTML = ['souji', 'bomb', 'battery', 'magnet', 'daruma'].map((id, i) => img(id, 'tart t' + i)).join('');
   renderTitleStats(); renderRules();
   document.querySelectorAll('[data-diff]').forEach(b => b.addEventListener('click', () => startGame(b.dataset.diff, $('#firstSel').value)));
+  $('#runNew').addEventListener('click', startNewRun);
+  $('#runCont').addEventListener('click', continueRun);
+  $('#runBack').addEventListener('click', toTitle);
   $('#tutBtn').addEventListener('click', () => { $('#lessonPick').hidden = !$('#lessonPick').hidden; });
   $('#lessonPick').innerHTML = LESSONS.map((L, i) => `<button class="btn lesson" data-lesson="${i}">${L.title}</button>`).join('');
   $('#lessonPick').addEventListener('click', e => { const b = e.target.closest('[data-lesson]'); if (b) startLesson(+b.dataset.lesson); });

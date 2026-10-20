@@ -238,6 +238,13 @@ function chooseResponse(s, w) {
 // ---------- 攻撃の評価（相手の伏せアクションは期待値） ----------
 function unknownSpells(s, op) {
   // 相手のアクションで、まだ公開領域（スクラップ）に出ていないもの = 伏せカードの候補
+  if (s.lists) {
+    // デッキリストが分かる時（勝ち抜きモード）：リストのアクションから、スクラップに出た枚数を引く
+    const left = {};
+    for (const id of s.lists[op]) if (CARDS[id].kind === 'spell') left[id] = (left[id] || 0) + 1;
+    for (const gp of s.players) for (const c of gp.scrap) if (c.owner === op && left[c.id]) left[c.id]--;
+    return Object.keys(left).filter(id => left[id] > 0);
+  }
   const known = {};
   for (const gp of s.players) for (const c of gp.scrap) if (c.owner === op) known[c.id] = 1;
   return SPELL_IDS.filter(id => !known[id]);
