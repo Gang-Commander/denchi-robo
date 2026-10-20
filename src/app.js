@@ -536,6 +536,7 @@ function refresh(snap) {
   // 演出で「後から現れる」カード（起動・引いたカード）の遅延を反映するため、もう一度描く
   if (snap && ev.some(e => e.t === 'deploy' || e.t === 'draw')) render();
   if (holes.length) { const gid = G.id; setTimeout(() => { if (!G || G.id !== gid) return; G.holes = []; render(); }, (ms + 150) / SPD); }
+  if (G.run) saveRunBattle();
   return ms;
 }
 // fn で状態を変え、演出が終わるまで待つ
@@ -1316,15 +1317,15 @@ function startGame(diff, firstPref) {
   beginGame(E.newGame(rng, first), diff, first, null, `CPU：${DIFF[diff].label}`);
 }
 // 対戦画面を開いて始める（通常の対戦と勝ち抜きモードで共通）
-function beginGame(s, diff, first, run, label) {
+function beginGame(s, diff, first, run, label, resume) {
   $('#dbgbar').hidden = true; SPD = 1;
-  G = { id: ++gameSeq, s, diff, opt: Object.assign({ rng: Math.random }, DIFF[diff].opt), mode: 'game', busy: false, sel: null, tut: null, logIdx: 0, flash: new Set(), deployFx: {}, drawFx: {}, first, run };
+  G = { id: ++gameSeq, s, diff, opt: Object.assign({ rng: Math.random }, DIFF[diff].opt), mode: 'game', busy: false, sel: null, tut: null, logIdx: resume ? s.log.length : 0, flash: new Set(), deployFx: {}, drawFx: {}, first, run };
   $('#modeLabel').textContent = label;
   $('#coach').hidden = true;
   show('game');
   G.busy = true;
   const ms = refresh(snapRects()), gid = G.id;
-  toast(first === 0 ? 'あなたが先攻です' : 'CPUが先攻です');
+  toast(resume ? '中断したところから再開します' : first === 0 ? 'あなたが先攻です' : 'CPUが先攻です');
   setTimeout(() => {
     if (!G || G.id !== gid) return;
     G.busy = false; render();
@@ -1456,7 +1457,7 @@ function renderRun() {
   if (r.phase === 'battle') {
     const opp = Run.oppDeck(r, r.round), cpu = DIFF[Run.cpuFor(r.round)].label;
     main = `<div class="runbox"><h3>次の相手</h3><p>${themeChip(opp.theme)}デッキ（CPU：${cpu}・ライフ${Run.lifeFor(r.round)}・${opp.deck.length}枚）</p>
-      <div class="row"><button class="btn primary" id="runFight">対戦する</button></div></div>
+      <div class="row"><button class="btn primary" id="runFight">${r.battle ? '対戦の続きから' : '対戦する'}</button></div></div>
       <div class="runbox"><h3>あなたのデッキ（${r.deck.length}枚）</h3><p class="sub">タップでカードの説明</p>${deckChips(r.deck)}</div>
       <div class="row"><button class="btn ghost danger" id="runQuit">このランをあきらめる</button></div>`;
   } else if (r.phase === 'reward') {
@@ -1506,16 +1507,36 @@ function renderRun() {
     on('runRemove', () => { const id = sel(); if (!id) return; Run.removeCard(r, r.deck.indexOf(id)); saveRun(); renderRun(); window.scrollTo(0, 0); });
   }
 }
+// 対戦中の状態をランと一緒に保存する（閉じても続きから再開。やり直しはできない）。
+// 攻撃の処理中（応答待ち）は保存しない＝その直前の状態から再開する
+function saveRunBattle() {
+  if (!RUN || !G || !G.run) return;
+  const s = G.s;
+  if (E.isOver(s) || s.pending) return;
+  const snap = E.clone(s); snap.log = s.log.slice();
+  RUN.battle = { s: snap, diff: G.diff, first: G.first, meta: G.run };
+  saveRun();
+}
+function resumeRunBattle() {
+  const b = RUN.battle;
+  beginGame(b.s, b.diff, b.first, b.meta, `勝ち抜き 第${b.meta.round}戦：${E.THEMES[b.meta.opp].name}デッキ`, true);
+}
 function startRunBattle() {
+  if (RUN.battle) return resumeRunBattle();
   const r = RUN, opp = Run.oppDeck(r, r.round), L = Run.lifeFor(r.round);
   const diff = Run.cpuFor(r.round);
   const rng = E.mulberry32((Math.random() * 2 ** 31) | 0);
   const first = Math.random() < 0.5 ? 0 : 1;
   const s = E.newGame(rng, first, { decks: [r.deck, opp.deck], lives: [L, L] });
   beginGame(s, diff, first, { round: r.round, opp: opp.theme, lifeMax: L }, `勝ち抜き 第${r.round}戦：${E.THEMES[opp.theme].name}デッキ`);
+  saveRunBattle();
 }
 function runGameOver(title, cls) {
   const s = G.s, won = s.winner === 0;
+  // 結果はこの時点で記録する（「次へ」を押す前に閉じても、結果は変わらない）
+  delete RUN.battle;
+  if (!s.draw) Run.finishBattle(RUN, won, { turns: s.turnNo });
+  saveRun();
   const msg = s.draw ? '引き分けなので、もう一度戦います。' : won ? (RUN.round >= Run.ROUNDS ? '5連勝！' : '報酬のカードを選びに行こう。') : 'ランはここで終わりです。';
   openSheet(`<div class="over ${cls}"><div class="overhead">${img(won ? 'battery' : 'megaton', 'overart')}<div><h2>${title}</h2><p class="sub">勝ち抜き 第${G.run.round}戦・${s.turnNo}手番で決着</p></div></div>
     ${scoreboardHTML(s)}<p class="sub">${msg}</p></div>
@@ -1523,7 +1544,7 @@ function runGameOver(title, cls) {
       sh.querySelector('#runNext').addEventListener('click', () => {
         closeSheet();
         if (s.draw) return startRunBattle();
-        Run.finishBattle(RUN, won, { turns: s.turnNo }); saveRun(); openRun();
+        openRun();
       });
     }, true);
   $('#sheet').dataset.over = String(G.id);
