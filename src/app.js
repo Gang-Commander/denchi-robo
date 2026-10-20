@@ -29,6 +29,7 @@ const ART = {};
     rows.forEach((row, y) => { for (let x = 0; x < 16; x++) { const ch = row[x]; if (ch !== '.') { g.fillStyle = SP.PAL[ch]; g.fillRect(x, y, 1, 1); } } });
     ART[k] = c.toDataURL();
   }
+  ART.protoN = ART.normal; // プロトロボから出るノーマルロボは、ノーマルロボと同じ絵
 })();
 // イラストのないカード（不採用案など）は文字で代用する
 const img = (id, cls) => ART[id] ? `<img class="${cls || 'art'}" src="${ART[id]}" alt="" draggable="false">` : `<span class="${cls || 'art'} noart">NO<br>IMAGE</span>`;
@@ -501,6 +502,7 @@ function playFx(events, snap) {
       case 'junk': fxNotice(e.id, e.pi === 0 ? 'ジャンク回収で手札に戻った' : 'ジャンク回収でCPUの手札に戻った', t); t += 1500; break;
       case 'copy': { const r = rectOf(e.uid, snap); if (r) at(t + 300, () => particles(center(r), 14, '', r.width * 0.6, 16)); t += 300; break; }
       case 'bakushin': case 'scout': case 'garakuta': t += 150; break;
+      case 'press': { const r = rectOf(e.uid, snap); if (r) fxImpact(r, t); t += 300; break; }
       case 'place': case 'batfly': case 'enterbat': case 'solar': fxVolt(null, rectOf(e.uid, snap), t); fxBat(e.uid, 1, true, t + 450, snap); end = Math.max(end, t + 1350); t += 200; break;
       case 'batmove': fxBat(e.from, 1, false, t, snap); fxVolt(rectOf(e.from, snap), rectOf(e.to, snap), t); fxBat(e.to, 1, true, t + 450, snap); end = Math.max(end, t + 1350); t += 250; break;
       case 'release': { fxDischarge(e.uid, snap, t); const r = rectOf(e.uid, snap); fxVolt(r, null, t + 150); fxBat(e.uid, 1, false, t + 150, snap); end = Math.max(end, t + 1000); t += 650; break; }
@@ -636,6 +638,19 @@ function playRobo(c) {
 function gatherSpell(id, casterPi, cb, cancel) {
   const s = G.s;
   const all = E.allField(s);
+  if (id === 'junk') {
+    const { robos, spells } = E.junkPool(s, casterPi);
+    if (!robos.length && !spells.length) { toast('スクラップに戻せるカードがありません', 'err'); return cancel && cancel(); }
+    const pickFrom = (list, title, next) => {
+      if (!list.length) return next(undefined);
+      openSheet(`<h3>${title}</h3><div class="glist">${list.map(c => cardHTML(c, { size: 'hand', cls: 'pickg' })).join('')}</div>
+        <div class="row"><button class="btn ghost" id="hkCancel">やめる</button></div>`, sh => {
+          sh.querySelectorAll('.pickg').forEach(b => b.addEventListener('click', () => { closeSheet(); next(+b.dataset.uid); }));
+          sh.querySelector('#hkCancel').addEventListener('click', () => { closeSheet(); cancel && cancel(); });
+        });
+    };
+    return pickFrom(robos, '手札に戻すロボを選ぶ', u => pickFrom(spells, '手札に戻すアクションを選ぶ', sid => cb(Object.assign({}, u !== undefined ? { uid: u } : {}, sid !== undefined ? { sid } : {}))));
+  }
   if (CARDS[id].pick) return gatherPick(CARDS[id].pick, casterPi, null, cb, cancel);
   switch (id) {
     case 'overload': return cb({});
@@ -1837,7 +1852,7 @@ function renderRules() {
   const ys = E.ROBO_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const ss = E.SPELL_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   // デッキに入らないカード（後攻が持つワンモア、コブンロボから出るアニキロボ）
-  const ts = ['onemore', 'aniki'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  const ts = ['onemore', 'aniki', 'protoN'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const rs = E.RETIRED_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const row = c => { const d = CARDS[c.id]; return `<div class="dex">${cardHTML(c, { size: 'hand' })}<div><h4>${d.name}${d.rare ? ' ★' : ''}${d.kind === 'robo' ? `<span class="dexmeta">攻撃力${shownAtk(c)}${d.enterBat ? '（電池込み）' : ''}・電池上限${d.max}・${EFF_LABEL[d.eff]}</span>` : '<span class="dexmeta">アクション</span>'}</h4><p>${cardText(d)}</p></div></div>`; };
   // ロボは効果の種類ごとにまとめ、グループ内は攻撃力→名前の順。アクションは名前順

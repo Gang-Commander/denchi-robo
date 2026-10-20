@@ -26,10 +26,9 @@ const err = (s, a) => E.checkAction(s, a);
   play(s, u, { target: F(s, 0, 0).uid });
   ok(s.players[0].hand.some(c => c.id === 'reboot') && s.players[0].hand.length === 4, 'parts: reboot to hand + draw 3');
   ok(!s.players[0].scrap.some(c => c.id === 'reboot'), 'reboot not in scrap'); }
-{ const s = board([], []); s.players[0].scrap.push({ uid: 900, id: 'heat', owner: 0, bat: 0 }); const u = hand(s, 0, 'junk');
-  play(s, u, { uid: 900 }); ok(s.players[0].hand.some(c => c.id === 'heat'), 'junk returns robo'); }
+
 { const s = board([], []); for (let i = 0; i < 3; i++) s.players[0].scrap.push({ uid: 900 + i, id: 'normal', owner: 0, bat: 0 }); const u = hand(s, 0, 'gattai');
-  play(s, u); ok(F(s, 0, 0).bat === 3 && E.atkOf(F(s, 0, 0)) === 6, 'gattai +3 from scrap'); }
+  play(s, u); ok(F(s, 0, 0).bat === 3 && E.atkOf(F(s, 0, 0)) === 6, 'gattai +3 from scrap (cap 3)'); }
 { const s = board([{ id: 'wall', bat: 0 }], []);
   ok(!!err(s, { t: 'attack', att: F(s, 0, 0).uid, tgt: 'player' }), 'wall cannot attack');
   ok(!!err(s, { t: 'place', target: F(s, 0, 0).uid }), 'wall max 0'); }
@@ -86,4 +85,15 @@ const err = (s, a) => E.checkAction(s, a);
 { const s = board([{ id: 'gigant', bat: 1 }], [{ id: 'normal', bat: 0 }]);
   E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(F(s, 0, 0).bat === 0 && s.players[1].field.length === 0, 'gigant spends battery after attack'); }
 { const s = board([{ id: 'gigant', bat: 1 }], []); E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(F(s, 0, 0).bat === 0 && s.players[1].life === 8, 'gigant direct 7 then battery off'); }
+{ const s = board([{ id: 'normal', bat: 0 }, { id: 'heat', bat: 0 }], [{ id: 'barrier', bat: 1 }, { id: 'turbo', bat: 1 }]); const u = hand(s, 0, 'press');
+  play(s, u); ok(s.players[0].field.map(y => y.id).join() === 'heat,press' && s.players[1].field.map(y => y.id).join() === 'turbo', 'press kills lowest each side (barrier too)'); }
+{ const s = board([], []); const u = hand(s, 0, 'press'); play(s, u); ok(s.players[0].field.length === 1, 'press alone survives'); }
+{ const s = board([{ id: 'proto', bat: 0 }], [{ id: 'heat', bat: 0 }]);
+  E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(F(s, 0, 0) && F(s, 0, 0).id === 'protoN' && E.atkOf(F(s, 0, 0)) === 2, 'proto spawns normal token'); }
+{ const s = board([], []); s.players[0].scrap.push({ uid: 800, id: 'heat', owner: 0, bat: 0 }, { uid: 801, id: 'thunder', owner: 0, bat: 0 }); const u = hand(s, 0, 'junk');
+  ok(!!err(s, { t: 'play', uid: u, ch: { uid: 800 } }), 'junk must also pick action when present');
+  play(s, u, { uid: 800, sid: 801 }); ok(s.players[0].hand.map(c => c.id).sort().join() === 'heat,thunder', 'junk returns robo + action'); }
+{ const s = board([], []); const u = hand(s, 0, 'junk'); ok(!!err(s, { t: 'play', uid: u, ch: {} }), 'junk needs something in scrap'); }
+{ const s = board([{ id: 'turbo', bat: 2 }, { id: 'normal', bat: 0 }], []); deck(s, 0, ['normal', 'normal', 'normal']); const u = hand(s, 0, 'parts');
+  play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).id === 'normal' && F(s, 0, 0).bat === 2, 'parts salvages batteries'); }
 done();

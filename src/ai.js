@@ -15,7 +15,7 @@ const BASE_W = {
   solar: 0.4, guard: 0.5, turbo: 0.0, recycle: 0.0,
   sniper: 1.5, rocket: 0.5, jammer: 1.0, kobun: 1.5,
   // ローグライト用（初期値は手で決めたもの。tools/tune_rogue.js で調整する）
-  dynamo: 1.0, medic: 0.8, fortress: 0.8, drill: 0.4, reboot: 1.0, garakuta: 0.6, bakushin: 0.5, socket: 0.3, gigantOff: 1.5, wall: 1.0,
+  dynamo: 1.0, medic: 0.8, fortress: 0.8, drill: 0.4, reboot: 1.0, garakuta: 0.6, bakushin: 0.5, socket: 0.3, gigantOff: 1.5, wall: 1.0, proto: 0.8,
 };
 
 // ---------- 評価関数 ----------
@@ -39,6 +39,7 @@ function roboVal(y, w) {
     case 'rocket': v += (w.rocket ?? 0.5) * on; break;
     case 'jammer': v += (w.jammer ?? 1.0) * on; break;
     case 'kobun': v += (w.kobun ?? 1.5); break;
+    case 'proto': v += (w.proto ?? 0.8); break;
     // ローグライト用（手で決めた初期値。チューニングはまだ）
     case 'dynamo': v += (w.dynamo ?? 1.0) * on; break;
     case 'medic': v += (w.medic ?? 0.8) * on; break;
@@ -111,6 +112,14 @@ function multisets(items, k) {
 // AI用のアクション選択肢（明らかに無意味なものは省く）
 function spellChoices(s, pi, id) {
   const P = s.players[pi], O = s.players[1 - pi];
+  if (id === 'junk') {
+    // 種類ごとに1枚（同じカード名は1つにまとめる）
+    const { robos, spells } = E.junkPool(s, pi), uniq = l => { const seen = {}; return l.filter(c => !seen[c.id] && (seen[c.id] = 1)); };
+    const rs = robos.length ? uniq(robos) : [null], ss = spells.length ? uniq(spells) : [null], res = [];
+    if (!robos.length && !spells.length) return [];
+    for (const r of rs) for (const sp of ss) res.push(Object.assign({}, r ? { uid: r.uid } : {}, sp ? { sid: sp.uid } : {}));
+    return res;
+  }
   const pk = CARDS[id].pick;
   if (pk) {
     if (pk.zone === 'scrap') { const seen = {}; return E.pickPool(s, pi, pk).filter(c => !seen[c.id] && (seen[c.id] = 1)).map(c => ({ uid: c.uid })); }

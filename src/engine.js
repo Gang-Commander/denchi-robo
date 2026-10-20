@@ -18,7 +18,7 @@ const CARDS = {
   solar:   { id:'solar',   name:'ソーラーロボ', kind:'robo', atk:1, max:5, eff:'const', text:'【常時】自分の手番開始時、このロボに電池を1本入れる。このロボが破壊された時、その電池を自分の場のロボに移す（攻撃力の高いロボから順に）。', enterBat:1 },
   guard:   { id:'guard',   name:'ガードロボ', kind:'robo', atk:3, max:2, eff:'powered',  text:'【通電中】相手は、このロボ以外の自分のロボを攻撃できない。', enterBat:1 },
   recycle: { id:'recycle', name:'リサイクルロボ', kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、自分のスクラップにある一番新しいアクションを1枚手札に戻す。' },
-  hack:    { id:'hack',    name:'ハッキング', kind:'spell', text:'相手の場で最も攻撃力の高いロボを1体選ぶ。この手番の終わりまで、そのロボは自分の場で自分のロボとして動く（攻撃もできる）。手番終了時に持ち主の場へ戻る。' },
+  hack:    { id:'hack',    name:'ハッキング', kind:'spell', rare:true, text:'相手の場で最も攻撃力の高いロボを1体選ぶ。この手番の終わりまで、そのロボは自分の場で自分のロボとして動く（攻撃もできる）。手番終了時に持ち主の場へ戻る。' },
   limiter: { id:'limiter', name:'リミッター解除', kind:'spell', text:'場のロボを1体選ぶ。この手番の間、そのロボの攻撃力を@LIM@にする。手番終了時に、そのロボは破壊される。' },
   ebattery:    { id:'ebattery',    name:'非常用電池', kind:'spell', text:'場のロボを選び、電池を2本まで好きなように入れる。' },
   manual: { id:'manual', name:'整備マニュアル', kind:'spell', text:'山札を2枚引く。そのあと、自分の場のロボを1体選び、電池を1本入れる。' },
@@ -32,7 +32,7 @@ const CARDS = {
   rocket:  { id:'rocket',  name:'ロケットロボ',   kind:'robo', atk:1, max:1, eff:'const',   text:'【常時】このロボが戦闘する時（攻撃した時も、攻撃された時も）、自分が4ダメージを受けて、その戦闘の間だけ攻撃力を+5してよい。' },
   jammer:  { id:'jammer',  name:'ジャマーロボ',   kind:'robo', atk:2, max:2, eff:'powered', text:'【通電中】お互いにアクションを使えない（伏せ札を表にすることもできない。伏せることはできる）。' },
   thief:   { id:'thief',   name:'ドロボ',   kind:'robo', atk:2, max:2, eff:'const',   text:'【常時】このロボを起動した時、相手の場の電池が入っているロボのうち、最も攻撃力の高いロボを1体選び、その電池を1本このロボに移す。' },
-  kobun:  { id:'kobun',  name:'コブンロボ',   kind:'robo', atk:2, max:1, eff:'const',   text:'【常時】このロボが破壊された時、自分の場に「アニキロボ」を出す。' },
+  kobun:  { id:'kobun',  name:'コブンロボ',   kind:'robo', atk:2, max:1, eff:'const', spawn:'aniki', text:'【常時】このロボが破壊された時、自分の場に「アニキロボ」を出す。' },
   aniki:   { id:'aniki',   name:'アニキロボ',     kind:'robo', atk:4, max:3, eff:'none',    token:true, text:'コブンロボが破壊された時に出るロボ（デッキには入らない）。' },
 };
 // ----- ローグライト用の新カード -----
@@ -51,12 +51,14 @@ Object.assign(CARDS, {
   hammer:  { id:'hammer',  name:'ハンマー',       kind:'spell', text:'攻撃力3以下のロボを1体選び、破壊する。',
              pick:{ side:'any', cond:'atk3', prompt:'破壊するロボを選ぶ（攻撃力3以下）', none:'攻撃力3以下のロボがいません' } },
   // スクラップ
-  reboot:  { id:'reboot',  name:'リブートロボ',   kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボが破壊された時、スクラップではなく持ち主の手札に戻る。' },
-  parts:   { id:'parts',   name:'部品取り',       kind:'spell', text:'自分のロボを1体選んで破壊し、山札を3枚引く。',
+  reboot:  { id:'reboot',  name:'リブートロボ',   kind:'robo', atk:3, max:2, eff:'const', text:'【常時】このロボが破壊された時、スクラップではなく持ち主の手札に戻る。' },
+  parts:   { id:'parts',   name:'部品取り',       kind:'spell', salvage:true, text:'自分のロボを1体選んで破壊し、山札を3枚引く。破壊したロボの電池は、自分の場のロボに移す（攻撃力の高い順）。',
              pick:{ side:'own', prompt:'部品を取る（破壊する）自分のロボを選ぶ', none:'自分の場にロボがいません' } },
-  junk:    { id:'junk',    name:'ジャンク回収',   kind:'spell', text:'自分のスクラップのロボを1体選び、手札に戻す。',
-             pick:{ zone:'scrap', prompt:'手札に戻すロボを選ぶ', none:'自分のスクラップにロボがいません' } },
-  gattai:  { id:'gattai',  name:'ガッタイロボ',   kind:'robo', atk:3, max:5, eff:'const', rare:true, text:'【常時】このロボを起動した時、自分のスクラップにあるロボの数だけ、このロボに電池を入れる。' },
+  junk:    { id:'junk',    name:'ジャンク回収',   kind:'spell', text:'自分のスクラップから、ロボを1枚とアクションを1枚選び、手札に戻す（ワンモアは除く）。' },
+  gattai:  { id:'gattai',  name:'ガッタイロボ',   kind:'robo', atk:3, max:3, eff:'const', rare:true, text:'【常時】このロボを起動した時、自分のスクラップにあるロボの数だけ、このロボに電池を入れる。' },
+  press:   { id:'press',   name:'プレスロボ',     kind:'robo', atk:5, max:1, eff:'const', text:'【常時】このロボを起動した時、お互いに、自分の場で攻撃力が一番低いロボを1体破壊する（このロボは除く。同じなら左のロボ。選ばない効果）。' },
+  proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'protoN', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を出す（デッキ外のカード）。' },
+  protoN:  { id:'protoN',  name:'ノーマルロボ',   kind:'robo', atk:2, max:3, eff:'const', token:true, onAttack:{ atk:1 }, text:'プロトロボが破壊された時に出るロボ（デッキには入らない）。【常時】このロボが攻撃した時、その戦闘の間、攻撃力+1。' },
   // 防衛
   wall:    { id:'wall',    name:'ウォールロボ',   kind:'robo', atk:5, max:0, eff:'const', text:'【常時】このロボは攻撃できない。' },
   medic:   { id:'medic',   name:'メディックロボ', kind:'robo', atk:2, max:2, eff:'release', enterBat:1, text:'【放電】自分のライフを2回復する（上限を超えてよい）。' },
@@ -94,7 +96,7 @@ for (const id of ['megaton','thunder','kobun','limiter']) CARDS[id].rare = true;
 const THEMES = {
   charge:   { name:'充電',       ids:['turbo','megaton','ebattery','manual','charge','dynamo','gigant','solar'] },
   demolish: { name:'解体',       ids:['thunder','sniper','short','souji','magnet','drill','hammer'] },
-  scrap:    { name:'スクラップ', ids:['recycle','repair','kobun','crane','reboot','parts','junk','gattai','hack'] },
+  scrap:    { name:'スクラップ', ids:['recycle','repair','kobun','crane','reboot','parts','junk','gattai','hack','press','proto'] },
   defense:  { name:'防衛',       ids:['barrier','daruma','bomb','wall','medic','fortress','guard','jammer'] },
   rampage:  { name:'暴走',       ids:['heat','limiter','bakushin','kajiba','runaway','spark','overload','rocket'] },
   common:   { name:'共通',       ids:['swap','thief','scout','socket','warp','batpack','leak','copy'] },
@@ -116,7 +118,7 @@ const SPELL_IDS = ['ebattery','manual','short','repair','swap','thunder','limite
 // 以前の不採用カード（ソーラー・ガード・ハッキング・ジャマー・ロケット）は、ローグライトのテーマに復活した
 const RETIRED_IDS = [];
 // 本体以外で出てくるカード（デッキ外）
-const TOKEN_IDS = ['aniki','onemore'];
+const TOKEN_IDS = ['aniki','protoN','onemore'];
 const DECK_IDS = ROBO_IDS.concat(SPELL_IDS);
 const LIFE_MAX = 15, FIELD_MAX = 3, ACTIONS = 2;
 const STALL_TURNS = 8; // 両者の山札切れ後、この手番数ライフが動かなければ「互いにダメージを与えられない」とみなし、引き分け
@@ -332,10 +334,12 @@ function destroy(s, uid, byBattle) {
   log(s, `${cname(y)}が破壊された`, { t: 'destroy', uid, pi: f.pi });
   if (y.id === 'solar' && leftBat > 0) solarPass(s, f.pi, uid, leftBat);
   if (y.id === 'garakuta') { log(s, 'ガラクタロボの効果', { t: 'garakuta' }); drawCards(s, y.owner, 1); }
-  if (y.id === 'kobun' && s.players[f.pi].field.length < FIELD_MAX) {
-    const t = { uid: s.uidSeq++, id: 'aniki', owner: y.owner, bat: 0 };
+  // 破壊された時に出るロボ（カード定義の spawn：コブン→アニキ、プロト→ノーマル）。同じ場所に出る
+  const sp = CARDS[y.id].spawn;
+  if (sp && s.players[f.pi].field.length < FIELD_MAX) {
+    const t = { uid: s.uidSeq++, id: sp, owner: y.owner, bat: 0 };
     s.players[f.pi].field.splice(f.i, 0, t);
-    log(s, `アニキロボが現れた！`, { t: 'deploy', pi: f.pi, uid: t.uid, token: true });
+    log(s, `${CARDS[sp].name}が現れた！`, { t: 'deploy', pi: f.pi, uid: t.uid, token: true });
   }
   return true;
 }
@@ -387,6 +391,25 @@ function gattaiTrigger(s, pi, uid) {
   const k = placeBat(s, me.y, n);
   if (k) log(s, `ガッタイロボはスクラップのロボ${n}体分、電池を${k}本入れた`, { t: 'batfly', uid });
 }
+// プレスロボの起動時効果：お互いに、自分の場で攻撃力が一番低いロボ（プレスロボ自身は除く・同じなら左）を破壊。
+// 選ばない効果なので、バリアロボも対象になる。両方の対象を先に決めてから壊す（コブンから出たアニキは巻き込まない）
+function pressTrigger(s, pi, uid) {
+  const victims = [];
+  for (const q of [pi, 1 - pi]) {
+    const c = s.players[q].field.filter(y => y.uid !== uid);
+    if (!c.length) continue;
+    const mn = Math.min(...c.map(atkOf));
+    victims.push(c.find(y => atkOf(y) === mn).uid);
+  }
+  if (!victims.length) return;
+  log(s, 'プレスロボがお互いの一番弱いロボをつぶした', { t: 'press', uid });
+  for (const v of victims) destroy(s, v, false);
+}
+// ジャンク回収で戻せるカード
+function junkPool(s, pi) {
+  const g = s.players[pi].scrap.filter(c => !CARDS[c.id].token);
+  return { robos: g.filter(c => CARDS[c.id].kind === 'robo'), spells: g.filter(c => CARDS[c.id].kind === 'spell') };
+}
 // 場のロボを持ち主の手札に戻す（ワープ装置）。トークンは消える
 function bounce(s, uid) {
   const f = findRobo(s, uid); if (!f) return false;
@@ -425,7 +448,8 @@ function deploy(s, pi, card, how, ch) {
   // 起動時効果。アクションの処理中に起動した場合は、そのアクションがスクラップに置かれてから発動する
   const trig = card.id === 'recycle' ? () => recycleTrigger(s, pi) : card.id === 'thief' ? () => thiefTrigger(s, pi, card.uid)
     : card.id === 'scout' ? () => { log(s, 'スカウトロボの効果', { t: 'scout' }); drawCards(s, pi, 1); }
-    : card.id === 'gattai' ? () => gattaiTrigger(s, pi, card.uid) : null;
+    : card.id === 'gattai' ? () => gattaiTrigger(s, pi, card.uid)
+    : card.id === 'press' ? () => pressTrigger(s, pi, card.uid) : null;
   if (trig) { if (s.resolving) (s.deferred = s.deferred || []).push(trig); else trig(); }
   if (card.id === 'megaton' && s.turn === pi && !isOver(s)) {
     s.noAttack = true; log(s, `メガトンロボの効果：この手番、${pname(pi)}のロボは攻撃できない`, { t: 'megaton', pi });
@@ -588,6 +612,14 @@ function thunderCandidates(s, pi) {
 }
 function checkSpell(s, pi, id, ch) {
   const def = CARDS[id];
+  if (id === 'junk') {
+    // ロボとアクションを1枚ずつ（スクラップにある方だけ）。どちらも無ければ使えない
+    const { robos, spells } = junkPool(s, pi);
+    if (!robos.length && !spells.length) return 'スクラップに戻せるカードがありません';
+    if (robos.length && !robos.some(c => c.uid === ch.uid)) return '手札に戻すロボを選んでください';
+    if (spells.length && !spells.some(c => c.uid === ch.sid)) return '手札に戻すアクションを選んでください';
+    return null;
+  }
   if (def.pick) {
     if (def.pick.zone === 'scrap') return pickPool(s, pi, def.pick).some(c => c.uid === ch.uid) ? null : (pickPool(s, pi, def.pick).length ? 'スクラップのロボを選んでください' : def.pick.none);
     return pickError(s, pi, def.pick, ch);
@@ -716,8 +748,12 @@ function resolveSpell(s, pi, card, ch) {
       break;
     }
     case 'junk': {
-      const G = s.players[pi].scrap, i = G.findIndex(c => c.uid === ch.uid);
-      if (i >= 0 && CARDS[G[i].id].kind === 'robo') { const c = G.splice(i, 1)[0]; s.players[pi].hand.push(c); log(s, `${cname(c)}を手札に戻した`, { t: 'junk', pi, id: c.id }); }
+      const { robos, spells } = junkPool(s, pi), G = s.players[pi].scrap;
+      for (const c of [robos.find(c => c.uid === ch.uid), spells.find(c => c.uid === ch.sid)]) {
+        if (!c) continue;
+        G.splice(G.indexOf(c), 1); s.players[pi].hand.push(c);
+        log(s, `${cname(c)}を手札に戻した`, { t: 'junk', pi, id: c.id });
+      }
       break;
     }
     case 'runaway': {
@@ -955,7 +991,7 @@ function invariant(s) {
   for (const p of s.players) { if (p.field.length > 3) throw new Error('field>3'); for (const y of p.field) if (y.bat > CARDS[y.id].max) throw new Error('bat>max'); }
 }
 
-const api = { THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
+const api = { junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
   mulberry32, shuffle, newGame, clone, atkOf, rawAtk, lethal, roboDamage, sweepDeaths, immuneFrom, findRobo, allField, isOver,
   checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondReveal, respondChoiceError, resolveBattle,
   attackFull, endTurn, resolveEot, invariant, pname, cname };
