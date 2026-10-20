@@ -119,7 +119,7 @@ const RETIRED_IDS = [];
 const TOKEN_IDS = ['aniki','onemore'];
 const DECK_IDS = ROBO_IDS.concat(SPELL_IDS);
 const LIFE_MAX = 15, FIELD_MAX = 3, ACTIONS = 2;
-const STALL_TURNS = 8; // 両者の山札切れ後、この手番数ダメージが無ければ「互いにダメージを与えられない」とみなす
+const STALL_TURNS = 8; // 両者の山札切れ後、この手番数ライフが動かなければ「互いにダメージを与えられない」とみなし、引き分け
 
 function mulberry32(a) {
   return function () {
@@ -451,8 +451,8 @@ function endTurn(s) {
   }
   s.lifeSnap = snap;
   if (s.stall >= STALL_TURNS || s.turnNo >= 120) {
-    if (P[0].life === P[1].life) { s.draw = true; log(s, '互いにダメージを与えられない：引き分け', { t: 'tie' }); }
-    else { s.winner = P[0].life > P[1].life ? 0 : 1; log(s, `互いにダメージを与えられない：ライフの多い${pname(s.winner)}の勝利`, { t: 'win', pi: s.winner }); }
+    // 膠着したら、ライフに関係なく引き分け
+    s.draw = true; log(s, s.stall >= STALL_TURNS ? '互いにダメージを与えられない：引き分け' : '決着がつかない：引き分け', { t: 'tie' });
     return;
   }
   s.turn = 1 - s.turn;

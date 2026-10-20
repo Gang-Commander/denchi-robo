@@ -833,7 +833,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
   <div class="wrap rules">
     <div class="topbar"><span id="modeLabel2" style="font-family:var(--f-dot)">ルール・カード図鑑</span><button class="btn iconbtn" id="rulesBack">戻る</button></div>
     <h2>勝利条件</h2>
-    <p>お互いライフ15で開始。相手のライフを先に0にしたプレイヤーの勝ちです。両者の山札が尽き、どちらもダメージを与えられない状態が続いた場合はライフの多い方が勝ち（同じなら引き分け）です。</p>
+    <p>お互いライフ15で開始。相手のライフを先に0にしたプレイヤーの勝ちです。両者の山札が尽きたあと、どちらのライフも動かない手番が8回続いたら、ライフに関係なく引き分けです（120手番に達した時も引き分け）。</p>
     <h2>手番の流れ</h2>
     <ol>
       <li><b>メインフェイズ</b>：最初に山札から1枚引きます。その後、次の行動を<b>合計2回まで</b>好きな順に行います。
@@ -1023,7 +1023,7 @@ const RETIRED_IDS = [];
 const TOKEN_IDS = ['aniki','onemore'];
 const DECK_IDS = ROBO_IDS.concat(SPELL_IDS);
 const LIFE_MAX = 15, FIELD_MAX = 3, ACTIONS = 2;
-const STALL_TURNS = 8; // 両者の山札切れ後、この手番数ダメージが無ければ「互いにダメージを与えられない」とみなす
+const STALL_TURNS = 8; // 両者の山札切れ後、この手番数ライフが動かなければ「互いにダメージを与えられない」とみなし、引き分け
 
 function mulberry32(a) {
   return function () {
@@ -1355,8 +1355,8 @@ function endTurn(s) {
   }
   s.lifeSnap = snap;
   if (s.stall >= STALL_TURNS || s.turnNo >= 120) {
-    if (P[0].life === P[1].life) { s.draw = true; log(s, '互いにダメージを与えられない：引き分け', { t: 'tie' }); }
-    else { s.winner = P[0].life > P[1].life ? 0 : 1; log(s, `互いにダメージを与えられない：ライフの多い${pname(s.winner)}の勝利`, { t: 'win', pi: s.winner }); }
+    // 膠着したら、ライフに関係なく引き分け
+    s.draw = true; log(s, s.stall >= STALL_TURNS ? '互いにダメージを与えられない：引き分け' : '決着がつかない：引き分け', { t: 'tie' });
     return;
   }
   s.turn = 1 - s.turn;
