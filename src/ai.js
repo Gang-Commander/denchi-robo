@@ -14,6 +14,8 @@ const BASE_W = {
   souji: 0.3, magnet: 0.5, barrier: 0.5, bomb: 0.5, crane: 0.3, daruma: 0.4, heat: 1.0, megaton: 0.0,
   solar: 0.4, guard: 0.5, turbo: 0.0, recycle: 0.0,
   sniper: 1.5, rocket: 0.5, jammer: 1.0, kobun: 1.5,
+  // ローグライト用（初期値は手で決めたもの。tools/tune_rogue.js で調整する）
+  dynamo: 1.0, medic: 0.8, fortress: 0.8, drill: 0.4, reboot: 1.0, garakuta: 0.6, bakushin: 0.5, socket: 0.3, gigantOff: 1.5, wall: 1.0,
 };
 
 // ---------- 評価関数 ----------
@@ -38,16 +40,16 @@ function roboVal(y, w) {
     case 'jammer': v += (w.jammer ?? 1.0) * on; break;
     case 'kobun': v += (w.kobun ?? 1.5); break;
     // ローグライト用（手で決めた初期値。チューニングはまだ）
-    case 'dynamo': v += 1.0 * on; break;
-    case 'medic': v += 0.8 * on; break;
-    case 'fortress': v += 0.8 * on; break;
-    case 'drill': v += 0.4 * on; break;
-    case 'reboot': v += 1.0; break;
-    case 'garakuta': v += 0.6; break;
-    case 'bakushin': v += 0.5; break;
-    case 'socket': v += 0.3; break;
-    case 'gigant': if (!y.bat) v -= 1.5; break;
-    case 'wall': v -= 1.0; break;
+    case 'dynamo': v += (w.dynamo ?? 1.0) * on; break;
+    case 'medic': v += (w.medic ?? 0.8) * on; break;
+    case 'fortress': v += (w.fortress ?? 0.8) * on; break;
+    case 'drill': v += (w.drill ?? 0.4) * on; break;
+    case 'reboot': v += (w.reboot ?? 1.0); break;
+    case 'garakuta': v += (w.garakuta ?? 0.6); break;
+    case 'bakushin': v += (w.bakushin ?? 0.5); break;
+    case 'socket': v += (w.socket ?? 0.3); break;
+    case 'gigant': if (!y.bat) v -= (w.gigantOff ?? 1.5); break;
+    case 'wall': v -= (w.wall ?? 1.0); break;
   }
   return v;
 }
