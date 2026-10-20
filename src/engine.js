@@ -81,9 +81,9 @@ Object.assign(CARDS, {
   copy:    { id:'copy',    name:'コピーロボ',     kind:'robo', atk:0, max:1, eff:'const', rare:true, text:'【常時】このロボを起動した時、場のロボを1体選ぶ。このロボの元の攻撃力は、その時のそのロボの攻撃力（修正込み）になる。',
              deployPick:{ side:'any', optional:true, prompt:'コピーするロボを選ぶ', none:'' } },
   // 基本カード（ランの最初のデッキ用）
-  normal:  { id:'normal',  name:'ノーマルロボ',   kind:'robo', atk:2, max:2, eff:'none', text:'効果なし。' },
-  mini:    { id:'mini',    name:'ミニロボ',       kind:'robo', atk:1, max:2, eff:'none', enterBat:1, text:'効果なし。' },
-  garakuta:{ id:'garakuta',name:'ガラクタロボ',   kind:'robo', atk:2, max:1, eff:'const', text:'【常時】このロボが破壊された時、山札を1枚引く。' },
+  normal:  { id:'normal',  name:'ノーマルロボ',   kind:'robo', atk:2, max:3, eff:'const', onAttack:{ atk:1 }, text:'【常時】このロボが攻撃した時、その戦闘の間、攻撃力+1。' },
+  mini:    { id:'mini',    name:'ミニロボ',       kind:'robo', atk:1, max:3, eff:'none', enterBat:1, text:'効果なし。' },
+  garakuta:{ id:'garakuta',name:'ガラクタロボ',   kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボが破壊された時、山札を1枚引く。' },
   drycell: { id:'drycell', name:'乾電池',         kind:'spell', text:'自分のロボを1体選び、電池を1本入れる。',
              pick:{ side:'own', cond:'room', prompt:'電池を入れる自分のロボを選ぶ', none:'電池を入れられる自分のロボがいません' } },
   static:  { id:'static',  name:'静電気',         kind:'spell', text:'相手の電池が入ったロボを1体選び、電池を1本外す。',

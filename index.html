@@ -966,7 +966,7 @@ Object.assign(CARDS, {
   medic:   { id:'medic',   name:'メディックロボ', kind:'robo', atk:2, max:2, eff:'release', enterBat:1, text:'【放電】自分のライフを2回復する（上限を超えてよい）。' },
   fortress:{ id:'fortress',name:'フォートレスロボ', kind:'robo', atk:3, max:2, eff:'powered', rare:true, text:'【通電中】自分の別のロボが戦闘で破壊される時、代わりにそのロボの電池を1本外す。' },
   // 暴走
-  bakushin:{ id:'bakushin',name:'バクシンロボ',   kind:'robo', atk:2, max:1, eff:'const', enterBat:1, text:'【常時】このロボが攻撃した時、戦闘の前に相手に1ダメージを与える。' },
+  bakushin:{ id:'bakushin',name:'バクシンロボ',   kind:'robo', atk:2, max:1, eff:'const', enterBat:1, onAttack:{ ping:1 }, text:'【常時】このロボが攻撃した時、戦闘の前に相手に1ダメージを与える。' },
   kajiba:  { id:'kajiba',  name:'カジバロボ',     kind:'robo', atk:2, max:2, eff:'const', text:'【常時】自分のライフが5以下の間、このロボの攻撃力+3。' },
   runaway: { id:'runaway', name:'暴走プログラム', kind:'spell', text:'自分のロボを1体選ぶ。この手番の間、そのロボの攻撃力+2。自分は2ダメージを受ける。',
              pick:{ side:'own', prompt:'暴走させる自分のロボを選ぶ（攻撃力+2）', none:'自分の場にロボがいません' } },
@@ -985,9 +985,9 @@ Object.assign(CARDS, {
   copy:    { id:'copy',    name:'コピーロボ',     kind:'robo', atk:0, max:1, eff:'const', rare:true, text:'【常時】このロボを起動した時、場のロボを1体選ぶ。このロボの元の攻撃力は、その時のそのロボの攻撃力（修正込み）になる。',
              deployPick:{ side:'any', optional:true, prompt:'コピーするロボを選ぶ', none:'' } },
   // 基本カード（ランの最初のデッキ用）
-  normal:  { id:'normal',  name:'ノーマルロボ',   kind:'robo', atk:2, max:2, eff:'none', text:'効果なし。' },
-  mini:    { id:'mini',    name:'ミニロボ',       kind:'robo', atk:1, max:2, eff:'none', enterBat:1, text:'効果なし。' },
-  garakuta:{ id:'garakuta',name:'ガラクタロボ',   kind:'robo', atk:2, max:1, eff:'const', text:'【常時】このロボが破壊された時、山札を1枚引く。' },
+  normal:  { id:'normal',  name:'ノーマルロボ',   kind:'robo', atk:2, max:3, eff:'const', onAttack:{ atk:1 }, text:'【常時】このロボが攻撃した時、その戦闘の間、攻撃力+1。' },
+  mini:    { id:'mini',    name:'ミニロボ',       kind:'robo', atk:1, max:3, eff:'none', enterBat:1, text:'効果なし。' },
+  garakuta:{ id:'garakuta',name:'ガラクタロボ',   kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボが破壊された時、山札を1枚引く。' },
   drycell: { id:'drycell', name:'乾電池',         kind:'spell', text:'自分のロボを1体選び、電池を1本入れる。',
              pick:{ side:'own', cond:'room', prompt:'電池を入れる自分のロボを選ぶ', none:'電池を入れられる自分のロボがいません' } },
   static:  { id:'static',  name:'静電気',         kind:'spell', text:'相手の電池が入ったロボを1体選び、電池を1本外す。',
@@ -1537,6 +1537,7 @@ function resolveSpell(s, pi, card, ch) {
   ch = ch || {};
   log(s, `${pname(pi)}は${cname(card)}を発動した`, { t: 'spell', pi, id: card.id });
   s.resolving = true; s.deferred = [];
+  if (CARDS[card.id].burn) damage(s, 1 - pi, CARDS[card.id].burn, cname(card)); // 相手に直接ダメージ（カード定義の burn）
   switch (card.id) {
     case 'ebattery': {
       let n = 0;
@@ -1801,7 +1802,10 @@ function resolveBattle(s) {
 // 戦闘の前の効果（バクシン・ドリル・ロケット点火）。決着が付いたら true
 function preBattle(s, A, T, p) {
   const pi = s.turn, di = 1 - pi;
-  if (A.id === 'bakushin') { log(s, 'バクシンロボの突撃', { t: 'bakushin', uid: A.uid }); damage(s, di, 1, 'バクシンロボ'); if (isOver(s)) return true; }
+  // 攻撃した時の効果（カード定義の onAttack）：ping＝相手にダメージ、atk＝この戦闘の間の攻撃力
+  const oa = CARDS[A.id].onAttack;
+  if (oa && oa.ping) { log(s, `${cname(A)}の突撃`, { t: 'bakushin', uid: A.uid }); damage(s, di, oa.ping, cname(A)); if (isOver(s)) return true; }
+  if (oa && oa.atk) A.rboost = (A.rboost || 0) + oa.atk;
   if (T && A.id === 'drill' && A.bat > 0 && T.bat > 0 && !immuneFrom(T, s, pi)) {
     T.bat--; log(s, `ドリルロボが${cname(T)}の電池を1本外した`, { t: 'short', uid: T.uid, n: 1 });
   }
@@ -2006,6 +2010,7 @@ function spellChoices(s, pi, id) {
     case 'hack': return P.field.length >= 3 ? [] : E.hackCandidates(s, pi).map(y => ({ target: y.uid }));
     case 'limiter': return E.allField(s).filter(y => !E.immuneFrom(y, s, pi)).map(y => ({ target: y.uid }));
     case 'overload': return [{}];
+    default: if (CARDS[id].burn) return [{}];
   }
   return [];
 }

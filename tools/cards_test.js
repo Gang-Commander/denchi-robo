@@ -66,7 +66,7 @@ const err = (s, a) => E.checkAction(s, a);
   E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: F(s, 0, 0).uid });
   E.respond(s, { ch: { target: F(s, 0, 0).uid } });
   ok(s.players[0].field.length === 0 && s.players[0].hand.some(c => c.id === 'heat') && L(s, 0) === 15, 'warp cancels attack'); }
-{ const s = board([{ id: 'normal', bat: 2 }], []); const u = hand(s, 0, 'batpack'); deck(s, 0, ['normal']);
+{ const s = board([{ id: 'normal', bat: 3 }], []); const u = hand(s, 0, 'batpack'); deck(s, 0, ['normal']);
   ok(!err(s, { t: 'play', uid: u, ch: {} }), 'batpack ok w/o target when full'); play(s, u, {}); ok(s.players[0].hand.length === 1, 'batpack draws'); }
 { const s = board([], [{ id: 'turbo', bat: 3 }]); const u = hand(s, 0, 'leak'); play(s, u, { target: F(s, 1, 0).uid }); ok(F(s, 1, 0).bat === 0, 'leak all'); }
 { const s = board([], [{ id: 'turbo', bat: 2 }]); const u = hand(s, 0, 'copy'); // turbo 6

@@ -11,7 +11,9 @@ for (let i = 0; i < N; i++) {
   const reward = () => {
     const pick = run.offer.slice().sort(() => rng() - 0.5).slice(0, Math.min(run.need, run.offer.length));
     R.takeCards(run, pick);
-    let idx = run.deck.findIndex(id => CARDS_basic(id)); if (idx < 0) idx = 0;
+    // 抜くのは基本カードからランダム（相手のデッキの作り方とそろえる）
+    const bi = run.deck.map((id, i) => CARDS_basic(id) ? i : -1).filter(i => i >= 0);
+    const idx = bi.length ? bi[Math.floor(rng() * bi.length)] : 0;
     R.removeCard(run, idx);
   };
   reward(); // ラン開始時の1枚
