@@ -7,7 +7,7 @@ const play = (s, uid, ch) => E.apply(s, { t: 'play', uid, ch });
 const L = (s, pi) => s.players[pi].life;
 const err = (s, a) => E.checkAction(s, a);
 
-{ const s = board([{ id: 'charge', bat: 2 }], []); ok(E.atkOf(F(s, 0, 0)) === 4, 'charge 2+2'); F(s, 0, 0).bat = 3; ok(E.atkOf(F(s, 0, 0)) === 7, 'charge full +2'); }
+{ const s = board([{ id: 'charge', bat: 1 }], []); ok(E.atkOf(F(s, 0, 0)) === 3, 'charge 2+1'); F(s, 0, 0).bat = 2; ok(E.atkOf(F(s, 0, 0)) === 6, 'charge full +2'); }
 { const s = board([{ id: 'dynamo', bat: 1 }, { id: 'normal', bat: 0 }], []);
   ok(!!err(s, { t: 'release', src: F(s, 0, 0).uid, ch: { target: F(s, 0, 0).uid } }), 'dynamo cannot target self');
   E.apply(s, { t: 'release', src: F(s, 0, 0).uid, ch: { target: F(s, 0, 1).uid } });
@@ -52,7 +52,7 @@ const err = (s, a) => E.checkAction(s, a);
   play(s, u, { target: F(s, 1, 0).uid }); ok(F(s, 1, 0).dmg === 3 && E.atkOf(F(s, 1, 0)) === 1 && L(s, 0) === 13, 'spark 3 dmg robo, self 2'); }
 { const s = board([], []); const u = hand(s, 0, 'spark'); play(s, u, { target: 'player' }); ok(L(s, 1) === 12, 'spark to player'); }
 { const s = board([], []); const u = hand(s, 0, 'overload'); play(s, u, {}); ok(s.actions === 3, 'overload +2 actions (1 used)');
-  E.apply(s, { t: 'end' }); ok(L(s, 0) === 10, 'overload 5 at end'); }
+  E.apply(s, { t: 'end' }); ok(L(s, 0) === 11, 'overload 4 at end'); }
 { const s = board([{ id: 'rocket', bat: 0 }], [{ id: 'heat', bat: 1 }]); // 1+5=6 vs 5
   E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null, true);
   ok(s.players[1].field.length === 0 && L(s, 0) === 11 && L(s, 1) === 14, 'rocket boost: win, self 4, opp 1'); }
@@ -83,4 +83,7 @@ const err = (s, a) => E.checkAction(s, a);
   ok(!!err(s, { t: 'play', uid: u, ch: { target: F(s, 0, 0).uid } }), 'jammer blocks own actions too'); }
 { const s = E.newGame(E.mulberry32(3), 0, { decks: [E.BASIC_DECK, E.BASIC_DECK], lives: [7, 7] });
   ok(s.players[0].life === 7 && s.players[0].deck.length + s.players[0].hand.length === 10, 'newGame custom deck'); E.invariant(s); }
+{ const s = board([{ id: 'gigant', bat: 1 }], [{ id: 'normal', bat: 0 }]);
+  E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(F(s, 0, 0).bat === 0 && s.players[1].field.length === 0, 'gigant spends battery after attack'); }
+{ const s = board([{ id: 'gigant', bat: 1 }], []); E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(F(s, 0, 0).bat === 0 && s.players[1].life === 8, 'gigant direct 7 then battery off'); }
 done();

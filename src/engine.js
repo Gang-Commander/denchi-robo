@@ -42,10 +42,10 @@ const CARDS = {
 //   zone: 'scrap'＝自分のスクラップのロボから選ぶ
 Object.assign(CARDS, {
   // 充電
-  charge:  { id:'charge',  name:'チャージロボ',   kind:'robo', atk:2, max:3, eff:'const', kw:['full'], text:'【満充電】このロボの攻撃力+2。' },
+  charge:  { id:'charge',  name:'チャージロボ',   kind:'robo', atk:2, max:2, eff:'const', kw:['full'], text:'【満充電】このロボの攻撃力+2。' },
   dynamo:  { id:'dynamo',  name:'ダイナモロボ',   kind:'robo', atk:2, max:2, eff:'release', text:'【放電】自分の別のロボを1体選び、電池を2本入れる。',
              pick:{ side:'own', cond:'room', notSelf:true, prompt:'電池を2本入れる自分のロボを選ぶ', none:'電池を入れられる自分の別のロボがいません' } },
-  gigant:  { id:'gigant',  name:'ギガントロボ',   kind:'robo', atk:6, max:1, eff:'const', rare:true, text:'【常時】電池が入っていない間、このロボは攻撃できない。' },
+  gigant:  { id:'gigant',  name:'ギガントロボ',   kind:'robo', atk:6, max:1, eff:'const', rare:true, afterAttackBat:1, text:'【常時】電池が入っていない間、このロボは攻撃できない。このロボが攻撃したら、戦闘のあとで電池を1本外す。' },
   // 解体
   drill:   { id:'drill',   name:'ドリルロボ',     kind:'robo', atk:3, max:2, eff:'powered', text:'【通電中】このロボが攻撃した時、戦闘の前に相手のロボの電池を1本外す。' },
   hammer:  { id:'hammer',  name:'ハンマー',       kind:'spell', text:'攻撃力3以下のロボを1体選び、破壊する。',
@@ -68,7 +68,7 @@ Object.assign(CARDS, {
              pick:{ side:'own', prompt:'暴走させる自分のロボを選ぶ（攻撃力+2）', none:'自分の場にロボがいません' } },
   spark:   { id:'spark',   name:'スパークボム',   kind:'spell', text:'自分は2ダメージを受ける。相手か、ロボを1体選び、3ダメージを与える。',
              pick:{ side:'any', player:true, prompt:'3ダメージを与えるロボを選ぶ', none:'' } },
-  overload:{ id:'overload',name:'オーバーロード', kind:'spell', rare:true, text:'この手番の行動を2回増やす。手番終了時、自分は5ダメージを受ける。' },
+  overload:{ id:'overload',name:'オーバーロード', kind:'spell', rare:true, text:'この手番の行動を2回増やす。手番終了時、自分は4ダメージを受ける。' },
   // 共通
   scout:   { id:'scout',   name:'スカウトロボ',   kind:'robo', atk:1, max:1, eff:'const', enterBat:1, text:'【常時】このロボを起動した時、山札を1枚引く。' },
   socket:  { id:'socket',  name:'ソケットロボ',   kind:'robo', atk:1, max:4, eff:'const', text:'【常時】このロボに「電池を入れる」行動をした時、電池が2本入る。' },
@@ -719,8 +719,8 @@ function resolveSpell(s, pi, card, ch) {
       break;
     }
     case 'overload': {
-      s.actions += 2; (s.eotDmg = s.eotDmg || []).push({ pi, n: 5 });
-      log(s, `${pname(pi)}の行動が2回増えた（手番終了時に5ダメージ）`, { t: 'extraact', pi });
+      s.actions += 2; (s.eotDmg = s.eotDmg || []).push({ pi, n: 4 });
+      log(s, `${pname(pi)}の行動が2回増えた（手番終了時に4ダメージ）`, { t: 'extraact', pi });
       break;
     }
     case 'warp': {
@@ -866,7 +866,7 @@ function resolveBattle(s) {
   const A = af.y;
   if (tgt === 'player') {
     if (preBattle(s, A, null, p)) return;
-    log(s, '', { t: 'direct', att: A.uid, pi: di }); damage(s, di, atkOf(A), '直接攻撃'); delete A.rboost; return;
+    log(s, '', { t: 'direct', att: A.uid, pi: di }); damage(s, di, atkOf(A), '直接攻撃'); delete A.rboost; afterAttack(s, A); return;
   }
   const tf = findRobo(s, tgt);
   if (!tf || tf.pi !== di) { log(s, '攻撃対象がいなくなり、攻撃は中止された', { t: 'cancel' }); return; }
@@ -890,10 +890,18 @@ function resolveBattle(s) {
     if (k2 && dRok) { log(s, 'クレーンロボの効果', { t: 'crane' }); drawCards(s, di, 1); }
   }
   delete A.rboost; delete T.rboost;
+  afterAttack(s, A);
   sweepDeaths(s);
   // ボムロボは対象を選ばない効果なので、バリアロボにも効く
   if (aCho && findRobo(s, T.uid)) s.eot.push(T.uid);
   if (dCho && findRobo(s, A.uid)) s.eot.push(A.uid);
+}
+// 攻撃のあとの効果（カード定義の afterAttackBat＝攻撃するたびに電池を外す：ギガントロボ）
+function afterAttack(s, A) {
+  const n = CARDS[A.id].afterAttackBat;
+  if (!n || isOver(s) || !findRobo(s, A.uid) || A.bat <= 0) return;
+  const k = Math.min(n, A.bat); A.bat -= k;
+  log(s, `${cname(A)}は電池を${k}本使った`, { t: 'short', uid: A.uid, n: k });
 }
 // 戦闘の前の効果（バクシン・ドリル・ロケット点火）。決着が付いたら true
 function preBattle(s, A, T, p) {
