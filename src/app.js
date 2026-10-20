@@ -1454,8 +1454,8 @@ function renderRun() {
     <div class="runsteps">${steps}</div><p>あなたのテーマ：${r.themes.map(themeChip).join('')}${themeChip('common')}</p>`;
   let main = '';
   if (r.phase === 'battle') {
-    const opp = Run.oppDeck(r, r.round), hard = r.round >= Run.HARD_FROM;
-    main = `<div class="runbox"><h3>次の相手</h3><p>${themeChip(opp.theme)}デッキ（CPU：${hard ? 'つよい' : 'ふつう'}・ライフ${Run.lifeFor(r.round)}・${opp.deck.length}枚）</p>
+    const opp = Run.oppDeck(r, r.round), cpu = DIFF[Run.cpuFor(r.round)].label;
+    main = `<div class="runbox"><h3>次の相手</h3><p>${themeChip(opp.theme)}デッキ（CPU：${cpu}・ライフ${Run.lifeFor(r.round)}・${opp.deck.length}枚）</p>
       <div class="row"><button class="btn primary" id="runFight">対戦する</button></div></div>
       <div class="runbox"><h3>あなたのデッキ（${r.deck.length}枚）</h3><p class="sub">タップでカードの説明</p>${deckChips(r.deck)}</div>
       <div class="row"><button class="btn ghost danger" id="runQuit">このランをあきらめる</button></div>`;
@@ -1508,7 +1508,7 @@ function renderRun() {
 }
 function startRunBattle() {
   const r = RUN, opp = Run.oppDeck(r, r.round), L = Run.lifeFor(r.round);
-  const diff = r.round >= Run.HARD_FROM ? 'hard' : 'normal';
+  const diff = Run.cpuFor(r.round);
   const rng = E.mulberry32((Math.random() * 2 ** 31) | 0);
   const first = Math.random() < 0.5 ? 0 : 1;
   const s = E.newGame(rng, first, { decks: [r.deck, opp.deck], lives: [L, L] });

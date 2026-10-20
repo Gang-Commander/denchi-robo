@@ -14,7 +14,9 @@ const TAKE = 3;            // 候補から取る数
 const START_OFFER = 3, START_TAKE = 1; // ラン開始時：候補3枚から1枚取って、1枚抜く
 const RARE_WEIGHT = 0.35;  // レアの出やすさ（ふつう＝1）
 const OPP_EXTRA = 1;       // 相手のデッキは、同じ回戦の自分よりテーマのカードがこの枚数だけ多い
-const HARD_FROM = 4;       // この回戦から、相手は「つよい」CPU
+// 回戦ごとの相手のCPU（app.js の DIFF のキー）：第1戦よわい、第2・3戦ふつう、第4・5戦つよい
+const CPU_BY_ROUND = ['easy', 'normal', 'normal', 'hard', 'hard'];
+function cpuFor(round) { return CPU_BY_ROUND[Math.min(round, CPU_BY_ROUND.length) - 1]; }
 const THEME_KEYS = Object.keys(THEMES).filter(k => k !== 'common');
 
 // ---------- 乱数（状態を run に持つ） ----------
@@ -103,6 +105,6 @@ function deckSummary(deck) {
   }).map(id => ({ id, n: cnt[id] }));
 }
 
-const api = { START_OFFER, START_TAKE, OPP_EXTRA, HARD_FROM, ROUNDS, START_LIFE, LIFE_STEP, OFFER, TAKE, RARE_WEIGHT, THEME_KEYS, newRun, lifeFor, rewardPool, oppDeck, finishBattle, takeCards, removeCard, deckSummary, weightedPick };
+const api = { START_OFFER, START_TAKE, OPP_EXTRA, CPU_BY_ROUND, cpuFor, ROUNDS, START_LIFE, LIFE_STEP, OFFER, TAKE, RARE_WEIGHT, THEME_KEYS, newRun, lifeFor, rewardPool, oppDeck, finishBattle, takeCards, removeCard, deckSummary, weightedPick };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Run = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -21,7 +21,7 @@ for (let i = 0; i < N; i++) {
     const r = run.round, opp = R.oppDeck(run, r), L = R.lifeFor(r);
     const first = rng() < 0.5 ? 0 : 1;
     const s = E.newGame(rng, first, { log: false, decks: [run.deck, opp.deck], lives: [L, L] });
-    const oppW = r < R.HARD_FROM ? AI.BASE_W : T;
+    const oppW = r < 4 ? AI.BASE_W : T; // 検証は第1〜3戦ふつう・第4・5戦つよいで固定（実際のゲームは R.cpuFor）
     let k = 0;
     while (!E.isOver(s) && k++ < 400) {
       const a = AI.chooseAction(s, { rng, w: s.turn === 0 ? AI.BASE_W : oppW }) || { t: 'end' };
