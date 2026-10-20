@@ -653,7 +653,7 @@ function gatherSpell(id, casterPi, cb, cancel) {
   if (CARDS[id].pick) return gatherPick(CARDS[id].pick, casterPi, null, cb, cancel);
   switch (id) {
     case 'overload': return cb({});
-    case 'onemore': return cb({});
+    case 'onemore': case 'emp': return cb({});
     case 'manual': {
       const ok = E.maintTargets(s, casterPi);
       if (!ok.length) return cb({});
@@ -670,7 +670,7 @@ function gatherSpell(id, casterPi, cb, cancel) {
     case 'short': {
       const ok = all.filter(y => y.bat > 0 && !E.immuneFrom(y, s, casterPi));
       if (!ok.length) { toast('電池が入ったロボがいません'); return cancel && cancel(); }
-      return startSel({ prompt: '電池を外すロボを選ぶ（2体まで）', valid: new Set(ok.map(y => y.uid)), max: Math.min(2, ok.length), min: 1, onDone: p => cb({ targets: p }), onCancel: cancel });
+      return startSel({ prompt: '電池を外すロボを選ぶ（2体まで・外した本数だけダメージ）', valid: new Set(ok.map(y => y.uid)), max: Math.min(2, ok.length), min: 1, onDone: p => cb({ targets: p }), onCancel: cancel });
     }
     case 'thunder': {
       const c = E.thunderCandidates(s, casterPi);

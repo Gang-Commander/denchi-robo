@@ -18,9 +18,9 @@ const err = (s, a) => E.checkAction(s, a);
 { const s = board([{ id: 'drill', bat: 1 }], [{ id: 'daruma', bat: 1 }]); // 4 vs 4 → drill removes 1 → 4 vs 3
   E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null);
   ok(s.players[1].field.length === 0 && s.players[0].field.length === 1, 'drill strips battery before battle'); }
-{ const s = board([], [{ id: 'heat', bat: 0 }, { id: 'normal', bat: 1 }]); const u = hand(s, 0, 'hammer');
-  ok(!!err(s, { t: 'play', uid: u, ch: { target: F(s, 1, 0).uid } }), 'hammer: atk4 not allowed');
-  play(s, u, { target: F(s, 1, 1).uid }); ok(s.players[1].field.length === 1, 'hammer destroys atk<=3'); }
+{ const s = board([], [{ id: 'heat', bat: 1 }, { id: 'normal', bat: 1 }]); const u = hand(s, 0, 'hammer');
+  ok(!!err(s, { t: 'play', uid: u, ch: { target: F(s, 1, 0).uid } }), 'hammer: atk5 not allowed');
+  play(s, u, { target: F(s, 1, 1).uid }); ok(s.players[1].field.length === 1, 'hammer destroys atk<=4'); }
 { const s = board([{ id: 'reboot', bat: 1 }], []); E.destroy ? 0 : 0;
   const u = hand(s, 0, 'parts'); deck(s, 0, ['normal', 'normal', 'normal', 'normal']);
   play(s, u, { target: F(s, 0, 0).uid });
@@ -99,4 +99,11 @@ const err = (s, a) => E.checkAction(s, a);
 { const s = board([], []); const u = hand(s, 0, 'junk'); ok(!!err(s, { t: 'play', uid: u, ch: {} }), 'junk needs something in scrap'); }
 { const s = board([{ id: 'turbo', bat: 2 }, { id: 'normal', bat: 0 }], []); deck(s, 0, ['normal', 'normal', 'normal']); const u = hand(s, 0, 'parts');
   play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).id === 'normal' && F(s, 0, 0).bat === 2, 'parts salvages batteries'); }
+{ const s = board([], [{ id: 'turbo', bat: 3 }, { id: 'normal', bat: 1 }]); const u = hand(s, 0, 'short');
+  play(s, u, { targets: [F(s, 1, 0).uid, F(s, 1, 1).uid] });
+  ok(s.players[1].field.length === 1 && F(s, 1, 0).id === 'normal' && F(s, 1, 0).dmg === 1 && E.atkOf(F(s, 1, 0)) === 1, 'short: turbo(3) dies, normal(1) takes 1'); }
+{ const s = board([], [{ id: 'barrier', bat: 1 }, { id: 'turbo', bat: 2 }, { id: 'heat', bat: 0 }]); const u = hand(s, 0, 'emp'); play(s, u, {});
+  ok(F(s, 1, 0).bat === 0 && F(s, 1, 1).bat === 1 && F(s, 1, 2).bat === 0, 'emp: -1 each, barrier too'); }
+{ const s = board([], [{ id: 'heat', bat: 0 }, { id: 'turbo', bat: 1 }]); const u = hand(s, 0, 'hammer');
+  ok(!err(s, { t: 'play', uid: u, ch: { target: F(s, 1, 0).uid } }) && !err(s, { t: 'play', uid: u, ch: { target: F(s, 1, 1).uid } }), 'hammer: atk4 ok'); }
 done();
