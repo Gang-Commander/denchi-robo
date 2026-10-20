@@ -341,6 +341,16 @@ function destroy(s, uid, byBattle) {
 }
 // 場を離れたカードから、場にいる間だけの状態を消す
 function resetCard(y) { delete y.lim; delete y.home; delete y.boost; delete y.rboost; delete y.dmg; delete y.copyAtk; delete y.rage; }
+// 電池を、自分の場のロボへ攻撃力の高い順（同値は左から）に上限まで移す
+function batPass(s, pi, fromUid, n, label) {
+  const order = s.players[pi].field.map((y, i) => ({ y, i })).sort((a, b) => atkOf(b.y) - atkOf(a.y) || a.i - b.i);
+  let moved = 0;
+  for (const { y } of order) {
+    while (n > 0 && y.bat < CARDS[y.id].max) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
+    if (n <= 0) break;
+  }
+  if (moved) log(s, `${label}が${moved}本、味方のロボに移った`, { t: 'solarpass', pi, n: moved });
+}
 // ソーラーロボの遺言：残っていた電池を、同じ場のロボへ攻撃力の高い順（同値は左から）に上限まで移す
 function solarPass(s, pi, fromUid, n) {
   const order = s.players[pi].field.map((y, i) => ({ y, i })).sort((a, b) => atkOf(b.y) - atkOf(a.y) || a.i - b.i);
@@ -696,7 +706,12 @@ function resolveSpell(s, pi, card, ch) {
     }
     case 'parts': {
       const t = findRobo(s, ch.target);
-      if (t && t.pi === pi) destroy(s, t.y.uid, false);
+      if (t && t.pi === pi) {
+        const bat = t.y.bat, uid = t.y.uid;
+        destroy(s, uid, false);
+        // salvage：壊したロボの電池を、自分の場のロボへ移す（攻撃力の高い順）
+        if (CARDS.parts.salvage && bat > 0) batPass(s, pi, uid, bat, '部品取りで外した電池');
+      }
       drawCards(s, pi, 3);
       break;
     }
@@ -756,6 +771,7 @@ function resolveSpell(s, pi, card, ch) {
       break;
     }
   }
+  if (CARDS[card.id].draw) drawCards(s, pi, CARDS[card.id].draw); // 追加で引く（カード定義の draw）
   card.bat = 0; s.players[card.owner].scrap.push(card);
   sweepDeaths(s);
   // アクションの処理が終わってから、途中で起きた起動時効果を処理する

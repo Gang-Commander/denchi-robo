@@ -2,6 +2,8 @@
 // 使い方: node tools/rogue_balance.js <seed> <対戦数> <出力.json>   環境変数 TUNED=重みファイル（省略時は「ふつう」の重み）
 // 各対戦：回戦 r を1〜5から一様に選び、自分側はランダムに報酬を取って r 回戦まで進めたデッキ、相手は oppDeck(run, r)。両者同じCPU。
 const E = require('../src/engine.js'), AI = require('../src/ai.js'), R = require('../src/run.js'), fs = require('fs');
+// VARIANT=試案ファイル（CARDS を書き換える関数を export）で、変更前に効果を測れる
+if (process.env.VARIANT) require(require('path').resolve(process.env.VARIANT))(E);
 const W = process.env.TUNED ? JSON.parse(fs.readFileSync(process.env.TUNED)).w : AI.BASE_W;
 const [seed0, N, out] = [+process.argv[2], +process.argv[3], process.argv[4]];
 const isBasic = id => E.CARDS[id].theme === 'basic';
