@@ -164,6 +164,7 @@ function spellChoices(s, pi, id) {
     case 'hack': return P.field.length >= 3 ? [] : E.hackCandidates(s, pi).map(y => ({ target: y.uid }));
     case 'limiter': return E.allField(s).filter(y => !E.immuneFrom(y, s, pi)).map(y => ({ target: y.uid }));
     case 'overload': return [{}];
+    default: if (CARDS[id].burn) return [{}];
   }
   return [];
 }

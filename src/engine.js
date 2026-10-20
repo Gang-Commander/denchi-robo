@@ -62,7 +62,7 @@ Object.assign(CARDS, {
   medic:   { id:'medic',   name:'メディックロボ', kind:'robo', atk:2, max:2, eff:'release', enterBat:1, text:'【放電】自分のライフを2回復する（上限を超えてよい）。' },
   fortress:{ id:'fortress',name:'フォートレスロボ', kind:'robo', atk:3, max:2, eff:'powered', rare:true, text:'【通電中】自分の別のロボが戦闘で破壊される時、代わりにそのロボの電池を1本外す。' },
   // 暴走
-  bakushin:{ id:'bakushin',name:'バクシンロボ',   kind:'robo', atk:2, max:1, eff:'const', enterBat:1, text:'【常時】このロボが攻撃した時、戦闘の前に相手に1ダメージを与える。' },
+  bakushin:{ id:'bakushin',name:'バクシンロボ',   kind:'robo', atk:2, max:1, eff:'const', enterBat:1, onAttack:{ ping:1 }, text:'【常時】このロボが攻撃した時、戦闘の前に相手に1ダメージを与える。' },
   kajiba:  { id:'kajiba',  name:'カジバロボ',     kind:'robo', atk:2, max:2, eff:'const', text:'【常時】自分のライフが5以下の間、このロボの攻撃力+3。' },
   runaway: { id:'runaway', name:'暴走プログラム', kind:'spell', text:'自分のロボを1体選ぶ。この手番の間、そのロボの攻撃力+2。自分は2ダメージを受ける。',
              pick:{ side:'own', prompt:'暴走させる自分のロボを選ぶ（攻撃力+2）', none:'自分の場にロボがいません' } },
@@ -633,6 +633,7 @@ function resolveSpell(s, pi, card, ch) {
   ch = ch || {};
   log(s, `${pname(pi)}は${cname(card)}を発動した`, { t: 'spell', pi, id: card.id });
   s.resolving = true; s.deferred = [];
+  if (CARDS[card.id].burn) damage(s, 1 - pi, CARDS[card.id].burn, cname(card)); // 相手に直接ダメージ（カード定義の burn）
   switch (card.id) {
     case 'ebattery': {
       let n = 0;
@@ -897,7 +898,10 @@ function resolveBattle(s) {
 // 戦闘の前の効果（バクシン・ドリル・ロケット点火）。決着が付いたら true
 function preBattle(s, A, T, p) {
   const pi = s.turn, di = 1 - pi;
-  if (A.id === 'bakushin') { log(s, 'バクシンロボの突撃', { t: 'bakushin', uid: A.uid }); damage(s, di, 1, 'バクシンロボ'); if (isOver(s)) return true; }
+  // 攻撃した時の効果（カード定義の onAttack）：ping＝相手にダメージ、atk＝この戦闘の間の攻撃力
+  const oa = CARDS[A.id].onAttack;
+  if (oa && oa.ping) { log(s, `${cname(A)}の突撃`, { t: 'bakushin', uid: A.uid }); damage(s, di, oa.ping, cname(A)); if (isOver(s)) return true; }
+  if (oa && oa.atk) A.rboost = (A.rboost || 0) + oa.atk;
   if (T && A.id === 'drill' && A.bat > 0 && T.bat > 0 && !immuneFrom(T, s, pi)) {
     T.bat--; log(s, `ドリルロボが${cname(T)}の電池を1本外した`, { t: 'short', uid: T.uid, n: 1 });
   }
