@@ -960,7 +960,7 @@ Object.assign(CARDS, {
              pick:{ side:'own', prompt:'部品を取る（破壊する）自分のロボを選ぶ', none:'自分の場にロボがいません' } },
   junk:    { id:'junk',    name:'ジャンク回収',   kind:'spell', text:'自分のスクラップから、ロボを1枚とアクションを1枚選び、手札に戻す（ワンモアは除く）。' },
   gattai:  { id:'gattai',  name:'ガッタイロボ',   kind:'robo', atk:3, max:3, eff:'const', rare:true, text:'【常時】このロボを起動した時、自分のスクラップにあるロボの数だけ、このロボに電池を入れる。' },
-  press:   { id:'press',   name:'プレスロボ',     kind:'robo', atk:4, max:1, eff:'const', text:'【常時】このロボを起動した時、お互いに、自分の場で攻撃力が一番低いロボを1体破壊する（このロボも含む。同じなら左のロボ。選ばない効果）。' },
+  press:   { id:'press',   name:'プレスロボ',     kind:'robo', atk:4, max:1, eff:'const', rare:true, text:'【常時】このロボを起動した時、お互いに、自分の場で攻撃力が一番低いロボを1体破壊する（このロボも含む。同じなら左のロボ。選ばない効果）。' },
   proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'normal', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を1枚出す（新しく出たカードは、そのあと普通のカードとして扱う）。' },
   // 防衛
   wall:    { id:'wall',    name:'ウォールロボ',   kind:'robo', atk:5, max:0, eff:'const', text:'【常時】このロボは攻撃できない。' },
