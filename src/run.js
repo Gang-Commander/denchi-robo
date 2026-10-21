@@ -18,7 +18,6 @@ const TAKE = 3;            // 候補から取る数
 const START_OFFER = 3, START_TAKE = 1; // ラン開始時：候補3枚から1枚取って、1枚抜く
 const RARE_WEIGHT = 0.35;  // レアの出やすさ（ふつう＝1）
 const OPP_EXTRA = 1;       // 相手のデッキは、同じ回戦の自分よりテーマのカードがこの枚数だけ多い
-const EVENT_CHOICES = 2;   // イベントの候補の数（どちらも選ばない＝スキップも可）
 // 回戦ごとの相手のCPU（app.js の DIFF のキー）：第1戦よわい、第2・3戦ふつう、第4・5戦つよい
 const CPU_BY_ROUND = ['easy', 'normal', 'normal', 'hard', 'hard'];
 const CPU_LADDER = ['easy', 'normal', 'hard'];
@@ -100,6 +99,21 @@ const EVENTS = {
   branch:    { kind: 'F', name: '分かれ道', text: '次の相手を、2つのテーマから選ぶ。', ok: r => r.nextRound < ROUNDS,
                apply: r => { const later = r.oppThemes.slice(r.nextRound); front(r, { t: 'branch', options: [r.oppThemes[r.nextRound - 1], later[Math.floor(rand(r) * later.length)]] }); } },
 };
+// 強いイベント（出にくい）：1つの文にだけ入れる。それ以外は弱いイベント（出やすい）：複数の文に入れる
+const STRONG = ['rareShop', 'modShop', 'copy', 'spare', 'armor', 'bench', 'foresight'];
+// イベントの入り口の文。勝ったあとに1つ出て、入るか通り過ぎるかだけ決める。入ると、その文のイベントから1つを抽選
+const SIGNS = [
+  { id: 'stall',   text: '錆びた看板の露店がある。',             events: ['market', 'lottery', 'debt'] },
+  { id: 'junk',    text: 'ガラクタの山の向こうで物音がする。',   events: ['lottery', 'yard', 'enterMod'] },
+  { id: 'beckon',  text: '怪しい男が手招きしている。',           events: ['market', 'debt', 'rareShop'] },
+  { id: 'storm',   text: '空が急に暗くなってきた。',             events: ['weather', 'handicap', 'elite'] },
+  { id: 'track',   text: '大きな足跡が続いている。',             events: ['elite', 'handicap', 'scout', 'branch'] },
+  { id: 'fork',    text: '道が二手に分かれている。',             events: ['branch', 'scout', 'foreign'] },
+  { id: 'stranger',text: '見慣れないロボがこちらを見ている。',   events: ['foreign', 'elite', 'weather'] },
+  { id: 'factory', text: '古い工場の明かりがついている。',       events: ['mass', 'enterMod', 'modShop'] },
+  { id: 'crate',   text: 'ロボの部品が箱に詰まっている。',       events: ['yard', 'mass', 'copy'] },
+  { id: 'storage', text: '誰も使っていない倉庫がある。',         events: ['spare', 'armor', 'bench', 'foresight'] },
+];
 function eventOk(run, id) { const ev = EVENTS[id]; if (ev.part && run.parts.includes(id)) return false; return !ev.ok || ev.ok(run); }
 
 // ---------- ラン ----------
@@ -117,9 +131,10 @@ function advance(run) {
   const st = run.queue.shift();
   if (!st) { run.step = null; run.round = run.nextRound; run.phase = 'battle'; return run; }
   if (st.t === 'event') {
-    const ids = Object.keys(EVENTS).filter(id => eventOk(run, id));
-    st.offer = shuffleWith(run, ids).slice(0, EVENT_CHOICES);
-    if (!st.offer.length) return advance(run);
+    // 起こりうるイベントが1つ以上ある文から、1つを選ぶ
+    const signs = SIGNS.filter(sg => sg.events.some(id => eventOk(run, id)));
+    if (!signs.length) return advance(run);
+    st.sign = signs[Math.floor(rand(run) * signs.length)].id;
   }
   // 候補を「その手順になった時」に引く報酬（前の報酬で取ったカードを除くため）
   if (st.t === 'reward' && st.lazy) { st.offer = st.lazy === 'rare' ? weightedPick(run, rarePool(run), 3) : weightedPick(run, rewardPool(run), OFFER); delete st.lazy; }
@@ -188,17 +203,27 @@ function removeCard(run, i) {
   if (st.n > 0) return run;
   return next(run);
 }
-// イベントを選ぶ（id＝null でスキップ）
-function chooseEvent(run, id) {
+// イベントの文に入るか（enter＝false で通り過ぎる）。入ると、その文のイベントから起こりうるものを1つ抽選して起こす
+function chooseEvent(run, enter) {
   if (run.phase !== 'event') throw new Error('いまはイベントを選べません');
-  if (id !== null && !run.step.offer.includes(id)) throw new Error('そのイベントは選べません');
   run.notice = '';
-  if (id !== null) {
-    const ev = EVENTS[id];
-    if (ev.part) run.parts.push(id); else ev.apply(run);
-    run.history.push({ event: id, round: run.round });
+  if (enter) {
+    const sg = SIGNS.find(x => x.id === run.step.sign);
+    const ids = sg.events.filter(id => eventOk(run, id));
+    applyEvent(run, ids[Math.floor(rand(run) * ids.length)]);
   }
   return next(run);
+}
+// イベントを起こす（抽選の結果、またはテストから直接）
+function applyEvent(run, id) {
+  const ev = EVENTS[id];
+  const before = run.notice;
+  run.notice = '';
+  if (ev.part) run.parts.push(id); else ev.apply(run);
+  // 何が起きたかを画面に出す（イベント内で結果の文が出た時は、それを後ろにつなげる）
+  run.notice = `【${ev.name}】${ev.text}` + (run.notice ? ` → ${run.notice}` : '');
+  run.history.push({ event: id, round: run.round });
+  return run;
 }
 // コピー（i のカードを複製）
 function copyCard(run, i) {
@@ -241,7 +266,7 @@ function deckSummary(deck) {
   }).map(e => ({ id: e, n: cnt[e] }));
 }
 
-const api = { EVENTS, START_OFFER, START_TAKE, OPP_EXTRA, CPU_BY_ROUND, cpuFor, ROUNDS, START_LIFE, LIFE_STEP, OFFER, TAKE, RARE_WEIGHT, THEME_KEYS,
+const api = { advance, SIGNS, STRONG, applyEvent, EVENTS, START_OFFER, START_TAKE, OPP_EXTRA, CPU_BY_ROUND, cpuFor, ROUNDS, START_LIFE, LIFE_STEP, OFFER, TAKE, RARE_WEIGHT, THEME_KEYS,
   newRun, lifeFor, rewardPool, rarePool, foreignPool, oppDeck, battleSetup, finishBattle, takeCards, removeCard, chooseEvent, copyCard, modCard, chooseBranch, deckSummary, weightedPick, eventOk };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Run = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1521,9 +1521,10 @@ function renderRun() {
     main = deckBox(`デッキから${left > 1 ? `あと${left}枚` : '1枚'}抜く`, { sub: '抜いたカードは、このランでは候補に出なくなります。' + (filter ? '今回は基本カード以外から抜きます（大量生産）。' : ''), filter,
       after: `<div class="row"><button class="btn" id="runInfo" disabled>説明を見る</button><button class="btn primary" id="runRemove" disabled>このカードを抜く</button></div>` });
   } else if (r.phase === 'event') {
-    main = `<div class="runbox"><h3>イベント：1つ選ぶ</h3><p class="sub">選ばずに進むこともできます。</p>
-      <div class="evlist">${st.offer.map(id => { const ev = Run.EVENTS[id]; return `<button class="evcard ev-${ev.kind}" data-ev="${id}"><span class="evkind">${EV_KIND[ev.kind]}</span><b>${ev.name}</b><span>${ev.text}</span></button>`; }).join('')}</div>
-      <div class="row"><button class="btn ghost" id="runSkip">どれも選ばない</button></div></div>
+    const sg = Run.SIGNS.find(x => x.id === st.sign);
+    main = `<div class="runbox evsign"><h3>道の途中で</h3><p class="signtext">${sg.text}</p>
+      <p class="sub">入ると何かが起きます。良いことも、悪いこともあります。</p>
+      <div class="row"><button class="btn" id="runSkip">通り過ぎる</button><button class="btn primary" id="runEnter">入ってみる</button></div></div>
       ${deckBox('いまのデッキ')}`;
   } else if (r.phase === 'copy') {
     const filter = e => E.baseId(e) !== 'sabi' && (!st.themeOnly || CARDS[E.baseId(e)].theme !== 'basic');
@@ -1564,8 +1565,8 @@ function renderRun() {
   on('runRemove', () => sel() && after(() => Run.removeCard(r, r.deck.indexOf(sel()))));
   on('runCopy', () => sel() && after(() => Run.copyCard(r, r.deck.indexOf(sel()))));
   body.querySelectorAll('[data-mod]').forEach(b => b.addEventListener('click', () => sel() && after(() => Run.modCard(r, r.deck.indexOf(sel()), b.dataset.mod))));
-  body.querySelectorAll('[data-ev]').forEach(b => b.addEventListener('click', () => after(() => Run.chooseEvent(r, b.dataset.ev))));
-  on('runSkip', () => after(() => Run.chooseEvent(r, null)));
+  on('runEnter', () => after(() => Run.chooseEvent(r, true)));
+  on('runSkip', () => after(() => Run.chooseEvent(r, false)));
   body.querySelectorAll('[data-branch]').forEach(b => b.addEventListener('click', () => after(() => Run.chooseBranch(r, b.dataset.branch))));
   if (r.phase === 'reward') {
     const need = Math.min(st.need, st.offer.length), btn = $('#runTake');

@@ -14,7 +14,7 @@ for (let i = 0; i < N; i++) {
       const st = run.step;
       if (run.phase === 'reward') R.takeCards(run, st.offer.slice().sort(() => rng() - 0.5).slice(0, Math.min(st.need, st.offer.length)));
       else if (run.phase === 'remove') { const bi = run.deck.map((id, i) => CARDS_basic(id) ? i : -1).filter(i => i >= 0); R.removeCard(run, bi.length ? bi[Math.floor(rng() * bi.length)] : 0); }
-      else if (run.phase === 'event') R.chooseEvent(run, null);
+      else if (run.phase === 'event') R.chooseEvent(run, false);
     }
   };
   reward(); // ラン開始時の1枚

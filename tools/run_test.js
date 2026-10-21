@@ -8,7 +8,7 @@ function auto(run, rng, evPick) {
     const st = run.step;
     if (run.phase === 'reward') R.takeCards(run, st.offer.slice(0, Math.min(st.need, st.offer.length)));
     else if (run.phase === 'remove') { let i = run.deck.findIndex(e => !st.noBasic || E.CARDS[E.baseId(e)].theme !== 'basic'); R.removeCard(run, i < 0 ? 0 : i); }
-    else if (run.phase === 'event') R.chooseEvent(run, evPick ? evPick(st.offer) : st.offer[Math.floor(rng() * st.offer.length)]);
+    else if (run.phase === 'event') R.chooseEvent(run, evPick ? evPick() : rng() < 0.7);
     else if (run.phase === 'copy') { const i = run.deck.findIndex(e => !st.themeOnly || E.CARDS[E.baseId(e)].theme !== 'basic'); R.copyCard(run, i); }
     else if (run.phase === 'mod') { const i = run.deck.findIndex(e => E.CARDS[E.baseId(e)].kind === 'robo' && !e.includes('@') && (st.mods[0] !== 'e' || !E.CARDS[E.baseId(e)].enterBat)); R.modCard(run, i, st.mods[0]); }
     else if (run.phase === 'branch') R.chooseBranch(run, st.options[1]);
@@ -19,13 +19,10 @@ for (const id of Object.keys(R.EVENTS)) {
   const run = R.newRun(42); const rng = E.mulberry32(1);
   auto(run, rng);
   R.finishBattle(run, true);
-  auto(run, rng, offer => null); // いったん通常の流れ（イベントはスキップ）
-  // 強制的にイベント手順を作って選ぶ
-  run.queue.unshift({ t: 'event' }); run.phase = 'x'; 
-  const st = { t: 'event', offer: [id] }; run.step = st; run.phase = 'event';
+  auto(run, rng, () => false); // いったん通常の流れ（イベントは通り過ぎる）
   if (!R.eventOk(run, id)) { console.log('skip (not ok now):', id); continue; }
   const before = JSON.stringify([run.deck, run.parts, run.next, run.lifeMod, run.oppThemes]);
-  R.chooseEvent(run, id); auto(run, rng);
+  R.applyEvent(run, id); if (run.queue.length) R.advance(run); auto(run, rng);
   const after = JSON.stringify([run.deck, run.parts, run.next, run.lifeMod, run.oppThemes]);
   ok(run.phase === 'battle', id + ' ends in battle phase');
   ok(before !== after || id === 'scout', id + ' changed something');
@@ -38,7 +35,7 @@ for (const id of Object.keys(R.EVENTS)) {
   R.finishBattle(run, true); let rewards = 0; let k = 0;
   while (run.phase !== 'battle' && k++ < 20) { if (run.phase === 'reward') rewards++; auto1(run); }
   ok(rewards === 3, 'elite + handicap give extra rewards (' + rewards + ')');
-  function auto1(run) { const st = run.step; if (run.phase === 'reward') R.takeCards(run, st.offer.slice(0, Math.min(st.need, st.offer.length))); else if (run.phase === 'remove') R.removeCard(run, 0); else if (run.phase === 'event') R.chooseEvent(run, null); }
+  function auto1(run) { const st = run.step; if (run.phase === 'reward') R.takeCards(run, st.offer.slice(0, Math.min(st.need, st.offer.length))); else if (run.phase === 'remove') R.removeCard(run, 0); else if (run.phase === 'event') R.chooseEvent(run, false); }
 }
 // 3) 改造カードが対戦で効く
 { const s = E.newGame(E.mulberry32(5), 0, { decks: [['normal@a', 'normal@m', 'mini@e', 'normal'], ['normal']], lives: [7, 7], log: false });
@@ -55,4 +52,7 @@ for (let i = 0; i < 100; i++) {
   JSON.parse(JSON.stringify(run));
 }
 ok(clears > 0, 'some runs clear');
+// 5) 文の構成：強いイベントは1つの文だけ、弱いイベントは2つ以上の文に入っている。全イベントがどこかの文に入っている
+{ const cnt = {}; for (const sg of R.SIGNS) for (const id of sg.events) cnt[id] = (cnt[id] || 0) + 1;
+  for (const id of Object.keys(R.EVENTS)) { ok(cnt[id] > 0, id + ' is in some sign'); if (cnt[id]) ok(R.STRONG.includes(id) ? cnt[id] === 1 : cnt[id] >= 2, id + ' sign count ' + cnt[id]); } }
 console.log(`run: ${n - fails}/${n} ok`); if (fails) process.exitCode = 1;
