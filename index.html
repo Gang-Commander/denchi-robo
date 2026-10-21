@@ -1039,7 +1039,7 @@ Object.assign(CARDS, {
   sabi:    { id:'sabi',    name:'サビ',           kind:'spell', noPlay:true, noSet:true, theme:'curse', text:'使えない。ジャンクくじのハズレ。' },
   // 基本カード（ランの最初のデッキ用）
   normal:  { id:'normal',  name:'ノーマルロボ',   kind:'robo', atk:2, max:3, eff:'const', onAttack:{ atk:1 }, text:'【常時】このロボが攻撃した時、その戦闘の間、攻撃力+1。' },
-  mini:    { id:'mini',    name:'ミニロボ',       kind:'robo', atk:1, max:3, eff:'none', enterBat:1, text:'効果なし。' },
+  mini:    { id:'mini',    name:'ミニロボ',       kind:'robo', atk:1, max:3, eff:'none', enterBat:1, kw:['baton'], text:'' },
   garakuta:{ id:'garakuta',name:'ガラクタロボ',   kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボが破壊された時、山札を1枚引く。' },
   drycell: { id:'drycell', name:'乾電池',         kind:'spell', text:'自分のロボを1体選び、電池を1本入れる。この手番の間、そのロボの攻撃力+1。',
              pick:{ side:'own', cond:'room', prompt:'電池を入れる自分のロボを選ぶ', none:'電池を入れられる自分のロボがいません' } },
@@ -3246,13 +3246,13 @@ const KEYWORDS = E.KEYWORDS;
 function kwList(d) { return (d.enterBat ? [KEYWORDS.enterBat] : []).concat((d.kw || []).map(k => KEYWORDS[k])); }
 // 本文の中のキーワード（破裂N など）は太字にする
 function textKw(t) { for (const x of E.TERMS) if (x.kw) t = t.replace(x.kw, m => `<b class="kw">${m}</b>`); return t; }
-function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b><br>` : '') + textKw(d.text); }
+function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b>${d.text ? '<br>' : ''}` : '') + textKw(d.text); }
 // 本文に出てくるルール用語の説明（詳細画面用）
 function termHelp(d) {
   const hit = E.TERMS.filter(t => t.match.test(d.text));
   return hit.map(t => `<p class="kwhelp"><b>${t.word}</b>：${t.help}</p>`).join('');
 }
-function cardTextPlain(d) { const k = kwList(d); return (k.length ? k.map(x => x.name).join('・') + '／' : '') + d.text; }
+function cardTextPlain(d) { const k = kwList(d); return (k.length ? k.map(x => x.name).join('・') + (d.text ? '／' : '') : '') + d.text; }
 // 場の外での攻撃力：付属電池と改造（攻撃力+1）を含めて表示する
 function shownAtk(c) { return E.atkOf({ id: c.id, bat: E.enterOf(c), atkPlus: c.atkPlus }); }
 // 表示名：改造したカードは「改」を付ける

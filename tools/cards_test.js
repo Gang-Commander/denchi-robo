@@ -115,4 +115,6 @@ const err = (s, a) => E.checkAction(s, a);
   ok(F(s, 0, 0).bat === 1 && E.atkOf(F(s, 0, 0)) === 4, 'drycell +1 battery and +1 this turn'); E.apply(s, { t: 'end' }); ok(E.atkOf(F(s, 0, 0)) === 3, 'drycell boost ends'); }
 { const s = board([{ id: 'solar', bat: 3 }, { id: 'normal', bat: 0 }, { id: 'mini', bat: 0 }], []); const u = hand(s, 0, 'thunder');
   play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).id === 'normal' && F(s, 0, 0).bat === 3 && F(s, 0, 1).bat === 0, 'baton touch: batteries to strongest first'); }
+{ const s = board([{ id: 'mini', bat: 2 }, { id: 'normal', bat: 0 }], [{ id: 'heat', bat: 1 }]);
+  E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(F(s, 0, 0).id === 'normal' && F(s, 0, 0).bat === 2, 'mini baton touch'); }
 done();

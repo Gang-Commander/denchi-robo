@@ -56,13 +56,13 @@ const KEYWORDS = E.KEYWORDS;
 function kwList(d) { return (d.enterBat ? [KEYWORDS.enterBat] : []).concat((d.kw || []).map(k => KEYWORDS[k])); }
 // 本文の中のキーワード（破裂N など）は太字にする
 function textKw(t) { for (const x of E.TERMS) if (x.kw) t = t.replace(x.kw, m => `<b class="kw">${m}</b>`); return t; }
-function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b><br>` : '') + textKw(d.text); }
+function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b>${d.text ? '<br>' : ''}` : '') + textKw(d.text); }
 // 本文に出てくるルール用語の説明（詳細画面用）
 function termHelp(d) {
   const hit = E.TERMS.filter(t => t.match.test(d.text));
   return hit.map(t => `<p class="kwhelp"><b>${t.word}</b>：${t.help}</p>`).join('');
 }
-function cardTextPlain(d) { const k = kwList(d); return (k.length ? k.map(x => x.name).join('・') + '／' : '') + d.text; }
+function cardTextPlain(d) { const k = kwList(d); return (k.length ? k.map(x => x.name).join('・') + (d.text ? '／' : '') : '') + d.text; }
 // 場の外での攻撃力：付属電池と改造（攻撃力+1）を含めて表示する
 function shownAtk(c) { return E.atkOf({ id: c.id, bat: E.enterOf(c), atkPlus: c.atkPlus }); }
 // 表示名：改造したカードは「改」を付ける
