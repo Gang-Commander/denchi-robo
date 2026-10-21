@@ -15,7 +15,7 @@ const CARDS = {
   daruma:    { id:'daruma',    name:'ダルマロボ', kind:'robo', atk:3, max:2, eff:'const',   text:'【常時】このロボが戦闘で破壊される時、代わりにこのロボの電池を1本抜く。' },
   heat:   { id:'heat',   name:'ヒートロボ', kind:'robo', atk:4, max:2, eff:'const',   text:'【常時】自分の手番開始時、自分は2ダメージを受ける。' },
   megaton:    { id:'megaton',    name:'メガトンロボ',   kind:'robo', atk:5, max:1, eff:'const',   text:'【常時】このロボを起動した手番、自分の場のロボは攻撃できない。' },
-  solar:   { id:'solar',   name:'ソーラーロボ', kind:'robo', atk:1, max:5, eff:'const', text:'【常時】自分の手番開始時、このロボに電池を1本入れる。このロボが破壊された時、その電池を自分の場のロボに移す（攻撃力の高いロボから順に）。', enterBat:1 },
+  solar:   { id:'solar',   name:'ソーラーロボ', kind:'robo', atk:1, max:5, eff:'const', kw:['baton'], text:'【常時】自分の手番開始時、このロボに電池を1本入れる。', enterBat:1 },
   guard:   { id:'guard',   name:'ガードロボ', kind:'robo', atk:3, max:2, eff:'powered',  text:'【通電中】相手は、このロボ以外の自分のロボを攻撃できない。', enterBat:1 },
   recycle: { id:'recycle', name:'リサイクルロボ', kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、自分のスクラップにある一番新しいアクションを1枚手札に戻す。' },
   hack:    { id:'hack',    name:'ハッキング', kind:'spell', rare:true, text:'相手の場で最も攻撃力の高いロボを1体選ぶ。この手番の終わりまで、そのロボは自分の場で自分のロボとして動く（攻撃もできる）。手番終了時に持ち主の場へ戻る。' },
@@ -116,6 +116,7 @@ const TERMS = [
 const KEYWORDS = {
   enterBat: { name:'付属電池', help:'このロボは電池を1本入れた状態で場に出る（リペアキットでの起動も含む）。' },
   full:     { name:'満充電',   help:'電池が上限まで入っている間だけ働く効果。' },
+  baton:    { name:'バトンタッチ', help:'このロボが破壊された時、入っていた電池を自分の場のロボに移す（攻撃力の高いロボから順に、上限まで。選ばない）。' },
 };
 CARDS.limiter.text = CARDS.limiter.text.replace('@LIM@', LIM_BONUS === 'x2' ? '2倍' : '+' + LIM_BONUS).replace('+' + LIM_BONUS + 'にする', '+' + LIM_BONUS + 'する');
 const LIM_LABEL = LIM_BONUS === 'x2' ? '攻撃力2倍' : '攻撃力+' + LIM_BONUS;
@@ -360,7 +361,7 @@ function destroy(s, uid, byBattle) {
   G.push(y); // アニキロボ（トークン）もスクラップへ行く
   s.eot = s.eot.filter(u => u !== uid);
   log(s, `${cname(y)}が破壊された`, { t: 'destroy', uid, pi: f.pi });
-  if (y.id === 'solar' && leftBat > 0) solarPass(s, f.pi, uid, leftBat);
+  if ((CARDS[y.id].kw || []).includes('baton') && leftBat > 0) batPass(s, f.pi, uid, leftBat, 'バトンタッチで電池'); // キーワード「バトンタッチ」
   if (y.id === 'garakuta') { log(s, 'ガラクタロボの効果', { t: 'garakuta' }); drawCards(s, y.owner, 1); }
   // 破壊された時に出るロボ（カード定義の spawn：コブン→アニキ、プロト→ノーマル）。同じ場所に出る
   const sp = CARDS[y.id].spawn;
@@ -383,16 +384,6 @@ function batPass(s, pi, fromUid, n, label) {
     if (n <= 0) break;
   }
   if (moved) log(s, `${label}が${moved}本、味方のロボに移った`, { t: 'solarpass', pi, n: moved });
-}
-// ソーラーロボの遺言：残っていた電池を、同じ場のロボへ攻撃力の高い順（同値は左から）に上限まで移す
-function solarPass(s, pi, fromUid, n) {
-  const order = s.players[pi].field.map((y, i) => ({ y, i })).sort((a, b) => atkOf(b.y) - atkOf(a.y) || a.i - b.i);
-  let moved = 0;
-  for (const { y } of order) {
-    while (n > 0 && y.bat < capOf(y)) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
-    if (n <= 0) break;
-  }
-  if (moved) log(s, `ソーラーロボの電池が${moved}本、味方のロボに移った`, { t: 'solarpass', pi, n: moved });
 }
 // リサイクルロボの起動時効果：自分のスクラップの一番新しいアクション（ワンモア以外）を手札へ
 function recycleTrigger(s, pi) {
