@@ -1955,8 +1955,21 @@ function renderRules() {
   const sortT = list => list.slice().sort((a, b) => (CARDS[a.id].kind === CARDS[b.id].kind ? 0 : CARDS[a.id].kind === 'robo' ? -1 : 1) || byAtk(a, b));
   const asCards = ids => ids.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   $('#dexRogue').innerHTML = Object.keys(E.THEMES).map(k => `<h3 class="dexgrp">${E.THEMES[k].name}</h3>` + sortT(asCards(E.THEMES[k].ids)).map(row).join('')).join('')
-    + `<h3 class="dexgrp">基本カード（最初のデッキ）</h3>` + sortT(asCards(E.BASIC_IDS)).map(row).join('');
+    + `<h3 class="dexgrp">基本カード（最初のデッキ）</h3>` + sortT(asCards(E.BASIC_IDS)).map(row).join('')
+    + `<h3 class="dexgrp">そのほか</h3>` + asCards(['sabi']).map(row).join('');
+  // イベントの一覧（種類ごと）
+  const KIND = { A: 'デッキ', B: '改造', C: 'パーツ（ラン中ずっと効く）', D: '取引・賭け', E: '特殊な対戦', F: '情報・選択' };
+  $('#rogueEvents').innerHTML = Object.keys(KIND).map(k => `<h3 class="dexgrp">${KIND[k]}</h3>` +
+    Object.values(Run.EVENTS).filter(ev => ev.kind === k).map(ev => `<p class="evdesc"><b>${ev.name}</b>${ev.text}</p>`).join('')).join('');
 }
+
+// ルール画面：タブ（スタンダード／勝ち抜きモード）を切り替えて開く
+function rulesTab(tab) {
+  document.querySelectorAll('[data-rtab]').forEach(b => b.classList.toggle('on', b.dataset.rtab === tab));
+  $('#rulesStd').hidden = tab !== 'std'; $('#rulesRogue').hidden = tab !== 'rogue';
+  window.scrollTo(0, 0);
+}
+function openRules(tab) { show('rules'); rulesTab(tab); }
 
 // ---------- 初期化 ----------
 // 夜空の星（ドット）を背景タイルとして生成
@@ -1983,7 +1996,8 @@ function init() {
   $('#tutBtn').addEventListener('click', () => { $('#lessonPick').hidden = !$('#lessonPick').hidden; });
   $('#lessonPick').innerHTML = LESSONS.map((L, i) => `<button class="btn lesson" data-lesson="${i}">${L.title}</button>`).join('');
   $('#lessonPick').addEventListener('click', e => { const b = e.target.closest('[data-lesson]'); if (b) startLesson(+b.dataset.lesson); });
-  $('#rulesBtn').addEventListener('click', () => show('rules'));
+  $('#rulesBtn').addEventListener('click', () => openRules('std'));
+  document.querySelectorAll('[data-rtab]').forEach(b => b.addEventListener('click', () => rulesTab(b.dataset.rtab)));
   $('#dbgBtn').addEventListener('click', openDebugEditor);
   $('#dbgStart').addEventListener('click', startDebug);
   $('#dbgBack').addEventListener('click', () => { if (G && G.mode === 'debug') show('game'); else show('title'); });
@@ -2008,7 +2022,7 @@ function init() {
   $('#sheetBack').addEventListener('click', () => { if (!$('#sheetBack').dataset.modal) closeSheet(); });
   $('#menuBtn').addEventListener('click', () => openSheet(`<h3>メニュー</h3>
     <div class="col"><button class="btn" id="mRules">ルール・カード図鑑</button><button class="btn" id="mLog">これまでの経過</button><button class="btn danger" id="mQuit">対戦をやめてタイトルへ</button><button class="btn ghost" id="mClose">閉じる</button></div>`, sh => {
-      sh.querySelector('#mRules').addEventListener('click', () => { closeSheet(); show('rules'); });
+      sh.querySelector('#mRules').addEventListener('click', () => { closeSheet(); openRules(G && G.run ? 'rogue' : 'std'); });
       sh.querySelector('#mLog').addEventListener('click', () => { closeSheet(); $('#logDrawer').hidden = false; const l = $('#logList'); l.scrollTop = l.scrollHeight; });
       sh.querySelector('#mQuit').addEventListener('click', toTitle);
       sh.querySelector('#mClose').addEventListener('click', closeSheet);

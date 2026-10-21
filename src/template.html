@@ -718,6 +718,11 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 .kwhelp { margin: 6px 0 0; font-size: 12px; color: var(--dim); }
 .dex .kw { color: #9fd6ff; }
 
+/* ---- ルール画面のタブ ---- */
+.rtabs { display: flex; gap: 6px; margin: 6px 0 12px; position: sticky; top: 0; z-index: 5; background: var(--bg, #13142a); padding: 6px 0; }
+.rtab { flex: 1; padding: 8px 6px; border: 3px solid #1b1424; background: #26284f; color: #cfcbe6; font: inherit; font-weight: 700; cursor: pointer; }
+.rtab.on { background: var(--gold); color: #1b1424; }
+.evdesc { margin: 4px 0; } .evdesc b { margin-right: 6px; }
 /* ---- 勝ち抜きモード ---- */
 .runpanel h2 small { font-size: 12px; color: var(--gold); margin-left: 6px; }
 .runhead { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; margin: 6px 0 10px; }
@@ -840,6 +845,8 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 <section class="screen" id="rules" hidden>
   <div class="wrap rules">
     <div class="topbar"><span id="modeLabel2" style="font-family:var(--f-dot)">ルール・カード図鑑</span><button class="btn iconbtn" id="rulesBack">戻る</button></div>
+    <div class="rtabs" role="tablist"><button class="rtab on" data-rtab="std" role="tab">スタンダード</button><button class="rtab" data-rtab="rogue" role="tab">勝ち抜きモード</button></div>
+    <div id="rulesStd">
     <h2>勝利条件</h2>
     <p>お互いライフ15で開始。相手のライフを先に0にしたプレイヤーの勝ちです。両者の山札が尽きたあと、どちらのライフも動かない手番が8回続いたら、ライフに関係なく引き分けです（120手番に達した時も引き分け）。</p>
     <h2>手番の流れ</h2>
@@ -880,11 +887,6 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
       <li>ドロボ：相手の場に電池入りのロボがいなければ何も起きません。攻撃力が同じなら左のロボから奪います。</li>
       <li>コブンロボ：破壊されると、同じ場所にアニキロボが出ます。アニキロボはデッキに入らないロボですが、破壊されるとスクラップへ行くので、リペアキットで起動し直せます。</li>
       <li>ロボへのダメージ：ロボの攻撃力は体力も兼ねます。スパークボムなどでロボが受けたダメージは手番の終わりまで残り、その分だけ攻撃力が下がります（例：攻撃力5に3ダメージなら、攻撃力2として戦闘します）。ダメージを受けていて、ダメージが元の攻撃力以上になると破壊されます。電池が外れて攻撃力が下がった時も同じです。ダメージは手番の終わりにすべて消えます（消えたことで破壊されることはありません）。</li>
-      <li>ライフの回復は、上限を超えてもかまいません。</li>
-      <li>ロケットロボ：点火するかどうかは、攻撃する側は攻撃する時に、攻撃された側は伏せ札を使うかどうか決めたあとに選びます。点火すると自分が4ダメージを受け、その戦闘の間だけ攻撃力+5です。電池は使いません。</li>
-      <li>コピーロボ：起動した時にコピーした攻撃力が、このロボの元の攻撃力になります（あとでコピー元が変わっても変わりません）。電池を入れればその分上がります。選べるロボがいなければ攻撃力0です。リペアキットで起動した時は、選べるロボのうち攻撃力が一番高いロボをコピーします。</li>
-      <li>ワープ装置：伏せておけば、攻撃されたロボを手札に戻して攻撃を中止できます。アニキロボを戻すと、そのまま消えます。</li>
-      <li>ジャマーロボ：電池が入っている間、どちらのプレイヤーもアクションを使えません（伏せるのはできます）。</li>
     </ul>
     <h2>スタンダードのロボ</h2>
     <div class="dexlist" id="dexRobo"></div>
@@ -892,12 +894,44 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
     <div class="dexlist" id="dexSpell"></div>
     <h2>デッキに入らないカード</h2>
     <div class="dexlist" id="dexToken"></div>
-    <h2>ローグライト用カード</h2>
-    <p class="note">勝ち抜きモードの報酬で手に入るカードです。テーマごとに並べています。★はレア（出にくい）。</p>
-    <div class="dexlist" id="dexRogue"></div>
+
     <div id="dexRetiredBox" hidden><h2>不採用カード</h2>
     <p class="note">試したものの採用しなかったカードです。デッキには入りません。</p>
     <div class="dexlist retired" id="dexRetired"></div></div>
+    </div>
+    <div id="rulesRogue" hidden>
+    <p class="note">基本のルール（手番の流れ・効果の種類・戦闘・破裂N・ロボへのダメージ）は、スタンダードのタブと同じです。ここでは、勝ち抜きモードで違うところと、このモードのカードを説明します。</p>
+    <h2>勝ち抜きモードとは</h2>
+    <ul>
+      <li>CPUと<b>5連戦</b>して、5連勝でクリア。1回でも負けたらランは終わりです（引き分けはその回戦をやり直し）。</li>
+      <li>最初のデッキは<b>基本カード10枚</b>。ライフは第1戦が<b>7</b>で、1戦ごとに+2（第5戦は15）。相手も同じライフで、デッキの枚数もあなたとそろえてあります。</li>
+      <li>ランの最初に、あなたのテーマが<b>2つ</b>決まります。もらえるカードは、その2テーマと「共通」から出ます。</li>
+      <li>始める時に候補3枚から1枚もらい、デッキから1枚抜きます。</li>
+      <li>勝つたびに、候補6枚から<b>3枚</b>もらい、デッキから<b>1枚抜きます</b>。一度もらったカード・抜いたカードは、そのランでは候補に出ません。★はレアで、出にくくなっています。</li>
+      <li>相手は1戦ごとに別のテーマのデッキ（1テーマだけ）。CPUは第1戦「やさしい」、第2・3戦「ふつう」、第4・5戦「つよい」です。</li>
+      <li>勝ったあとは、道の途中で<b>文（看板）</b>が1つ出ます。入ると、何かのイベントが起きます（良いことも悪いこともあります）。通り過ぎてもかまいません。</li>
+      <li>ランは自動で保存されます。対戦の途中で閉じても、続きから再開します（やり直しはできません）。</li>
+    </ul>
+    <h3>キーワード能力（このモードのカード）</h3>
+    <ul>
+      <li><b>満充電</b>：電池が上限まで入っている間だけ働く効果。</li>
+      <li><b>バトンタッチ</b>：このロボが破壊された時、入っていた電池を自分の場のロボに移します（攻撃力の高いロボから順に、上限まで。選ばない）。</li>
+    </ul>
+    <h3>細かい裁定（このモードのカード）</h3>
+    <ul>
+      <li>ライフの回復は、上限を超えてもかまいません。</li>
+      <li>ロケットロボ：点火するかどうかは、攻撃する側は攻撃する時に、攻撃された側は伏せ札を使うかどうか決めたあとに選びます。点火すると自分が4ダメージを受け、その戦闘の間だけ攻撃力+5です。電池は使いません。</li>
+      <li>コピーロボ：起動した時にコピーした攻撃力が、このロボの元の攻撃力になります（あとでコピー元が変わっても変わりません）。電池を入れればその分上がります。選べるロボがいなければ攻撃力0です。リペアキットで起動した時は、選べるロボのうち攻撃力が一番高いロボをコピーします。</li>
+      <li>ワープ装置：伏せておけば、攻撃されたロボを手札に戻して攻撃を中止できます。アニキロボを戻すと、そのまま消えます。</li>
+      <li>ジャマーロボ：電池が入っている間、どちらのプレイヤーもアクションを使えません（伏せるのはできます）。</li>
+    </ul>
+    <h2>イベント</h2>
+    <p class="note">文に入ると、次のどれかが起きます（どの文からどれが起きやすいかは、遊んで確かめてください）。</p>
+    <div id="rogueEvents"></div>
+    <h2>このモードのカード</h2>
+    <p class="note">勝ち抜きモードの報酬で手に入るカードです。テーマごとに並べています。★はレア（出にくい）。</p>
+    <div class="dexlist" id="dexRogue"></div>
+    </div>
   </div>
 </section>
 
