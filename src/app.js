@@ -1158,6 +1158,9 @@ function bindDrag(root) {
       clearTimeout(lpTimer); closePop();
       const r = el.getBoundingClientRect(); offX = x0 - r.left; offY = y0 - r.top;
       ghost = el.cloneNode(true); ghost.classList.add('drag-ghost'); ghost.removeAttribute('title');
+      // 引いたばかりのカードは登場アニメ（最終フレーム保持）が付いたまま。アニメは inline の transform より強いので、
+      // そのままだと位置指定が効かず左上に固定される。演出用のクラスとアニメを外す
+      ghost.classList.remove('drawing', 'deploying', 'flash', 'bat-in', 'bat-out'); ghost.style.animation = 'none'; ghost.style.animationDelay = '';
       ghost.style.width = r.width + 'px'; ghost.style.height = r.height + 'px';
       document.body.appendChild(ghost);
       el.classList.add('dragging');
