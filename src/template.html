@@ -747,6 +747,11 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 .decklist .dk.on { outline: 3px solid #ff6b5a; }
 .runover { text-align: center; }
 .decklist .dk.off { opacity: .35; }
+.pickprev { display: grid; grid-template-columns: calc(var(--cw, 90px) * 1) 1fr; gap: 10px; align-items: start; margin-top: 10px; --cw: 92px; }
+.pickprev:empty { display: none; }
+.pickprev .card { width: 100%; }
+.pickprev p { margin: 4px 0 0; font-size: 13px; line-height: 1.45; }
+.pickprev .sub { display: block; font-size: 12px; }
 .partchip { display: inline-block; padding: 1px 8px; margin: 0 4px 4px 0; border: 2px solid #1b1424; background: #2f6a37; color: #fff; font-size: 12px; font-weight: 700; }
 .effects { margin: 4px 0 8px; padding-left: 18px; font-size: 13px; color: #ffd79a; }
 .runnotice { background: #3b2a12; border: 2px solid var(--gold); padding: 6px 10px; color: #ffe9b0; font-weight: 700; }

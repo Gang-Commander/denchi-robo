@@ -1502,7 +1502,7 @@ function renderRun() {
     <div class="runsteps">${steps}</div><p>あなたのテーマ：${r.themes.map(themeChip).join('')}${themeChip('common')}</p>${effectsHTML(r)}
     ${r.notice ? `<p class="runnotice">${r.notice}</p>` : ''}`;
   let main = '';
-  const deckBox = (title, opt) => `<div class="runbox"><h3>${title}（${r.deck.length}枚）</h3>${opt && opt.sub ? `<p class="sub">${opt.sub}</p>` : ''}${deckChips(r.deck, opt)}${opt && opt.after || ''}</div>`;
+  const deckBox = (title, opt) => `<div class="runbox"><h3>${title}（${r.deck.length}枚）</h3>${opt && opt.sub ? `<p class="sub">${opt.sub}</p>` : ''}${deckChips(r.deck, opt)}${opt && opt.after ? '<div class="pickprev" id="pickPrev"></div>' + opt.after : ''}</div>`;
   if (r.phase === 'battle') {
     const cpu = DIFF[setup.cpu].label, scouted = r.scout && r.scout >= r.round;
     const after = scouted && r.round < Run.ROUNDS ? `<p class="sub">偵察：その次（第${r.round + 1}戦）の相手は ${themeChip(r.oppThemes[r.round])}</p>` : '';
@@ -1556,6 +1556,9 @@ function renderRun() {
     if (!pickMode) return runCardInfo(b.dataset.id);
     body.querySelectorAll('.dk').forEach(x => x.classList.toggle('on', x === b));
     body.querySelectorAll('#runRemove,#runInfo,#runCopy,[data-mod]').forEach(x => { x.disabled = false; });
+    // 選んだカードの絵と効果文を、その場に出す
+    const pv = $('#pickPrev'), c = entryCard(b.dataset.id), d = CARDS[c.id], note = modNote(c);
+    if (pv) pv.innerHTML = `${cardHTML(c, { size: 'hand' })}<div><b>${entryName(b.dataset.id)}</b>${d.kind === 'robo' ? `<span class="sub">攻撃力${shownAtk(c)}・電池上限${E.capOf(c)}</span>` : ''}<p>${cardText(d)}</p>${note ? `<p class="sub">改造：${note}</p>` : ''}</div>`;
     const rm = $('#runRemove'); if (rm) rm.textContent = `${entryName(b.dataset.id)}を抜く`;
   }));
   const on = (id, f) => { const el = body.querySelector('#' + id); if (el) el.addEventListener('click', f); };
