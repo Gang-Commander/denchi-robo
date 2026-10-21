@@ -724,7 +724,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 .rtab.on { background: var(--gold); color: #1b1424; }
 .evdesc { margin: 4px 0; } .evdesc b { margin-right: 6px; }
 /* ---- 勝ち抜きモード ---- */
-.runpanel h2 small { font-size: 12px; color: var(--gold); margin-left: 6px; }
+.panel h2 small { font-size: 12px; color: var(--gold); margin-left: 6px; font-weight: 400; }
 .runhead { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; margin: 6px 0 10px; }
 .runhead .rnd { font-family: var(--f-dot); font-size: 26px; color: var(--gold); }
 .runsteps { display: flex; gap: 6px; margin: 4px 0 12px; }
@@ -773,7 +773,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
       <p class="tagline">ちびロボに電池を入れて戦う、2人用カードゲーム</p>
     </div>
     <div class="panel">
-      <h2>CPUと対戦</h2>
+      <h2>クイック対戦 <small>決まったデッキでCPUと1戦</small></h2>
       <div class="diffs">
         <button class="btn diff" data-diff="easy">やさしい<small>ときどき気まぐれ</small></button>
         <button class="btn diff" data-diff="normal">ふつう<small>手調整の思考</small></button>
@@ -785,7 +785,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
       <div id="titleStats"></div>
     </div>
     <div class="panel runpanel">
-      <h2>勝ち抜きモード <small>試作</small></h2>
+      <h2>アドベンチャー <small>試作</small></h2>
       <p class="sub">基本カード10枚とライフ7から始めて、5連勝をめざす。勝つたびにカードを3枚もらって1枚抜く。</p>
       <div class="row"><button class="btn primary" id="runNew">新しく始める</button><button class="btn" id="runCont" hidden>続きから</button></div>
     </div>
@@ -828,7 +828,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 
 <section class="screen" id="run" hidden>
   <div class="wrap">
-    <div class="topbar"><span class="dbgtitle">勝ち抜きモード</span><button class="btn iconbtn" id="runBack">タイトルへ</button></div>
+    <div class="topbar"><span class="dbgtitle">アドベンチャー</span><button class="btn iconbtn" id="runBack">タイトルへ</button></div>
     <div id="runBody"></div>
   </div>
 </section>
@@ -845,7 +845,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 <section class="screen" id="rules" hidden>
   <div class="wrap rules">
     <div class="topbar"><span id="modeLabel2" style="font-family:var(--f-dot)">ルール・カード図鑑</span><button class="btn iconbtn" id="rulesBack">戻る</button></div>
-    <div class="rtabs" role="tablist"><button class="rtab on" data-rtab="std" role="tab">スタンダード</button><button class="rtab" data-rtab="rogue" role="tab">勝ち抜きモード</button></div>
+    <div class="rtabs" role="tablist"><button class="rtab on" data-rtab="std" role="tab">クイック対戦（基本）</button><button class="rtab" data-rtab="rogue" role="tab">アドベンチャー</button></div>
     <div id="rulesStd">
     <h2>勝利条件</h2>
     <p>お互いライフ15で開始。相手のライフを先に0にしたプレイヤーの勝ちです。両者の山札が尽きたあと、どちらのライフも動かない手番が8回続いたら、ライフに関係なく引き分けです（120手番に達した時も引き分け）。</p>
@@ -888,9 +888,9 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
       <li>コブンロボ：破壊されると、同じ場所にアニキロボが出ます。アニキロボはデッキに入らないロボですが、破壊されるとスクラップへ行くので、リペアキットで起動し直せます。</li>
       <li>ロボへのダメージ：ロボの攻撃力は体力も兼ねます。スパークボムなどでロボが受けたダメージは手番の終わりまで残り、その分だけ攻撃力が下がります（例：攻撃力5に3ダメージなら、攻撃力2として戦闘します）。ダメージを受けていて、ダメージが元の攻撃力以上になると破壊されます。電池が外れて攻撃力が下がった時も同じです。ダメージは手番の終わりにすべて消えます（消えたことで破壊されることはありません）。</li>
     </ul>
-    <h2>スタンダードのロボ</h2>
+    <h2>クイック対戦のロボ</h2>
     <div class="dexlist" id="dexRobo"></div>
-    <h2>スタンダードのアクション</h2>
+    <h2>クイック対戦のアクション</h2>
     <div class="dexlist" id="dexSpell"></div>
     <h2>デッキに入らないカード</h2>
     <div class="dexlist" id="dexToken"></div>
@@ -900,8 +900,8 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
     <div class="dexlist retired" id="dexRetired"></div></div>
     </div>
     <div id="rulesRogue" hidden>
-    <p class="note">基本のルール（手番の流れ・効果の種類・戦闘・破裂N・ロボへのダメージ）は、スタンダードのタブと同じです。ここでは、勝ち抜きモードで違うところと、このモードのカードを説明します。</p>
-    <h2>勝ち抜きモードとは</h2>
+    <p class="note">基本のルール（手番の流れ・効果の種類・戦闘・破裂N・ロボへのダメージ）は、「クイック対戦（基本）」のタブと同じです。ここでは、アドベンチャーで違うところと、このモードのカードを説明します。</p>
+    <h2>アドベンチャーとは</h2>
     <ul>
       <li>CPUと<b>5連戦</b>して、5連勝でクリア。1回でも負けたらランは終わりです（引き分けはその回戦をやり直し）。</li>
       <li>最初のデッキは<b>基本カード10枚</b>。ライフは第1戦が<b>7</b>で、1戦ごとに+2（第5戦は15）。相手も同じライフで、デッキの枚数もあなたとそろえてあります。</li>
@@ -929,7 +929,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
     <p class="note">文に入ると、次のどれかが起きます（どの文からどれが起きやすいかは、遊んで確かめてください）。</p>
     <div id="rogueEvents"></div>
     <h2>このモードのカード</h2>
-    <p class="note">勝ち抜きモードの報酬で手に入るカードです。テーマごとに並べています。★はレア（出にくい）。</p>
+    <p class="note">アドベンチャーの報酬で手に入るカードです。テーマごとに並べています。★はレア（出にくい）。</p>
     <div class="dexlist" id="dexRogue"></div>
     </div>
   </div>

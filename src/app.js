@@ -1593,7 +1593,7 @@ function saveRunBattle() {
 }
 function resumeRunBattle() {
   const b = RUN.battle;
-  beginGame(b.s, b.diff, b.first, b.meta, `勝ち抜き 第${b.meta.round}戦：${E.THEMES[b.meta.opp].name}デッキ`, true);
+  beginGame(b.s, b.diff, b.first, b.meta, `アドベンチャー 第${b.meta.round}戦：${E.THEMES[b.meta.opp].name}デッキ`, true);
 }
 function startRunBattle() {
   if (RUN.battle) return resumeRunBattle();
@@ -1602,7 +1602,7 @@ function startRunBattle() {
   const first = Math.random() < 0.5 ? 0 : 1;
   const s = E.newGame(rng, first, { decks: b.decks, lives: b.lives, perks: b.perks, batPlus: b.batPlus });
   const go = () => {
-    beginGame(s, b.cpu, first, { round: b.round, opp: b.oppTheme, lifeMax: b.lives[0] }, `勝ち抜き 第${b.round}戦：${E.THEMES[b.oppTheme].name}デッキ`);
+    beginGame(s, b.cpu, first, { round: b.round, opp: b.oppTheme, lifeMax: b.lives[0] }, `アドベンチャー 第${b.round}戦：${E.THEMES[b.oppTheme].name}デッキ`);
     saveRunBattle();
   };
   // パーツ「先読み回路」：山札の上3枚を見て、引く順番を決める（山札は配列の末尾から引く）
@@ -1634,7 +1634,7 @@ function runGameOver(title, cls) {
   if (!s.draw) Run.finishBattle(RUN, won, { turns: s.turnNo });
   saveRun();
   const msg = s.draw ? '引き分けなので、もう一度戦います。' : won ? (RUN.phase === 'clear' ? '5連勝！' : '報酬のカードを選びに行こう。') : 'ランはここで終わりです。';
-  openSheet(`<div class="over ${cls}"><div class="overhead">${img(won ? 'battery' : 'megaton', 'overart')}<div><h2>${title}</h2><p class="sub">勝ち抜き 第${G.run.round}戦・${s.turnNo}手番で決着</p></div></div>
+  openSheet(`<div class="over ${cls}"><div class="overhead">${img(won ? 'battery' : 'megaton', 'overart')}<div><h2>${title}</h2><p class="sub">アドベンチャー 第${G.run.round}戦・${s.turnNo}手番で決着</p></div></div>
     ${scoreboardHTML(s)}<p class="sub">${msg}</p></div>
     <div class="row"><button class="btn primary" id="runNext">${s.draw ? '再戦する' : '次へ'}</button></div>`, sh => {
       sh.querySelector('#runNext').addEventListener('click', () => {
