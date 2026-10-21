@@ -111,4 +111,6 @@ const err = (s, a) => E.checkAction(s, a);
   ok(F(s, 1, 0).bat === 0 && F(s, 1, 1).bat === 1 && F(s, 1, 2).bat === 0, 'emp: -1 each, barrier too'); }
 { const s = board([], [{ id: 'heat', bat: 0 }, { id: 'turbo', bat: 1 }]); const u = hand(s, 0, 'hammer');
   ok(!err(s, { t: 'play', uid: u, ch: { target: F(s, 1, 0).uid } }) && !err(s, { t: 'play', uid: u, ch: { target: F(s, 1, 1).uid } }), 'hammer: atk4 ok'); }
+{ const s = board([{ id: 'normal', bat: 0 }], []); const u = hand(s, 0, 'drycell'); play(s, u, { target: F(s, 0, 0).uid });
+  ok(F(s, 0, 0).bat === 1 && E.atkOf(F(s, 0, 0)) === 4, 'drycell +1 battery and +1 this turn'); E.apply(s, { t: 'end' }); ok(E.atkOf(F(s, 0, 0)) === 3, 'drycell boost ends'); }
 done();
