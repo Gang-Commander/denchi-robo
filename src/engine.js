@@ -22,7 +22,7 @@ const CARDS = {
   limiter: { id:'limiter', name:'リミッター解除', kind:'spell', text:'場のロボを1体選ぶ。この手番の間、そのロボの攻撃力を@LIM@にする。手番終了時に、そのロボは破壊される。' },
   ebattery:    { id:'ebattery',    name:'非常用電池', kind:'spell', text:'場のロボを選び、電池を2本まで好きなように入れる。' },
   manual: { id:'manual', name:'整備マニュアル', kind:'spell', text:'山札を2枚引く。そのあと、自分の場のロボを1体選び、電池を1本入れる。' },
-  short:    { id:'short',    name:'ショート',   kind:'spell', text:'電池が入ったロボを1体選び、その電池をすべて破壊する。',
+  short:    { id:'short',    name:'ショート',   kind:'spell', text:'電池が入ったロボを1体選び、その電池の本数だけ破裂1。',
               pick:{ side:'any', cond:'bat', prompt:'電池を破壊するロボを選ぶ', none:'電池が入ったロボがいません' } },
   repair:    { id:'repair',    name:'リペアキット', kind:'spell', text:'自分か相手のスクラップのロボを1体選び、自分の場で起動する。' },
   swap:    { id:'swap',    name:'電池交換',   kind:'spell', text:'場のロボを2体選び、1体目の電池を1本、2体目に移す。' },
@@ -51,7 +51,7 @@ Object.assign(CARDS, {
   drill:   { id:'drill',   name:'ドリルロボ',     kind:'robo', atk:3, max:2, eff:'powered', text:'【通電中】このロボが攻撃した時、戦闘の前に相手のロボの電池を1本外す。' },
   hammer:  { id:'hammer',  name:'ハンマー',       kind:'spell', text:'攻撃力4以下のロボを1体選び、破壊する。',
              pick:{ side:'any', maxAtk:4, prompt:'破壊するロボを選ぶ（攻撃力4以下）', none:'攻撃力4以下のロボがいません' } },
-  emp:     { id:'emp',     name:'EMP',            kind:'spell', text:'相手の場のロボすべてから、電池を1本ずつ破壊する（選ばない効果）。' },
+  emp:     { id:'emp',     name:'EMP',            kind:'spell', text:'相手の場の電池が入ったロボすべてに、破裂1（選ばない効果）。' },
   // スクラップ
   reboot:  { id:'reboot',  name:'リブートロボ',   kind:'robo', atk:3, max:2, eff:'const', text:'【常時】このロボが破壊された時、スクラップではなく持ち主の手札に戻る。' },
   parts:   { id:'parts',   name:'部品取り',       kind:'spell', salvage:true, text:'自分のロボを1体選んで破壊し、山札を3枚引く。破壊したロボの電池は、自分の場のロボに移す（攻撃力の高い順）。',
@@ -91,7 +91,7 @@ Object.assign(CARDS, {
   garakuta:{ id:'garakuta',name:'ガラクタロボ',   kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボが破壊された時、山札を1枚引く。' },
   drycell: { id:'drycell', name:'乾電池',         kind:'spell', text:'自分のロボを1体選び、電池を1本入れる。',
              pick:{ side:'own', cond:'room', prompt:'電池を入れる自分のロボを選ぶ', none:'電池を入れられる自分のロボがいません' } },
-  static:  { id:'static',  name:'静電気',         kind:'spell', text:'相手の電池が入ったロボを1体選び、電池を1本外す。',
+  static:  { id:'static',  name:'静電気',         kind:'spell', text:'電池が入った相手のロボを1体選び、破裂1。',
              pick:{ side:'opp', cond:'bat', prompt:'電池を1本外す相手のロボを選ぶ', none:'電池が入った相手のロボがいません' } },
 });
 for (const id of ['megaton','thunder','kobun','limiter']) CARDS[id].rare = true;
@@ -111,7 +111,7 @@ for (const id of BASIC_IDS) CARDS[id].theme = 'basic';
 // キーワード
 // ルール用語：本文の中で使う言葉。カードの表面には見出しを出さず、詳細画面で本文に含まれていれば説明を添える
 const TERMS = [
-  { word:'電池を破壊', match:/電池を[^。]{0,6}破壊/, help:'破壊された電池1本につき、そのロボに1ダメージ（手番の終わりまで残り、そのぶん攻撃力が下がる）。「電池を外す」はダメージなし。' },
+  { word:'破裂N', match:/破裂[0-9X]/, kw:/破裂[0-9X]+/g, help:'そのロボの電池を1本破壊し、そのロボにNダメージを与える。ダメージは手番の終わりまで残り、そのぶん攻撃力が下がる。「電池を外す」はダメージなし。' },
 ];
 const KEYWORDS = {
   enterBat: { name:'付属電池', help:'このロボは電池を1本入れた状態で場に出る（リペアキットでの起動も含む）。' },
@@ -298,13 +298,13 @@ function heal(s, pi, n, why) {
   log(s, `${pname(pi)}のライフが${n}回復${why ? '（' + why + '）' : ''}`, { t: 'heal', pi, n });
   refreshStatics(s);
 }
-// 電池を破壊する：電池を n 本外し、外した本数だけそのロボにダメージ（キーワード「電池を破壊」）。「外す」とは別
-function breakBat(s, uid, n, why) {
-  const f = findRobo(s, uid); if (!f || f.y.bat <= 0) return 0;
-  const k = Math.min(n, f.y.bat); f.y.bat -= k;
-  log(s, `${cname(f.y)}の電池が${k}本破壊された`, { t: 'short', uid, n: k });
-  roboDamage(s, uid, k, why);
-  return k;
+// 破裂N：そのロボの電池を1本破壊し、そのロボにNダメージ。電池が入っていなければ何も起きない。「外す」とは別
+function burst(s, uid, n, why) {
+  const f = findRobo(s, uid); if (!f || f.y.bat <= 0) return false;
+  f.y.bat--;
+  log(s, `${cname(f.y)}の電池が1本破裂した`, { t: 'short', uid, n: 1 });
+  roboDamage(s, uid, n, why);
+  return true;
 }
 // ロボへのダメージ。手番の終わりまで残り、その分攻撃力が下がる
 function roboDamage(s, uid, n, why) {
@@ -724,13 +724,15 @@ function resolveSpell(s, pi, card, ch) {
     case 'onemore': s.actions += 1; log(s, `${pname(pi)}の行動が1回増えた`, { t: 'extraact', pi }); break;
     case 'short': {
       const f = findRobo(s, ch.target);
-      if (f && f.y.bat > 0 && !immuneFrom(f.y, s, pi)) breakBat(s, f.y.uid, f.y.bat, 'ショート'); else log(s, '対象がいない', { t: 'fizzle' });
+      // その電池の本数だけ破裂1（途中でダメージで壊れたら、そこで終わり）
+      if (f && f.y.bat > 0 && !immuneFrom(f.y, s, pi)) { const k = f.y.bat; for (let i = 0; i < k; i++) if (!burst(s, f.y.uid, 1, 'ショート')) break; }
+      else log(s, '対象がいない', { t: 'fizzle' });
       break;
     }
     case 'emp': {
       // 選ばない効果なので、バリアロボにも効く。先に全部の電池を壊してから、ダメージで壊れたかを見る
       const hit = s.players[1 - pi].field.filter(y => y.bat > 0).map(y => y.uid);
-      for (const u of hit) breakBat(s, u, 1, 'EMP');
+      for (const u of hit) burst(s, u, 1, 'EMP');
       if (!hit.length) log(s, '電池が入ったロボがいない', { t: 'fizzle' });
       break;
     }
@@ -822,12 +824,17 @@ function resolveSpell(s, pi, card, ch) {
       if (t && t.pi === pi && placeBat(s, t.y, 1)) log(s, `${cname(t.y)}に電池を入れた`, { t: 'batfly', uid: t.y.uid });
       break;
     }
-    case 'leak': case 'static': {
+    case 'leak': {
       const t = findRobo(s, ch.target);
       if (t && t.y.bat > 0 && !immuneFrom(t.y, s, pi)) {
-        const k = card.id === 'leak' ? t.y.bat : 1; t.y.bat -= k;
+        const k = t.y.bat; t.y.bat = 0;
         log(s, `${cname(t.y)}の電池が${k}本外れた`, { t: 'short', uid: t.y.uid, n: k });
       } else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'static': {
+      const t = findRobo(s, ch.target);
+      if (t && t.y.bat > 0 && !immuneFrom(t.y, s, pi)) burst(s, t.y.uid, 1, '静電気'); else log(s, '対象がいない', { t: 'fizzle' });
       break;
     }
     case 'limiter': {

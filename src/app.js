@@ -54,7 +54,9 @@ function batPips(y) {
 // キーワード能力（効果文の1行目に表示）
 const KEYWORDS = E.KEYWORDS;
 function kwList(d) { return (d.enterBat ? [KEYWORDS.enterBat] : []).concat((d.kw || []).map(k => KEYWORDS[k])); }
-function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b><br>` : '') + d.text; }
+// 本文の中のキーワード（破裂N など）は太字にする
+function textKw(t) { for (const x of E.TERMS) if (x.kw) t = t.replace(x.kw, m => `<b class="kw">${m}</b>`); return t; }
+function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b><br>` : '') + textKw(d.text); }
 // 本文に出てくるルール用語の説明（詳細画面用）
 function termHelp(d) {
   const hit = E.TERMS.filter(t => t.match.test(d.text));
