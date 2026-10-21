@@ -6,17 +6,22 @@ const E = require('../src/engine.js'), AI = require('../src/ai.js'), R = require
 if (process.env.VARIANT) require(require('path').resolve(process.env.VARIANT))(E);
 const W = process.env.TUNED ? JSON.parse(fs.readFileSync(process.env.TUNED)).w : AI.BASE_W;
 const [seed0, N, out] = [+process.argv[2], +process.argv[3], process.argv[4]];
-const isBasic = id => E.CARDS[id].theme === 'basic';
+const isBasic = id => E.CARDS[E.baseId(id)].theme === 'basic';
 function playerDeck(run, r, rng) {
   // ランをランダムに進める（候補からランダムに取り、基本カードからランダムに抜く）
-  const reward = () => {
-    const pick = run.offer.slice().sort(() => rng() - 0.5).slice(0, Math.min(run.need, run.offer.length));
-    R.takeCards(run, pick);
-    const bi = run.deck.map((id, i) => isBasic(id) ? i : -1).filter(i => i >= 0);
-    R.removeCard(run, bi.length ? bi[Math.floor(rng() * bi.length)] : 0);
+  const step = () => {
+    // 手順を機械的にこなす（報酬はランダム、抜くのは基本カードからランダム、イベントはスキップ）
+    let k = 0;
+    while (run.phase !== 'battle' && k++ < 20) {
+      const st = run.step;
+      if (run.phase === 'reward') R.takeCards(run, st.offer.slice().sort(() => rng() - 0.5).slice(0, Math.min(st.need, st.offer.length)));
+      else if (run.phase === 'remove') { const bi = run.deck.map((id, i) => isBasic(id) ? i : -1).filter(i => i >= 0); R.removeCard(run, bi.length ? bi[Math.floor(rng() * bi.length)] : 0); }
+      else if (run.phase === 'event') R.chooseEvent(run, null);
+      else throw new Error('unexpected phase ' + run.phase);
+    }
   };
-  reward();
-  while (run.round < r) { R.finishBattle(run, true); reward(); }
+  step();
+  while (run.round < r) { R.finishBattle(run, true); step(); }
   return run.deck.slice();
 }
 const recs = [];

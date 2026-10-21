@@ -83,6 +83,8 @@ Object.assign(CARDS, {
              pick:{ side:'any', cond:'bat', prompt:'電池をすべて外すロボを選ぶ', none:'電池が入ったロボがいません' } },
   copy:    { id:'copy',    name:'コピーロボ',     kind:'robo', atk:0, max:1, eff:'const', rare:true, text:'【常時】このロボを起動した時、場のロボを1体選ぶ。このロボの元の攻撃力は、その時のそのロボの攻撃力（修正込み）になる。',
              deployPick:{ side:'any', optional:true, prompt:'コピーするロボを選ぶ', none:'' } },
+  // 勝ち抜きモードのイベントで入る「呪い」カード（使えない。デッキを重くするだけ）
+  sabi:    { id:'sabi',    name:'サビ',           kind:'spell', noPlay:true, noSet:true, theme:'curse', text:'使えない。ジャンクくじのハズレ。' },
   // 基本カード（ランの最初のデッキ用）
   normal:  { id:'normal',  name:'ノーマルロボ',   kind:'robo', atk:2, max:3, eff:'const', onAttack:{ atk:1 }, text:'【常時】このロボが攻撃した時、その戦闘の間、攻撃力+1。' },
   mini:    { id:'mini',    name:'ミニロボ',       kind:'robo', atk:1, max:3, eff:'none', enterBat:1, text:'効果なし。' },
@@ -148,8 +150,9 @@ function newGame(rng, first, opts) {
   // opts.decks = [ids0, ids1]（省略時はスタンダードのデッキ）、opts.lives = [life0, life1]
   const decks = opts.decks || [DECK_IDS, DECK_IDS];
   const players = [0, 1].map(pi => {
-    const deck = shuffle(decks[pi].map(id => ({ uid: uid++, id, owner: pi, bat: 0 })), rng);
-    return { life: opts.lives ? opts.lives[pi] : LIFE_MAX, deck, hand: [], field: [], set: null, scrap: [] };
+    const deck = shuffle(decks[pi].map(e => makeCard(e, uid++, pi)), rng);
+    if (opts.batPlus) for (const c of deck) if (CARDS[c.id].kind === 'robo') c.maxPlus = (c.maxPlus || 0) + opts.batPlus; // 異常気象：全員の電池上限+N
+    return { life: opts.lives ? opts.lives[pi] : LIFE_MAX, deck, hand: [], field: [], set: null, scrap: [], perks: (opts.perks && opts.perks[pi]) || {} };
   });
   const s = {
     players, turn: first, turnNo: 0, actions: ACTIONS,
@@ -157,10 +160,10 @@ function newGame(rng, first, opts) {
     winner: null, draw: false, stall: 0, lifeSnap: '', pending: null,
     log: opts.log === false ? null : [], v: opts.v || null, uidSeq: 0,
     cardTotal: decks[0].length + decks[1].length, eotDmg: [],
-    lists: opts.decks ? [decks[0].slice(), decks[1].slice()] : null, // デッキリスト（公開情報。CPUが伏せ札の候補を絞るのに使う）
+    lists: opts.decks ? [decks[0].map(baseId), decks[1].map(baseId)] : null, // デッキリスト（公開情報。CPUが伏せ札の候補を絞るのに使う）
   };
   const v = s.v || {};
-  for (const pi of [0, 1]) drawCards(s, pi, 4 + (pi !== first ? (v.secondExtraCards || 0) : 0), true);
+  for (const pi of [0, 1]) drawCards(s, pi, 4 + (pi !== first ? (v.secondExtraCards || 0) : 0) + (players[pi].perks.hand || 0), true);
   if (v.secondLife) players[1 - first].life = v.secondLife;
   // 後攻は「ワンモア」（行動+1・消費なし）を1枚持って始める
   if (!v.noCoin) players[1 - first].hand.push({ uid: uid++, id: 'onemore', owner: 1 - first, bat: 0 });
@@ -169,12 +172,12 @@ function newGame(rng, first, opts) {
   return s;
 }
 
-function cloneCard(c) { const o = { uid: c.uid, id: c.id, owner: c.owner, bat: c.bat }; if (c.lim) o.lim = true; if (c.boost) o.boost = c.boost; if (c.home !== undefined) o.home = c.home; if (c.dmg) o.dmg = c.dmg; if (c.rboost) o.rboost = c.rboost; if (c.copyAtk !== undefined) o.copyAtk = c.copyAtk; if (c.rage) o.rage = true; return o; }
+function cloneCard(c) { const o = { uid: c.uid, id: c.id, owner: c.owner, bat: c.bat }; if (c.atkPlus) o.atkPlus = c.atkPlus; if (c.maxPlus) o.maxPlus = c.maxPlus; if (c.modMax) o.modMax = c.modMax; if (c.enterPlus) o.enterPlus = c.enterPlus; if (c.lim) o.lim = true; if (c.boost) o.boost = c.boost; if (c.home !== undefined) o.home = c.home; if (c.dmg) o.dmg = c.dmg; if (c.rboost) o.rboost = c.rboost; if (c.copyAtk !== undefined) o.copyAtk = c.copyAtk; if (c.rage) o.rage = true; return o; }
 function clone(s) {
   const players = s.players.map(p => ({
     life: p.life,
     deck: p.deck.map(cloneCard), hand: p.hand.map(cloneCard), field: p.field.map(cloneCard),
-    set: p.set ? cloneCard(p.set) : null, scrap: p.scrap.map(cloneCard),
+    set: p.set ? cloneCard(p.set) : null, scrap: p.scrap.map(cloneCard), perks: Object.assign({}, p.perks || {}),
   }));
   return {
     players, turn: s.turn, turnNo: s.turnNo, actions: s.actions, phase: s.phase,
@@ -190,13 +193,25 @@ function pname(pi) { return pi === 0 ? 'あなた' : 'CPU'; }
 function cname(c) { return CARDS[c.id].name; }
 
 // ---------- 参照系 ----------
+// カード1枚ごとの補正（勝ち抜きモードの改造・異常気象）：atkPlus＝攻撃力、maxPlus＝電池上限、enterPlus＝付属電池。
+// 場を離れても消えない（そのカード自体の性能）
+function capOf(y) { return CARDS[y.id].max + (y.maxPlus || 0); }
+function enterOf(y) { return (CARDS[y.id].enterBat || 0) + (y.enterPlus || 0); }
+function isMod(y) { return !!(y.atkPlus || y.modMax || y.enterPlus); }
+// デッキの書き方：'normal' または 'normal@a'（攻撃力+1）/'@m'（電池上限+1）/'@e'（付属電池）。改造は1枚につき1つ
+const MODS = { a: { atkPlus: 1 }, m: { maxPlus: 1, modMax: 1 }, e: { enterPlus: 1 } };
+function makeCard(entry, uid, owner) {
+  const [id, mod] = String(entry).split('@');
+  return Object.assign({ uid, id, owner, bat: 0 }, mod ? MODS[mod] : {});
+}
+function baseId(entry) { return String(entry).split('@')[0]; }
 // ダメージを引く前の攻撃力（＝体力の最大値）
 function rawAtk(y) {
   const c = CARDS[y.id];
-  const base = y.copyAtk !== undefined ? y.copyAtk : c.atk;
+  const base = (y.copyAtk !== undefined ? y.copyAtk : c.atk) + (y.atkPlus || 0);
   let a = base + y.bat + (y.boost || 0) + (y.rboost || 0);
   if (y.id === 'turbo') a += y.bat;
-  if (y.id === 'charge' && c.max > 0 && y.bat >= c.max) a += 2;   // 満充電
+  if (y.id === 'charge' && capOf(y) > 0 && y.bat >= capOf(y)) a += 2;   // 満充電
   if (y.id === 'kajiba' && y.rage) a += 3;                          // ライフ5以下（refreshStatics が立てる）
   return y.lim ? (LIM_BONUS === 'x2' ? a * 2 : a + LIM_BONUS) : a; }
 // いまの攻撃力。受けたダメージの分だけ下がる（0未満にはならない）
@@ -227,7 +242,7 @@ function pickPool(s, pi, spec, selfUid) {
   for (const q of sides) for (const y of s.players[q].field) {
     if (spec.notSelf && y.uid === selfUid) continue;
     if (immuneFrom(y, s, pi)) continue;
-    if (spec.cond === 'room' && y.bat >= CARDS[y.id].max) continue;
+    if (spec.cond === 'room' && y.bat >= capOf(y)) continue;
     if (spec.cond === 'bat' && y.bat <= 0) continue;
     if (spec.maxAtk !== undefined && atkOf(y) > spec.maxAtk) continue;
     out.push(y);
@@ -364,7 +379,7 @@ function batPass(s, pi, fromUid, n, label) {
   const order = s.players[pi].field.map((y, i) => ({ y, i })).sort((a, b) => atkOf(b.y) - atkOf(a.y) || a.i - b.i);
   let moved = 0;
   for (const { y } of order) {
-    while (n > 0 && y.bat < CARDS[y.id].max) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
+    while (n > 0 && y.bat < capOf(y)) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
     if (n <= 0) break;
   }
   if (moved) log(s, `${label}が${moved}本、味方のロボに移った`, { t: 'solarpass', pi, n: moved });
@@ -374,7 +389,7 @@ function solarPass(s, pi, fromUid, n) {
   const order = s.players[pi].field.map((y, i) => ({ y, i })).sort((a, b) => atkOf(b.y) - atkOf(a.y) || a.i - b.i);
   let moved = 0;
   for (const { y } of order) {
-    while (n > 0 && y.bat < CARDS[y.id].max) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
+    while (n > 0 && y.bat < capOf(y)) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
     if (n <= 0) break;
   }
   if (moved) log(s, `ソーラーロボの電池が${moved}本、味方のロボに移った`, { t: 'solarpass', pi, n: moved });
@@ -392,7 +407,7 @@ function recycleTrigger(s, pi) {
 function thiefTrigger(s, pi, uid) {
   const me = findRobo(s, uid); if (!me) return;
   const c = s.players[1 - pi].field.filter(y => y.bat > 0);
-  if (!c.length || me.y.bat >= CARDS[me.y.id].max) return;
+  if (!c.length || me.y.bat >= capOf(me.y)) return;
   const mx = Math.max.apply(null, c.map(atkOf)), t = c.find(y => atkOf(y) === mx && !immuneFrom(y, s, pi));
   if (!t) { log(s, 'ドロボは電池を奪えなかった（バリアロボ）', { t: 'fizzle' }); return; }
   t.bat--; me.y.bat++;
@@ -437,9 +452,9 @@ function bounce(s, uid) {
   return true;
 }
 // 整備マニュアルで電池を入れられる自分のロボ
-function maintTargets(s, pi) { return s.players[pi].field.filter(y => y.bat < CARDS[y.id].max); }
+function maintTargets(s, pi) { return s.players[pi].field.filter(y => y.bat < capOf(y)); }
 function placeBat(s, y, n) { // 置ける分だけ置く。置いた数を返す
-  const room = CARDS[y.id].max - y.bat;
+  const room = capOf(y) - y.bat;
   const k = Math.max(0, Math.min(n, room));
   y.bat += k; return k;
 }
@@ -458,8 +473,11 @@ function deploy(s, pi, card, how, ch) {
   }
   s.players[pi].field.push(card);
   log(s, `${pname(pi)}は${cname(card)}を${how || '起動'}した`, { t: 'deploy', pi, uid: card.uid });
-  const eh = CARDS[card.id].enterBat || 0;
+  const eh = enterOf(card);
   if (eh) { const k = placeBat(s, card, eh); if (k) log(s, `${cname(card)}は電池を${k}本入れて起動した`, { t: 'enterbat', pi, uid: card.uid }); }
+  // パーツ「予備バッテリー」：その対戦で最初に起動したロボに電池+1
+  const pk = s.players[pi].perks;
+  if (pk && pk.firstBat) { pk.firstBat = 0; if (placeBat(s, card, 1)) log(s, `予備バッテリーで${cname(card)}に電池を1本入れた`, { t: 'batfly', uid: card.uid }); }
   // 起動時効果。アクションの処理中に起動した場合は、そのアクションがスクラップに置かれてから発動する
   const trig = card.id === 'recycle' ? () => recycleTrigger(s, pi) : card.id === 'thief' ? () => thiefTrigger(s, pi, card.uid)
     : card.id === 'scout' ? () => { log(s, 'スカウトロボの効果', { t: 'scout' }); drawCards(s, pi, 1); }
@@ -571,6 +589,7 @@ function checkAction(s, a) {
   }
   if (a.t === 'play') {
     const L0 = locateOwnCard(s, pi, a.uid);
+    if (L0 && CARDS[L0.c.id].noPlay) return 'このカードは使えません';
     if (L0 && CARDS[L0.c.id].kind === 'spell' && isJammed(s, pi)) return 'ジャマーロボがいるので、アクションを使えません';
     if (L0 && CARDS[L0.c.id].noCost) {
       if (s.pending) return '攻撃処理中です';
@@ -581,7 +600,7 @@ function checkAction(s, a) {
   if (!canAct(s)) return s.phase === 'battle' ? 'バトルフェイズ中はメインの行動はできません' : s.actions <= 0 ? 'この手番の行動は使い切りました' : 'いまは行動できません';
   if (a.t === 'place') {
     const f = findRobo(s, a.target); if (!f || f.pi !== pi) return '自分のロボを選んでください';
-    if (f.y.bat >= CARDS[f.y.id].max) return '電池の上限です';
+    if (f.y.bat >= capOf(f.y)) return '電池の上限です';
     return null;
   }
   if (a.t === 'set') {
@@ -658,7 +677,7 @@ function checkSpell(s, pi, id, ch) {
       const a = findRobo(s, ch.from), b = findRobo(s, ch.to);
       if (!a || !b || a.y.uid === b.y.uid) return '移動元と移動先を選んでください';
       if (a.y.bat <= 0 || immuneFrom(a.y, s, pi)) return '移動元に動かせる電池がありません';
-      if (immuneFrom(b.y, s, pi) || b.y.bat >= CARDS[b.y.id].max) return '移動先に入れられません';
+      if (immuneFrom(b.y, s, pi) || b.y.bat >= capOf(b.y)) return '移動先に入れられません';
       return null;
     }
     case 'thunder': {
@@ -724,7 +743,7 @@ function resolveSpell(s, pi, card, ch) {
     }
     case 'swap': {
       const a = findRobo(s, ch.from), b = findRobo(s, ch.to);
-      if (a && b && a.y.bat > 0 && !immuneFrom(a.y, s, pi) && !immuneFrom(b.y, s, pi) && b.y.bat < CARDS[b.y.id].max) {
+      if (a && b && a.y.bat > 0 && !immuneFrom(a.y, s, pi) && !immuneFrom(b.y, s, pi) && b.y.bat < capOf(b.y)) {
         a.y.bat--; b.y.bat++; log(s, `${cname(a.y)}の電池を${cname(b.y)}に移した`, { t: 'batmove', from: a.y.uid, to: b.y.uid });
       }
       break;
@@ -1001,10 +1020,10 @@ function invariant(s) {
   for (const p of s.players) { for (const y of p.field) bat += y.bat; n += real(p.deck) + real(p.hand) + real(p.field) + real(p.scrap) + (p.set && !CARDS[p.set.id].token ? 1 : 0); }
   if (n !== (s.cardTotal || DECK_IDS.length * 2)) throw new Error('card count ' + n);
   for (const y of allField(s)) if (lethal(y)) throw new Error('lethal robot left on field');
-  for (const p of s.players) { if (p.field.length > 3) throw new Error('field>3'); for (const y of p.field) if (y.bat > CARDS[y.id].max) throw new Error('bat>max'); }
+  for (const p of s.players) { if (p.field.length > 3) throw new Error('field>3'); for (const y of p.field) if (y.bat > capOf(y)) throw new Error('bat>max'); }
 }
 
-const api = { TERMS, junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
+const api = { capOf, enterOf, isMod, makeCard, baseId, MODS, TERMS, junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
   mulberry32, shuffle, newGame, clone, atkOf, rawAtk, lethal, roboDamage, sweepDeaths, immuneFrom, findRobo, allField, isOver,
   checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondReveal, respondChoiceError, resolveBattle,
   attackFull, endTurn, resolveEot, invariant, pname, cname };

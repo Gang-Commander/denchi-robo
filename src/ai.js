@@ -31,7 +31,7 @@ function roboVal(y, w) {
     case 'daruma': v += w.daruma * y.bat; break;
     case 'heat': v -= w.heat; break;
     case 'megaton': v += w.megaton; break;
-    case 'solar': v += (w.solar ?? 0.4) * (CARDS[y.id].max - y.bat); break;
+    case 'solar': v += (w.solar ?? 0.4) * (E.capOf(y) - y.bat); break;
     case 'guard': v += (w.guard ?? 0.5) * on; break;
     case 'turbo': v += (w.turbo ?? 0) * y.bat; break;
     case 'recycle': v += (w.recycle ?? 0); break;
@@ -132,14 +132,14 @@ function spellChoices(s, pi, id) {
     case 'ebattery': {
       // 自分のロボに置く。容量に収まる組み合わせのみ
       const own = P.field.filter(y => !E.immuneFrom(y, s, pi));
-      const cap = own.reduce((a, y) => a + CARDS[y.id].max - y.bat, 0);
+      const cap = own.reduce((a, y) => a + E.capOf(y) - y.bat, 0);
       const k = Math.min(2, cap);
       if (k <= 0) return [];
       const res = [];
       for (const ms of multisets(own.map(y => y.uid), k)) {
         const cnt = {}; let ok = true;
         for (const u of ms) cnt[u] = (cnt[u] || 0) + 1;
-        for (const y of own) if ((cnt[y.uid] || 0) > CARDS[y.id].max - y.bat) ok = false;
+        for (const y of own) if ((cnt[y.uid] || 0) > E.capOf(y) - y.bat) ok = false;
         if (ok) res.push({ targets: ms });
       }
       return res;
@@ -162,7 +162,7 @@ function spellChoices(s, pi, id) {
     case 'swap': {
       const all = E.allField(s), res = [];
       for (const a of all) if (a.bat > 0 && !E.immuneFrom(a, s, pi))
-        for (const b of all) if (b !== a && !E.immuneFrom(b, s, pi) && b.bat < CARDS[b.id].max) res.push({ from: a.uid, to: b.uid });
+        for (const b of all) if (b !== a && !E.immuneFrom(b, s, pi) && b.bat < E.capOf(b)) res.push({ from: a.uid, to: b.uid });
       return res;
     }
     case 'thunder': return E.thunderCandidates(s, pi).map(y => ({ target: y.uid }));
@@ -193,7 +193,7 @@ function mainActions(s) {
     }
     else if (!jam) for (const ch of spellChoices(s, pi, c.id)) acts.push({ t: 'play', uid: c.uid, ch });
   }
-  for (const y of P.field) if (y.bat < CARDS[y.id].max) acts.push({ t: 'place', target: y.uid });
+  for (const y of P.field) if (y.bat < E.capOf(y)) acts.push({ t: 'place', target: y.uid });
   for (const y of P.field) if (y.bat > 0) {
     if (y.id === 'souji') { for (const tp of [0, 1]) if (s.players[tp].set) acts.push({ t: 'release', src: y.uid, ch: { pi: tp } }); }
     if (y.id === 'magnet') for (const t of O.field) if (!E.immuneFrom(t, s, pi)) acts.push({ t: 'release', src: y.uid, ch: { target: t.uid } });
@@ -247,7 +247,7 @@ function unknownSpells(s, op) {
   if (s.lists) {
     // デッキリストが分かる時（勝ち抜きモード）：リストのアクションから、スクラップに出た枚数を引く
     const left = {};
-    for (const id of s.lists[op]) if (CARDS[id].kind === 'spell') left[id] = (left[id] || 0) + 1;
+    for (const id of s.lists[op]) if (CARDS[id].kind === 'spell' && !CARDS[id].noSet) left[id] = (left[id] || 0) + 1;
     for (const gp of s.players) for (const c of gp.scrap) if (c.owner === op && left[c.id]) left[c.id]--;
     return Object.keys(left).filter(id => left[id] > 0);
   }

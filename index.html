@@ -747,6 +747,19 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 .decklist .dk b { color: var(--gold); }
 .decklist .dk.on { outline: 3px solid #ff6b5a; }
 .runover { text-align: center; }
+.decklist .dk.off { opacity: .35; }
+.partchip { display: inline-block; padding: 1px 8px; margin: 0 4px 4px 0; border: 2px solid #1b1424; background: #2f6a37; color: #fff; font-size: 12px; font-weight: 700; }
+.effects { margin: 4px 0 8px; padding-left: 18px; font-size: 13px; color: #ffd79a; }
+.runnotice { background: #3b2a12; border: 2px solid var(--gold); padding: 6px 10px; color: #ffe9b0; font-weight: 700; }
+.evlist { display: grid; gap: 8px; }
+.evcard { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; text-align: left; padding: 10px 12px; border: 3px solid #1b1424; background: #26284f; color: #ece4cf; cursor: pointer; font: inherit; }
+.evcard b { font-size: 16px; } .evcard span:last-child { grid-column: 1 / -1; font-size: 13px; color: #cfcbe6; }
+.evcard .evkind { font-size: 11px; padding: 1px 6px; background: #3b3d78; color: #fff; align-self: center; }
+.evcard.ev-A .evkind { background: #2c5f9e; } .evcard.ev-B .evkind { background: #8a5a1e; } .evcard.ev-C .evkind { background: #2f7d4f; }
+.evcard.ev-D .evkind { background: #a33040; } .evcard.ev-E .evkind { background: #6b5aa0; } .evcard.ev-F .evkind { background: #5a5f6e; }
+.evcard:hover { border-color: var(--gold); }
+.glist .pickg.on { outline: 3px solid var(--volt); }
+.th-curse { background: #4a3a2a; }
 .runover h2 { font-family: var(--f-dot); font-size: 30px; margin: 8px 0; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
@@ -987,6 +1000,8 @@ Object.assign(CARDS, {
              pick:{ side:'any', cond:'bat', prompt:'電池をすべて外すロボを選ぶ', none:'電池が入ったロボがいません' } },
   copy:    { id:'copy',    name:'コピーロボ',     kind:'robo', atk:0, max:1, eff:'const', rare:true, text:'【常時】このロボを起動した時、場のロボを1体選ぶ。このロボの元の攻撃力は、その時のそのロボの攻撃力（修正込み）になる。',
              deployPick:{ side:'any', optional:true, prompt:'コピーするロボを選ぶ', none:'' } },
+  // 勝ち抜きモードのイベントで入る「呪い」カード（使えない。デッキを重くするだけ）
+  sabi:    { id:'sabi',    name:'サビ',           kind:'spell', noPlay:true, noSet:true, theme:'curse', text:'使えない。ジャンクくじのハズレ。' },
   // 基本カード（ランの最初のデッキ用）
   normal:  { id:'normal',  name:'ノーマルロボ',   kind:'robo', atk:2, max:3, eff:'const', onAttack:{ atk:1 }, text:'【常時】このロボが攻撃した時、その戦闘の間、攻撃力+1。' },
   mini:    { id:'mini',    name:'ミニロボ',       kind:'robo', atk:1, max:3, eff:'none', enterBat:1, text:'効果なし。' },
@@ -1052,8 +1067,9 @@ function newGame(rng, first, opts) {
   // opts.decks = [ids0, ids1]（省略時はスタンダードのデッキ）、opts.lives = [life0, life1]
   const decks = opts.decks || [DECK_IDS, DECK_IDS];
   const players = [0, 1].map(pi => {
-    const deck = shuffle(decks[pi].map(id => ({ uid: uid++, id, owner: pi, bat: 0 })), rng);
-    return { life: opts.lives ? opts.lives[pi] : LIFE_MAX, deck, hand: [], field: [], set: null, scrap: [] };
+    const deck = shuffle(decks[pi].map(e => makeCard(e, uid++, pi)), rng);
+    if (opts.batPlus) for (const c of deck) if (CARDS[c.id].kind === 'robo') c.maxPlus = (c.maxPlus || 0) + opts.batPlus; // 異常気象：全員の電池上限+N
+    return { life: opts.lives ? opts.lives[pi] : LIFE_MAX, deck, hand: [], field: [], set: null, scrap: [], perks: (opts.perks && opts.perks[pi]) || {} };
   });
   const s = {
     players, turn: first, turnNo: 0, actions: ACTIONS,
@@ -1061,10 +1077,10 @@ function newGame(rng, first, opts) {
     winner: null, draw: false, stall: 0, lifeSnap: '', pending: null,
     log: opts.log === false ? null : [], v: opts.v || null, uidSeq: 0,
     cardTotal: decks[0].length + decks[1].length, eotDmg: [],
-    lists: opts.decks ? [decks[0].slice(), decks[1].slice()] : null, // デッキリスト（公開情報。CPUが伏せ札の候補を絞るのに使う）
+    lists: opts.decks ? [decks[0].map(baseId), decks[1].map(baseId)] : null, // デッキリスト（公開情報。CPUが伏せ札の候補を絞るのに使う）
   };
   const v = s.v || {};
-  for (const pi of [0, 1]) drawCards(s, pi, 4 + (pi !== first ? (v.secondExtraCards || 0) : 0), true);
+  for (const pi of [0, 1]) drawCards(s, pi, 4 + (pi !== first ? (v.secondExtraCards || 0) : 0) + (players[pi].perks.hand || 0), true);
   if (v.secondLife) players[1 - first].life = v.secondLife;
   // 後攻は「ワンモア」（行動+1・消費なし）を1枚持って始める
   if (!v.noCoin) players[1 - first].hand.push({ uid: uid++, id: 'onemore', owner: 1 - first, bat: 0 });
@@ -1073,12 +1089,12 @@ function newGame(rng, first, opts) {
   return s;
 }
 
-function cloneCard(c) { const o = { uid: c.uid, id: c.id, owner: c.owner, bat: c.bat }; if (c.lim) o.lim = true; if (c.boost) o.boost = c.boost; if (c.home !== undefined) o.home = c.home; if (c.dmg) o.dmg = c.dmg; if (c.rboost) o.rboost = c.rboost; if (c.copyAtk !== undefined) o.copyAtk = c.copyAtk; if (c.rage) o.rage = true; return o; }
+function cloneCard(c) { const o = { uid: c.uid, id: c.id, owner: c.owner, bat: c.bat }; if (c.atkPlus) o.atkPlus = c.atkPlus; if (c.maxPlus) o.maxPlus = c.maxPlus; if (c.modMax) o.modMax = c.modMax; if (c.enterPlus) o.enterPlus = c.enterPlus; if (c.lim) o.lim = true; if (c.boost) o.boost = c.boost; if (c.home !== undefined) o.home = c.home; if (c.dmg) o.dmg = c.dmg; if (c.rboost) o.rboost = c.rboost; if (c.copyAtk !== undefined) o.copyAtk = c.copyAtk; if (c.rage) o.rage = true; return o; }
 function clone(s) {
   const players = s.players.map(p => ({
     life: p.life,
     deck: p.deck.map(cloneCard), hand: p.hand.map(cloneCard), field: p.field.map(cloneCard),
-    set: p.set ? cloneCard(p.set) : null, scrap: p.scrap.map(cloneCard),
+    set: p.set ? cloneCard(p.set) : null, scrap: p.scrap.map(cloneCard), perks: Object.assign({}, p.perks || {}),
   }));
   return {
     players, turn: s.turn, turnNo: s.turnNo, actions: s.actions, phase: s.phase,
@@ -1094,13 +1110,25 @@ function pname(pi) { return pi === 0 ? 'あなた' : 'CPU'; }
 function cname(c) { return CARDS[c.id].name; }
 
 // ---------- 参照系 ----------
+// カード1枚ごとの補正（勝ち抜きモードの改造・異常気象）：atkPlus＝攻撃力、maxPlus＝電池上限、enterPlus＝付属電池。
+// 場を離れても消えない（そのカード自体の性能）
+function capOf(y) { return CARDS[y.id].max + (y.maxPlus || 0); }
+function enterOf(y) { return (CARDS[y.id].enterBat || 0) + (y.enterPlus || 0); }
+function isMod(y) { return !!(y.atkPlus || y.modMax || y.enterPlus); }
+// デッキの書き方：'normal' または 'normal@a'（攻撃力+1）/'@m'（電池上限+1）/'@e'（付属電池）。改造は1枚につき1つ
+const MODS = { a: { atkPlus: 1 }, m: { maxPlus: 1, modMax: 1 }, e: { enterPlus: 1 } };
+function makeCard(entry, uid, owner) {
+  const [id, mod] = String(entry).split('@');
+  return Object.assign({ uid, id, owner, bat: 0 }, mod ? MODS[mod] : {});
+}
+function baseId(entry) { return String(entry).split('@')[0]; }
 // ダメージを引く前の攻撃力（＝体力の最大値）
 function rawAtk(y) {
   const c = CARDS[y.id];
-  const base = y.copyAtk !== undefined ? y.copyAtk : c.atk;
+  const base = (y.copyAtk !== undefined ? y.copyAtk : c.atk) + (y.atkPlus || 0);
   let a = base + y.bat + (y.boost || 0) + (y.rboost || 0);
   if (y.id === 'turbo') a += y.bat;
-  if (y.id === 'charge' && c.max > 0 && y.bat >= c.max) a += 2;   // 満充電
+  if (y.id === 'charge' && capOf(y) > 0 && y.bat >= capOf(y)) a += 2;   // 満充電
   if (y.id === 'kajiba' && y.rage) a += 3;                          // ライフ5以下（refreshStatics が立てる）
   return y.lim ? (LIM_BONUS === 'x2' ? a * 2 : a + LIM_BONUS) : a; }
 // いまの攻撃力。受けたダメージの分だけ下がる（0未満にはならない）
@@ -1131,7 +1159,7 @@ function pickPool(s, pi, spec, selfUid) {
   for (const q of sides) for (const y of s.players[q].field) {
     if (spec.notSelf && y.uid === selfUid) continue;
     if (immuneFrom(y, s, pi)) continue;
-    if (spec.cond === 'room' && y.bat >= CARDS[y.id].max) continue;
+    if (spec.cond === 'room' && y.bat >= capOf(y)) continue;
     if (spec.cond === 'bat' && y.bat <= 0) continue;
     if (spec.maxAtk !== undefined && atkOf(y) > spec.maxAtk) continue;
     out.push(y);
@@ -1268,7 +1296,7 @@ function batPass(s, pi, fromUid, n, label) {
   const order = s.players[pi].field.map((y, i) => ({ y, i })).sort((a, b) => atkOf(b.y) - atkOf(a.y) || a.i - b.i);
   let moved = 0;
   for (const { y } of order) {
-    while (n > 0 && y.bat < CARDS[y.id].max) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
+    while (n > 0 && y.bat < capOf(y)) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
     if (n <= 0) break;
   }
   if (moved) log(s, `${label}が${moved}本、味方のロボに移った`, { t: 'solarpass', pi, n: moved });
@@ -1278,7 +1306,7 @@ function solarPass(s, pi, fromUid, n) {
   const order = s.players[pi].field.map((y, i) => ({ y, i })).sort((a, b) => atkOf(b.y) - atkOf(a.y) || a.i - b.i);
   let moved = 0;
   for (const { y } of order) {
-    while (n > 0 && y.bat < CARDS[y.id].max) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
+    while (n > 0 && y.bat < capOf(y)) { y.bat++; n--; moved++; log(s, '', { t: 'batmove', from: fromUid, to: y.uid }); }
     if (n <= 0) break;
   }
   if (moved) log(s, `ソーラーロボの電池が${moved}本、味方のロボに移った`, { t: 'solarpass', pi, n: moved });
@@ -1296,7 +1324,7 @@ function recycleTrigger(s, pi) {
 function thiefTrigger(s, pi, uid) {
   const me = findRobo(s, uid); if (!me) return;
   const c = s.players[1 - pi].field.filter(y => y.bat > 0);
-  if (!c.length || me.y.bat >= CARDS[me.y.id].max) return;
+  if (!c.length || me.y.bat >= capOf(me.y)) return;
   const mx = Math.max.apply(null, c.map(atkOf)), t = c.find(y => atkOf(y) === mx && !immuneFrom(y, s, pi));
   if (!t) { log(s, 'ドロボは電池を奪えなかった（バリアロボ）', { t: 'fizzle' }); return; }
   t.bat--; me.y.bat++;
@@ -1341,9 +1369,9 @@ function bounce(s, uid) {
   return true;
 }
 // 整備マニュアルで電池を入れられる自分のロボ
-function maintTargets(s, pi) { return s.players[pi].field.filter(y => y.bat < CARDS[y.id].max); }
+function maintTargets(s, pi) { return s.players[pi].field.filter(y => y.bat < capOf(y)); }
 function placeBat(s, y, n) { // 置ける分だけ置く。置いた数を返す
-  const room = CARDS[y.id].max - y.bat;
+  const room = capOf(y) - y.bat;
   const k = Math.max(0, Math.min(n, room));
   y.bat += k; return k;
 }
@@ -1362,8 +1390,11 @@ function deploy(s, pi, card, how, ch) {
   }
   s.players[pi].field.push(card);
   log(s, `${pname(pi)}は${cname(card)}を${how || '起動'}した`, { t: 'deploy', pi, uid: card.uid });
-  const eh = CARDS[card.id].enterBat || 0;
+  const eh = enterOf(card);
   if (eh) { const k = placeBat(s, card, eh); if (k) log(s, `${cname(card)}は電池を${k}本入れて起動した`, { t: 'enterbat', pi, uid: card.uid }); }
+  // パーツ「予備バッテリー」：その対戦で最初に起動したロボに電池+1
+  const pk = s.players[pi].perks;
+  if (pk && pk.firstBat) { pk.firstBat = 0; if (placeBat(s, card, 1)) log(s, `予備バッテリーで${cname(card)}に電池を1本入れた`, { t: 'batfly', uid: card.uid }); }
   // 起動時効果。アクションの処理中に起動した場合は、そのアクションがスクラップに置かれてから発動する
   const trig = card.id === 'recycle' ? () => recycleTrigger(s, pi) : card.id === 'thief' ? () => thiefTrigger(s, pi, card.uid)
     : card.id === 'scout' ? () => { log(s, 'スカウトロボの効果', { t: 'scout' }); drawCards(s, pi, 1); }
@@ -1475,6 +1506,7 @@ function checkAction(s, a) {
   }
   if (a.t === 'play') {
     const L0 = locateOwnCard(s, pi, a.uid);
+    if (L0 && CARDS[L0.c.id].noPlay) return 'このカードは使えません';
     if (L0 && CARDS[L0.c.id].kind === 'spell' && isJammed(s, pi)) return 'ジャマーロボがいるので、アクションを使えません';
     if (L0 && CARDS[L0.c.id].noCost) {
       if (s.pending) return '攻撃処理中です';
@@ -1485,7 +1517,7 @@ function checkAction(s, a) {
   if (!canAct(s)) return s.phase === 'battle' ? 'バトルフェイズ中はメインの行動はできません' : s.actions <= 0 ? 'この手番の行動は使い切りました' : 'いまは行動できません';
   if (a.t === 'place') {
     const f = findRobo(s, a.target); if (!f || f.pi !== pi) return '自分のロボを選んでください';
-    if (f.y.bat >= CARDS[f.y.id].max) return '電池の上限です';
+    if (f.y.bat >= capOf(f.y)) return '電池の上限です';
     return null;
   }
   if (a.t === 'set') {
@@ -1562,7 +1594,7 @@ function checkSpell(s, pi, id, ch) {
       const a = findRobo(s, ch.from), b = findRobo(s, ch.to);
       if (!a || !b || a.y.uid === b.y.uid) return '移動元と移動先を選んでください';
       if (a.y.bat <= 0 || immuneFrom(a.y, s, pi)) return '移動元に動かせる電池がありません';
-      if (immuneFrom(b.y, s, pi) || b.y.bat >= CARDS[b.y.id].max) return '移動先に入れられません';
+      if (immuneFrom(b.y, s, pi) || b.y.bat >= capOf(b.y)) return '移動先に入れられません';
       return null;
     }
     case 'thunder': {
@@ -1628,7 +1660,7 @@ function resolveSpell(s, pi, card, ch) {
     }
     case 'swap': {
       const a = findRobo(s, ch.from), b = findRobo(s, ch.to);
-      if (a && b && a.y.bat > 0 && !immuneFrom(a.y, s, pi) && !immuneFrom(b.y, s, pi) && b.y.bat < CARDS[b.y.id].max) {
+      if (a && b && a.y.bat > 0 && !immuneFrom(a.y, s, pi) && !immuneFrom(b.y, s, pi) && b.y.bat < capOf(b.y)) {
         a.y.bat--; b.y.bat++; log(s, `${cname(a.y)}の電池を${cname(b.y)}に移した`, { t: 'batmove', from: a.y.uid, to: b.y.uid });
       }
       break;
@@ -1905,10 +1937,10 @@ function invariant(s) {
   for (const p of s.players) { for (const y of p.field) bat += y.bat; n += real(p.deck) + real(p.hand) + real(p.field) + real(p.scrap) + (p.set && !CARDS[p.set.id].token ? 1 : 0); }
   if (n !== (s.cardTotal || DECK_IDS.length * 2)) throw new Error('card count ' + n);
   for (const y of allField(s)) if (lethal(y)) throw new Error('lethal robot left on field');
-  for (const p of s.players) { if (p.field.length > 3) throw new Error('field>3'); for (const y of p.field) if (y.bat > CARDS[y.id].max) throw new Error('bat>max'); }
+  for (const p of s.players) { if (p.field.length > 3) throw new Error('field>3'); for (const y of p.field) if (y.bat > capOf(y)) throw new Error('bat>max'); }
 }
 
-const api = { TERMS, junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
+const api = { capOf, enterOf, isMod, makeCard, baseId, MODS, TERMS, junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
   mulberry32, shuffle, newGame, clone, atkOf, rawAtk, lethal, roboDamage, sweepDeaths, immuneFrom, findRobo, allField, isOver,
   checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondReveal, respondChoiceError, resolveBattle,
   attackFull, endTurn, resolveEot, invariant, pname, cname };
@@ -1950,7 +1982,7 @@ function roboVal(y, w) {
     case 'daruma': v += w.daruma * y.bat; break;
     case 'heat': v -= w.heat; break;
     case 'megaton': v += w.megaton; break;
-    case 'solar': v += (w.solar ?? 0.4) * (CARDS[y.id].max - y.bat); break;
+    case 'solar': v += (w.solar ?? 0.4) * (E.capOf(y) - y.bat); break;
     case 'guard': v += (w.guard ?? 0.5) * on; break;
     case 'turbo': v += (w.turbo ?? 0) * y.bat; break;
     case 'recycle': v += (w.recycle ?? 0); break;
@@ -2051,14 +2083,14 @@ function spellChoices(s, pi, id) {
     case 'ebattery': {
       // 自分のロボに置く。容量に収まる組み合わせのみ
       const own = P.field.filter(y => !E.immuneFrom(y, s, pi));
-      const cap = own.reduce((a, y) => a + CARDS[y.id].max - y.bat, 0);
+      const cap = own.reduce((a, y) => a + E.capOf(y) - y.bat, 0);
       const k = Math.min(2, cap);
       if (k <= 0) return [];
       const res = [];
       for (const ms of multisets(own.map(y => y.uid), k)) {
         const cnt = {}; let ok = true;
         for (const u of ms) cnt[u] = (cnt[u] || 0) + 1;
-        for (const y of own) if ((cnt[y.uid] || 0) > CARDS[y.id].max - y.bat) ok = false;
+        for (const y of own) if ((cnt[y.uid] || 0) > E.capOf(y) - y.bat) ok = false;
         if (ok) res.push({ targets: ms });
       }
       return res;
@@ -2081,7 +2113,7 @@ function spellChoices(s, pi, id) {
     case 'swap': {
       const all = E.allField(s), res = [];
       for (const a of all) if (a.bat > 0 && !E.immuneFrom(a, s, pi))
-        for (const b of all) if (b !== a && !E.immuneFrom(b, s, pi) && b.bat < CARDS[b.id].max) res.push({ from: a.uid, to: b.uid });
+        for (const b of all) if (b !== a && !E.immuneFrom(b, s, pi) && b.bat < E.capOf(b)) res.push({ from: a.uid, to: b.uid });
       return res;
     }
     case 'thunder': return E.thunderCandidates(s, pi).map(y => ({ target: y.uid }));
@@ -2112,7 +2144,7 @@ function mainActions(s) {
     }
     else if (!jam) for (const ch of spellChoices(s, pi, c.id)) acts.push({ t: 'play', uid: c.uid, ch });
   }
-  for (const y of P.field) if (y.bat < CARDS[y.id].max) acts.push({ t: 'place', target: y.uid });
+  for (const y of P.field) if (y.bat < E.capOf(y)) acts.push({ t: 'place', target: y.uid });
   for (const y of P.field) if (y.bat > 0) {
     if (y.id === 'souji') { for (const tp of [0, 1]) if (s.players[tp].set) acts.push({ t: 'release', src: y.uid, ch: { pi: tp } }); }
     if (y.id === 'magnet') for (const t of O.field) if (!E.immuneFrom(t, s, pi)) acts.push({ t: 'release', src: y.uid, ch: { target: t.uid } });
@@ -2166,7 +2198,7 @@ function unknownSpells(s, op) {
   if (s.lists) {
     // デッキリストが分かる時（勝ち抜きモード）：リストのアクションから、スクラップに出た枚数を引く
     const left = {};
-    for (const id of s.lists[op]) if (CARDS[id].kind === 'spell') left[id] = (left[id] || 0) + 1;
+    for (const id of s.lists[op]) if (CARDS[id].kind === 'spell' && !CARDS[id].noSet) left[id] = (left[id] || 0) + 1;
     for (const gp of s.players) for (const c of gp.scrap) if (c.owner === op && left[c.id]) left[c.id]--;
     return Object.keys(left).filter(id => left[id] > 0);
   }
@@ -2257,6 +2289,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 // ===== 勝ち抜きモード（ローグライト）の進行 =====
 // 画面に依存しない純粋なロジック。ランの状態はプレーンなオブジェクトで、そのまま localStorage に保存できる。
 // 乱数の状態も run.rs に持つので、保存→再開しても同じ続きになる。
+//
+// 進行は「手順の列」(run.queue) で管理する。勝利のあとは 報酬 → 抜く → イベント の順に手順を積み、
+// イベントは自分の手順（カードを選ぶ・抜く・改造する…）を列の先頭に差し込む。列が空になったら次の対戦。
+// デッキの1枚は文字列で、'normal' または改造済みの 'normal@a'（攻撃力+1）/'@m'（電池上限+1）/'@e'（付属電池）。
 (function (root) {
 'use strict';
 const E = (typeof module !== 'undefined' && module.exports) ? require('./engine.js') : root.Engine;
@@ -2270,10 +2306,14 @@ const TAKE = 3;            // 候補から取る数
 const START_OFFER = 3, START_TAKE = 1; // ラン開始時：候補3枚から1枚取って、1枚抜く
 const RARE_WEIGHT = 0.35;  // レアの出やすさ（ふつう＝1）
 const OPP_EXTRA = 1;       // 相手のデッキは、同じ回戦の自分よりテーマのカードがこの枚数だけ多い
+const EVENT_CHOICES = 2;   // イベントの候補の数（どちらも選ばない＝スキップも可）
 // 回戦ごとの相手のCPU（app.js の DIFF のキー）：第1戦よわい、第2・3戦ふつう、第4・5戦つよい
 const CPU_BY_ROUND = ['easy', 'normal', 'normal', 'hard', 'hard'];
+const CPU_LADDER = ['easy', 'normal', 'hard'];
 function cpuFor(round) { return CPU_BY_ROUND[Math.min(round, CPU_BY_ROUND.length) - 1]; }
 const THEME_KEYS = Object.keys(THEMES).filter(k => k !== 'common');
+const baseId = E.baseId;
+const isBasic = e => CARDS[baseId(e)].theme === 'basic';
 
 // ---------- 乱数（状態を run に持つ） ----------
 function rand(o) {
@@ -2298,70 +2338,199 @@ function weightedPick(o, ids, n) {
   return out;
 }
 
-// ---------- ラン ----------
-function newRun(seed) {
-  const run = { v: 1, seed: seed | 0, rs: seed | 0, round: 1, nextRound: 1, phase: 'reward', deck: BASIC_DECK.slice(), taken: [], removed: [], offer: [], need: START_TAKE, history: [] };
-  run.themes = shuffleWith(run, THEME_KEYS.slice()).slice(0, 2);
-  run.oppThemes = shuffleWith(run, THEME_KEYS.slice());   // 相手は1戦ごとに別のテーマ
-  run.offer = weightedPick(run, rewardPool(run), START_OFFER);
-  return run;
-}
-function lifeFor(round) { return START_LIFE + LIFE_STEP * (round - 1); }
+// ---------- 候補の出どころ ----------
 // 報酬の候補になりうるカード：自分の2テーマ＋共通。取ったカード・抜いたカードは除く
 function rewardPool(run) {
   const ids = run.themes.concat('common').reduce((a, k) => a.concat(THEMES[k].ids), []);
   return ids.filter(id => !run.taken.includes(id) && !run.removed.includes(id));
 }
+const rarePool = run => rewardPool(run).filter(id => CARDS[id].rare);
+// 自分のテーマ以外（共通も除く）から
+function foreignPool(run) {
+  return THEME_KEYS.filter(k => !run.themes.includes(k)).reduce((a, k) => a.concat(THEMES[k].ids), []).filter(id => !run.taken.includes(id) && !run.removed.includes(id));
+}
+const deckRobos = run => run.deck.map((e, i) => ({ e, i })).filter(x => CARDS[baseId(x.e)].kind === 'robo');
+
+// ---------- イベント（データ） ----------
+// kind: A デッキ / B 改造 / C パーツ（ラン中ずっと効く） / D 取引・賭け / E 特殊な対戦 / F 情報・選択
+// ok(run)：出してよいか。apply(run)：効果（手順を差し込む・フラグを立てる）
+const front = (run, ...steps) => { run.queue.unshift(...steps); };
+const EVENTS = {
+  copy:      { kind: 'A', name: 'コピー機', text: 'デッキのカード1枚を複製する。', apply: r => front(r, { t: 'copy' }) },
+  mass:      { kind: 'A', name: '大量生産', text: 'テーマのカード1枚を複製する。代わりに、次に抜くカードは基本カード以外から選ぶ。',
+               ok: r => r.deck.some(e => !isBasic(e) && baseId(e) !== 'sabi'), apply: r => { front(r, { t: 'copy', themeOnly: true }); r.noBasicNext = true; } },
+  rareShop:  { kind: 'A', name: 'レアパーツ屋', text: 'レアだけの候補3枚から1枚もらう。', ok: r => rarePool(r).length > 0,
+               apply: r => front(r, { t: 'reward', offer: weightedPick(r, rarePool(r), 3), need: 1, title: 'レアパーツ屋：1枚選ぶ' }) },
+  yard:      { kind: 'A', name: '解体ヤード', text: 'デッキからカードを2枚抜く。', ok: r => r.deck.length > 8, apply: r => front(r, { t: 'remove', n: 2, extra: true }) },
+  foreign:   { kind: 'A', name: 'よそのテーマ', text: '自分のテーマ以外のカード3枚から1枚もらう。', ok: r => foreignPool(r).length > 0,
+               apply: r => front(r, { t: 'reward', offer: weightedPick(r, foreignPool(r), 3), need: 1, title: 'よそのテーマ：1枚選ぶ' }) },
+  modShop:   { kind: 'B', name: '改造工場', text: 'ロボ1枚を改造する（攻撃力+1か、電池上限+1）。', ok: r => deckRobos(r).some(x => !x.e.includes('@')),
+               apply: r => front(r, { t: 'mod', mods: ['a', 'm'] }) },
+  enterMod:  { kind: 'B', name: '付属電池化', text: '付属電池のないロボ1枚に、付属電池を付ける。', ok: r => deckRobos(r).some(x => !x.e.includes('@') && !CARDS[baseId(x.e)].enterBat),
+               apply: r => front(r, { t: 'mod', mods: ['e'] }) },
+  spare:     { kind: 'C', part: true, name: '予備バッテリー', text: 'パーツ：毎試合、最初に起動したロボに電池+1。' },
+  armor:     { kind: 'C', part: true, name: '装甲板', text: 'パーツ：毎試合、ライフ+2で始まる。' },
+  bench:     { kind: 'C', part: true, name: '作業台', text: 'パーツ：毎試合、手札+1枚で始まる。' },
+  foresight: { kind: 'C', part: true, name: '先読み回路', text: 'パーツ：毎試合、始まった時に山札の上3枚を見て、引く順番を決められる。' },
+  market:    { kind: 'D', name: '闇市', text: 'ライフが以後ずっと2減る。代わりにレアの候補2枚から1枚もらう。', ok: r => rarePool(r).length > 0,
+               apply: r => { r.lifeMod -= 2; front(r, { t: 'reward', offer: weightedPick(r, rarePool(r), 2), need: 1, title: '闇市：レアを1枚選ぶ' }); } },
+  lottery:   { kind: 'D', name: 'ジャンクくじ', text: '半分の確率でレアを1枚もらう。外れると「サビ」（使えないカード）がデッキに入る。', ok: r => rarePool(r).length > 0,
+               apply: r => {
+                 if (rand(r) < 0.5) { const id = weightedPick(r, rarePool(r), 1)[0]; r.deck.push(id); r.taken.push(id); r.notice = `当たり！ ${CARDS[id].name}がデッキに入った`; }
+                 else { r.deck.push('sabi'); r.notice = 'ハズレ… サビがデッキに入った'; }
+               } },
+  debt:      { kind: 'D', name: '借金', text: 'ランダムにカードを2枚もらう。代わりに次の対戦はライフ−3。', ok: r => rewardPool(r).length >= 2,
+               apply: r => { const ids = weightedPick(r, rewardPool(r), 2); r.deck.push(...ids); r.taken.push(...ids); r.next.life -= 3; r.notice = `${ids.map(id => CARDS[id].name).join('と')}がデッキに入った`; } },
+  elite:     { kind: 'E', name: 'エリート戦', text: '次の相手が強くなる（デッキ+2枚・CPUが1段階強い）。勝てば報酬がもう1回。', apply: r => { r.next.elite = true; } },
+  handicap:  { kind: 'E', name: 'ハンデ戦', text: '次の対戦は自分のライフが半分。勝てばレアの候補3枚から1枚。', ok: r => rarePool(r).length > 0, apply: r => { r.next.handicap = true; } },
+  weather:   { kind: 'E', name: '異常気象', text: '次の対戦は、お互いのロボの電池上限+1。', apply: r => { r.next.weather = true; } },
+  scout:     { kind: 'F', name: '偵察', text: '次の相手のデッキの中身と、その次の相手のテーマが分かる。', ok: r => !r.scout || r.scout < r.nextRound, apply: r => { r.scout = r.nextRound; } },
+  branch:    { kind: 'F', name: '分かれ道', text: '次の相手を、2つのテーマから選ぶ。', ok: r => r.nextRound < ROUNDS,
+               apply: r => { const later = r.oppThemes.slice(r.nextRound); front(r, { t: 'branch', options: [r.oppThemes[r.nextRound - 1], later[Math.floor(rand(r) * later.length)]] }); } },
+};
+function eventOk(run, id) { const ev = EVENTS[id]; if (ev.part && run.parts.includes(id)) return false; return !ev.ok || ev.ok(run); }
+
+// ---------- ラン ----------
+function newRun(seed) {
+  const run = { v: 2, seed: seed | 0, rs: seed | 0, round: 1, nextRound: 1, phase: 'battle', step: null, queue: [],
+    deck: BASIC_DECK.slice(), taken: [], removed: [], history: [], parts: [], lifeMod: 0, next: freshNext(), noBasicNext: false, scout: 0, notice: '' };
+  run.themes = shuffleWith(run, THEME_KEYS.slice()).slice(0, 2);
+  run.oppThemes = shuffleWith(run, THEME_KEYS.slice());   // 相手は1戦ごとに別のテーマ
+  run.queue = [{ t: 'reward', offer: weightedPick(run, rewardPool(run), START_OFFER), need: START_TAKE, title: '最初のカードを1枚選ぶ' }, { t: 'remove', n: 1 }];
+  return advance(run);
+}
+function freshNext() { return { life: 0, elite: false, handicap: false, weather: false }; }
+// 列の次の手順へ。空なら次の対戦
+function advance(run) {
+  const st = run.queue.shift();
+  if (!st) { run.step = null; run.round = run.nextRound; run.phase = 'battle'; return run; }
+  if (st.t === 'event') {
+    const ids = Object.keys(EVENTS).filter(id => eventOk(run, id));
+    st.offer = shuffleWith(run, ids).slice(0, EVENT_CHOICES);
+    if (!st.offer.length) return advance(run);
+  }
+  // 候補を「その手順になった時」に引く報酬（前の報酬で取ったカードを除くため）
+  if (st.t === 'reward' && st.lazy) { st.offer = st.lazy === 'rare' ? weightedPick(run, rarePool(run), 3) : weightedPick(run, rewardPool(run), OFFER); delete st.lazy; }
+  if (st.t === 'reward' && !st.offer.length) return advance(run);
+  if (st.t === 'remove' && run.noBasicNext && st.n === 1 && !st.extra) { st.noBasic = true; run.noBasicNext = false; }
+  run.step = st; run.phase = st.t;
+  return run;
+}
+const need = st => Math.min(st.need, st.offer.length);
+function lifeFor(round) { return START_LIFE + LIFE_STEP * (round - 1); }
+
 // 相手のデッキ：基本デッキから r 枚抜き、テーマのカードを 3(r-1)+1 枚足す（自分と同じ枚数で、テーマのカードが1枚多い）。
-// テーマのカードが足りなければ共通から足す。ラン内では同じ回戦なら同じデッキ
-function oppDeck(run, round) {
+// テーマのカードが足りなければ共通から足す。extra＝エリート戦で増える枚数。ラン内では同じ回戦なら同じデッキ
+function oppDeck(run, round, extra) {
   const o = { rs: (run.seed ^ Math.imul(round, 0x9E3779B1)) | 0 };
   const theme = run.oppThemes[round - 1];
-  const add = 3 * (round - 1) + OPP_EXTRA, cut = (round - 1) + OPP_EXTRA;
+  const add = 3 * (round - 1) + OPP_EXTRA + (extra || 0), cut = (round - 1) + OPP_EXTRA;
   let picks = weightedPick(o, THEMES[theme].ids, add);
   if (picks.length < add) picks = picks.concat(weightedPick(o, THEMES.common.ids, add - picks.length));
   const basics = shuffleWith(o, BASIC_DECK.slice()).slice(cut);
   return { theme, deck: basics.concat(picks) };
 }
+// 次の対戦の条件（パーツ・イベントの効果込み）。画面とシミュレーションの両方がこれを使う
+function battleSetup(run) {
+  const r = run.round, n = run.next || freshNext(), parts = run.parts || [];
+  const opp = oppDeck(run, r, n.elite ? 2 : 0);
+  let life = lifeFor(r) + (run.lifeMod || 0) + (parts.includes('armor') ? 2 : 0) + n.life;
+  if (n.handicap) life = Math.ceil(life / 2);
+  life = Math.max(1, life);
+  const cpu = n.elite ? CPU_LADDER[Math.min(CPU_LADDER.length - 1, CPU_LADDER.indexOf(cpuFor(r)) + 1)] : cpuFor(r);
+  const perks = { hand: parts.includes('bench') ? 1 : 0, firstBat: parts.includes('spare') ? 1 : 0, foresight: parts.includes('foresight') ? 3 : 0 };
+  return { round: r, oppTheme: opp.theme, decks: [run.deck.slice(), opp.deck], lives: [life, lifeFor(r)], cpu, perks: [perks, {}], batPlus: n.weather ? 1 : 0, next: Object.assign({}, n) };
+}
 // 対戦の結果を記録して、次の段階へ
 function finishBattle(run, won, info) {
+  const n = run.next || freshNext();
   run.history.push(Object.assign({ round: run.round, won: !!won, opp: run.oppThemes[run.round - 1] }, info || {}));
-  if (!won) { run.phase = 'over'; return run; }
-  if (run.round >= ROUNDS) { run.phase = 'clear'; return run; }
-  run.offer = weightedPick(run, rewardPool(run), OFFER);
-  run.need = TAKE; run.nextRound = run.round + 1;
-  run.phase = 'reward';
-  return run;
+  run.next = freshNext(); run.notice = '';
+  if (!won) { run.phase = 'over'; run.step = null; return run; }
+  if (run.round >= ROUNDS) { run.phase = 'clear'; run.step = null; return run; }
+  run.nextRound = run.round + 1;
+  run.queue = [{ t: 'reward', offer: weightedPick(run, rewardPool(run), OFFER), need: TAKE, title: `勝利の報酬：${OFFER}枚から${TAKE}枚選ぶ` }];
+  if (n.elite) run.queue.push({ t: 'reward', offer: [], need: TAKE, title: 'エリート戦の報酬：もう1回', lazy: 'normal' });
+  if (n.handicap) run.queue.push({ t: 'reward', offer: [], need: 1, title: 'ハンデ戦の報酬：レアを1枚', lazy: 'rare' });
+  run.queue.push({ t: 'remove', n: 1 }, { t: 'event' });
+  return advance(run);
 }
-// 候補から run.need 枚取る（候補が足りない時は全部）
+// ---------- 各手順の操作 ----------
 function takeCards(run, ids) {
+  const st = run.step;
   if (run.phase !== 'reward') throw new Error('いまは報酬を選べません');
-  const need = Math.min(run.need, run.offer.length);
-  if (ids.length !== need || new Set(ids).size !== ids.length || !ids.every(id => run.offer.includes(id))) throw new Error(`候補から${need}枚選んでください`);
+  const k = need(st);
+  if (ids.length !== k || new Set(ids).size !== ids.length || !ids.every(id => st.offer.includes(id))) throw new Error(`候補から${k}枚選んでください`);
   run.deck = run.deck.concat(ids); run.taken = run.taken.concat(ids);
-  run.offer = []; run.phase = 'remove';
-  return run;
+  return next(run);
 }
 // デッキから1枚抜く（i＝デッキ内の位置）。抜いたカードは、このランでは候補に出なくなる
 function removeCard(run, i) {
+  const st = run.step;
   if (run.phase !== 'remove') throw new Error('いまはカードを抜けません');
   if (!(i >= 0 && i < run.deck.length)) throw new Error('抜くカードを選んでください');
-  const id = run.deck.splice(i, 1)[0];
+  if (st.noBasic && isBasic(run.deck[i]) && run.deck.some(e => !isBasic(e))) throw new Error('今回は基本カード以外から抜きます（大量生産）');
+  const id = baseId(run.deck.splice(i, 1)[0]);
   if (!run.removed.includes(id)) run.removed.push(id);
-  run.round = run.nextRound; run.phase = 'battle';
-  return run;
+  st.n = (st.n || 1) - 1;
+  if (st.n > 0) return run;
+  return next(run);
 }
-// 表示用：デッキを「名前 ×枚数」にまとめる（ロボ→アクション、攻撃力順）
+// イベントを選ぶ（id＝null でスキップ）
+function chooseEvent(run, id) {
+  if (run.phase !== 'event') throw new Error('いまはイベントを選べません');
+  if (id !== null && !run.step.offer.includes(id)) throw new Error('そのイベントは選べません');
+  run.notice = '';
+  if (id !== null) {
+    const ev = EVENTS[id];
+    if (ev.part) run.parts.push(id); else ev.apply(run);
+    run.history.push({ event: id, round: run.round });
+  }
+  return next(run);
+}
+// コピー（i のカードを複製）
+function copyCard(run, i) {
+  const st = run.step;
+  if (run.phase !== 'copy') throw new Error('いまは複製できません');
+  const e = run.deck[i]; if (e === undefined) throw new Error('複製するカードを選んでください');
+  if (baseId(e) === 'sabi') throw new Error('サビは複製できません');
+  if (st.themeOnly && isBasic(e)) throw new Error('テーマのカードを選んでください');
+  run.deck.push(e);
+  return next(run);
+}
+// 改造（i のロボに mod を付ける）
+function modCard(run, i, mod) {
+  const st = run.step;
+  if (run.phase !== 'mod') throw new Error('いまは改造できません');
+  const e = run.deck[i]; if (e === undefined || CARDS[baseId(e)].kind !== 'robo') throw new Error('ロボを選んでください');
+  if (e.includes('@')) throw new Error('改造できるのは1枚につき1回です');
+  if (!st.mods.includes(mod)) throw new Error('その改造はできません');
+  if (mod === 'e' && CARDS[baseId(e)].enterBat) throw new Error('もう付属電池があります');
+  run.deck[i] = e + '@' + mod;
+  return next(run);
+}
+// 分かれ道（次の相手のテーマを選ぶ。選んだテーマとの位置を入れ替える）
+function chooseBranch(run, theme) {
+  const st = run.step;
+  if (run.phase !== 'branch' || !st.options.includes(theme)) throw new Error('テーマを選んでください');
+  const a = run.nextRound - 1, b = run.oppThemes.indexOf(theme);
+  [run.oppThemes[a], run.oppThemes[b]] = [run.oppThemes[b], run.oppThemes[a]];
+  return next(run);
+}
+function next(run) { return advance(run); }
+
+// 表示用：デッキを「名前 ×枚数」にまとめる（ロボ→アクション、攻撃力順。改造は別扱い）
 function deckSummary(deck) {
   const cnt = {};
-  for (const id of deck) cnt[id] = (cnt[id] || 0) + 1;
+  for (const e of deck) cnt[e] = (cnt[e] || 0) + 1;
   return Object.keys(cnt).sort((a, b) => {
-    const A = CARDS[a], B = CARDS[b];
-    return (A.kind === B.kind ? 0 : A.kind === 'robo' ? -1 : 1) || ((A.atk || 0) - (B.atk || 0)) || A.name.localeCompare(B.name, 'ja');
-  }).map(id => ({ id, n: cnt[id] }));
+    const A = CARDS[baseId(a)], B = CARDS[baseId(b)];
+    return (A.kind === B.kind ? 0 : A.kind === 'robo' ? -1 : 1) || ((A.atk || 0) - (B.atk || 0)) || A.name.localeCompare(B.name, 'ja') || a.localeCompare(b);
+  }).map(e => ({ id: e, n: cnt[e] }));
 }
 
-const api = { START_OFFER, START_TAKE, OPP_EXTRA, CPU_BY_ROUND, cpuFor, ROUNDS, START_LIFE, LIFE_STEP, OFFER, TAKE, RARE_WEIGHT, THEME_KEYS, newRun, lifeFor, rewardPool, oppDeck, finishBattle, takeCards, removeCard, deckSummary, weightedPick };
+const api = { EVENTS, START_OFFER, START_TAKE, OPP_EXTRA, CPU_BY_ROUND, cpuFor, ROUNDS, START_LIFE, LIFE_STEP, OFFER, TAKE, RARE_WEIGHT, THEME_KEYS,
+  newRun, lifeFor, rewardPool, rarePool, foreignPool, oppDeck, battleSetup, finishBattle, takeCards, removeCard, chooseEvent, copyCard, modCard, chooseBranch, deckSummary, weightedPick, eventOk };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Run = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -3005,7 +3174,7 @@ function show(id) {
 
 // ---------- カード描画 ----------
 function batPips(y) {
-  const max = CARDS[y.id].max; let h = '';
+  const max = E.capOf(y); let h = '';
   for (let i = 0; i < max; i++) h += `<i class="pip${i < y.bat ? ' on' : ''}"></i>`;
   return `<span class="pips" aria-label="電池 ${y.bat}/${max}">${h}</span>`;
 }
@@ -3020,7 +3189,11 @@ function termHelp(d) {
   return hit.map(t => `<p class="kwhelp"><b>${t.word}</b>：${t.help}</p>`).join('');
 }
 function cardTextPlain(d) { const k = kwList(d); return (k.length ? k.map(x => x.name).join('・') + '／' : '') + d.text; }
-function shownAtk(c) { const d = CARDS[c.id]; return E.atkOf({ id: c.id, bat: d.enterBat || 0 }); }
+// 場の外での攻撃力：付属電池と改造（攻撃力+1）を含めて表示する
+function shownAtk(c) { return E.atkOf({ id: c.id, bat: E.enterOf(c), atkPlus: c.atkPlus }); }
+// 表示名：改造したカードは「改」を付ける
+function cardName(c) { return CARDS[c.id].name + (E.isMod(c) ? '改' : ''); }
+function modNote(c) { return c.atkPlus ? '攻撃力+1' : c.modMax ? '電池上限+1' : c.enterPlus ? '付属電池+1' : ''; }
 function cardHTML(c, opts) {
   opts = opts || {};
   const d = CARDS[c.id];
@@ -3041,12 +3214,12 @@ function cardHTML(c, opts) {
     const onField = opts.zone === 'field';
     const atk = onField ? E.atkOf(c) : shownAtk(c);
     const hurt = onField && c.dmg > 0;
-    const boosted = !hurt && atk > d.atk;
+    const boosted = !hurt && atk > d.atk + (c.atkPlus || 0);
     return `<button class="${cls.join(' ')}" ${attrs}>
-      <span class="cname${d.name.length >= 6 ? ' long' : ''}">${d.name}</span>${d.rare ? '<span class="rare" title="レア">★</span>' : ''}
+      <span class="cname${cardName(c).length >= 6 ? ' long' : ''}">${cardName(c)}</span>${d.rare ? '<span class="rare" title="レア">★</span>' : ''}
       <span class="tag t-${d.eff}${onField && (d.eff === 'powered' || d.eff === 'release') ? (c.bat > 0 ? ' on' : ' off') : ''}">${EFF_LABEL[d.eff]}${onField && d.eff === 'powered' ? (c.bat > 0 ? ' ON' : ' OFF') : ''}</span>
       <span class="frame">${img(c.id)}</span>
-      <span class="foot"><b class="atk${boosted ? ' up' : ''}${hurt ? ' hurt' : ''}">${atk}</b>${hurt ? `<span class="dmgchip" title="この手番に受けたダメージ（手番の終わりに消える）">−${c.dmg}</span>` : ''}${onField ? batPips(c) : batPips({ id: c.id, bat: d.enterBat || 0 })}</span>
+      <span class="foot"><b class="atk${boosted ? ' up' : ''}${hurt ? ' hurt' : ''}">${atk}</b>${hurt ? `<span class="dmgchip" title="この手番に受けたダメージ（手番の終わりに消える）">−${c.dmg}</span>` : ''}${onField ? batPips(c) : batPips({ id: c.id, bat: E.enterOf(c), maxPlus: c.maxPlus })}</span>
       ${opts.badge ? `<span class="badge">${opts.badge}</span>` : ''}${opts.extra || ''}
     </button>`;
   }
@@ -3625,11 +3798,11 @@ function gatherSpell(id, casterPi, cb, cancel) {
       return startSel({ prompt: '2枚引いたあと、電池を入れる自分のロボを選ぶ', valid: new Set(ok.map(y => y.uid)), onDone: p => cb({ target: p[0] }), onCancel: cancel });
     }
     case 'ebattery': {
-      const ok = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < CARDS[y.id].max);
-      const n = Math.min(2, ok.reduce((a, y) => a + CARDS[y.id].max - y.bat, 0));
+      const ok = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < E.capOf(y));
+      const n = Math.min(2, ok.reduce((a, y) => a + E.capOf(y) - y.bat, 0));
       if (!n) { toast('電池を入れられるロボがいません'); return cancel && cancel(); }
       return startSel({ prompt: '電池を入れるロボを選ぶ（同じロボを何度でも）', valid: new Set(ok.map(y => y.uid)), max: n, min: 1, repeat: true,
-        cap: u => { const y = E.findRobo(s, u).y; return CARDS[y.id].max - y.bat; }, onDone: p => cb({ targets: p }), onCancel: cancel });
+        cap: u => { const y = E.findRobo(s, u).y; return E.capOf(y) - y.bat; }, onDone: p => cb({ targets: p }), onCancel: cancel });
     }
     case 'thunder': {
       const c = E.thunderCandidates(s, casterPi);
@@ -3651,7 +3824,7 @@ function gatherSpell(id, casterPi, cb, cancel) {
     }
     case 'swap': {
       const from = all.filter(y => y.bat > 0 && !E.immuneFrom(y, s, casterPi));
-      const to = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < CARDS[y.id].max);
+      const to = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < E.capOf(y));
       if (!from.length || to.length < 1) { toast('電池を移せるロボがいません'); return cancel && cancel(); }
       return startSel({ prompt: '電池を取るロボを選ぶ', valid: new Set(from.map(y => y.uid)), onCancel: cancel,
         onDone: p => {
@@ -4403,81 +4576,131 @@ function renderTitleStats() {
 }
 
 // ================= 勝ち抜きモード =================
-// 進行のルールは src/run.js（Run）。ここは画面と保存だけ。ランは対戦と対戦の間で保存する（対戦の途中は保存しない）
+// 進行のルールは src/run.js（Run）。ここは画面と保存だけ。ランは手順ごと・対戦中も保存する（やり直しはできない）
 let RUN = null;
 const RUN_KEY = 'denchi-run';
-function loadRun() { try { const v = JSON.parse(localStorage.getItem(RUN_KEY) || 'null'); return v && v.v === 1 ? v : null; } catch (e) { return null; } }
+function loadRun() { try { const v = JSON.parse(localStorage.getItem(RUN_KEY) || 'null'); return v && v.v === 2 ? v : null; } catch (e) { return null; } }
 function saveRun() {
   try { if (RUN && RUN.phase !== 'over' && RUN.phase !== 'clear') localStorage.setItem(RUN_KEY, JSON.stringify(RUN)); else localStorage.removeItem(RUN_KEY); } catch (e) {}
 }
-const themeChip = k => `<span class="themechip th-${k}">${k === 'basic' ? '基本' : E.THEMES[k].name}</span>`;
+const themeChip = k => `<span class="themechip th-${k}">${k === 'basic' ? '基本' : k === 'curse' ? '呪い' : E.THEMES[k].name}</span>`;
+const EV_KIND = { A: 'デッキ', B: '改造', C: 'パーツ', D: '取引', E: '特殊な対戦', F: '情報' };
 function startNewRun() {
   if (loadRun() && !confirm('続きのランがあります。新しく始めると、いまのランは消えます。よろしいですか？')) return;
   RUN = Run.newRun((Math.random() * 2 ** 31) | 0); saveRun(); openRun();
 }
 function continueRun() { RUN = loadRun(); if (!RUN) return toTitle(); openRun(); }
 function openRun() { G = null; closeSheet(); renderRun(); show('run'); }
-function runCardInfo(id) { openSheet(`${cardInfoHTML({ uid: -1, id, owner: 0, bat: 0 }, 'deck')}<div class="row"><button class="btn ghost" id="shClose">閉じる</button></div>`, sh => sh.querySelector('#shClose').addEventListener('click', closeSheet)); }
-function deckChips(deck, selId) {
-  return `<div class="decklist">${Run.deckSummary(deck).map(({ id, n }) => `<button class="dk ${CARDS[id].kind}${selId === id ? ' on' : ''}" data-id="${id}">${CARDS[id].name}${CARDS[id].rare ? '★' : ''} <b>×${n}</b></button>`).join('')}</div>`;
+// デッキの1枚（'normal' / 'normal@a' など）を表示用のカードにする
+const entryCard = e => E.makeCard(e, -1, 0);
+function entryName(e) { const c = entryCard(e); return cardName(c) + (CARDS[c.id].rare ? '★' : ''); }
+function runCardInfo(e) {
+  const c = entryCard(e), note = modNote(c);
+  openSheet(`${cardInfoHTML(c, 'deck')}${note ? `<p class="kwhelp"><b>改造</b>：${note}</p>` : ''}<div class="row"><button class="btn ghost" id="shClose">閉じる</button></div>`, sh => sh.querySelector('#shClose').addEventListener('click', closeSheet));
+}
+function deckChips(deck, opt) {
+  opt = opt || {};
+  return `<div class="decklist">${Run.deckSummary(deck).map(({ id, n }) => {
+    const off = opt.filter && !opt.filter(id);
+    return `<button class="dk ${CARDS[E.baseId(id)].kind}${off ? ' off' : ''}" data-id="${id}"${off ? ' disabled' : ''}>${entryName(id)} <b>×${n}</b></button>`;
+  }).join('')}</div>`;
+}
+// 次の対戦にかかっている効果・持っているパーツ
+function effectsHTML(r) {
+  const n = r.next || {}, items = [];
+  if (r.lifeMod) items.push(`闇市：ライフ${r.lifeMod}`);
+  if (n.life) items.push(`借金：次の対戦はライフ${n.life}`);
+  if (n.elite) items.push('エリート戦：相手が強い（勝てば報酬もう1回）');
+  if (n.handicap) items.push('ハンデ戦：ライフ半分（勝てばレア）');
+  if (n.weather) items.push('異常気象：お互いの電池上限+1');
+  const parts = (r.parts || []).map(id => `<span class="partchip" title="${Run.EVENTS[id].text}">${Run.EVENTS[id].name}</span>`).join('');
+  return (parts ? `<p>パーツ：${parts}</p>` : '') + (items.length ? `<ul class="effects">${items.map(x => `<li>${x}</li>`).join('')}</ul>` : '');
 }
 function renderRun() {
-  const r = RUN, body = $('#runBody');
-  const steps = Array.from({ length: Run.ROUNDS }, (_, i) => { const h = r.history.find(x => x.round === i + 1); return `<i class="${h ? (h.won ? 'won' : 'lost') : (i + 1 === r.round && r.phase === 'battle' ? 'now' : '')}"></i>`; }).join('');
-  const head = `<div class="runhead"><span class="rnd">第${Math.min(r.round, Run.ROUNDS)}戦 / ${Run.ROUNDS}</span><span>ライフ <b>${Run.lifeFor(Math.min(r.round, Run.ROUNDS))}</b></span><span>デッキ <b>${r.deck.length}</b>枚</span></div>
-    <div class="runsteps">${steps}</div><p>あなたのテーマ：${r.themes.map(themeChip).join('')}${themeChip('common')}</p>`;
+  const r = RUN, body = $('#runBody'), st = r.step || {};
+  const rd = Math.min(r.round, Run.ROUNDS);
+  const steps = Array.from({ length: Run.ROUNDS }, (_, i) => { const h = r.history.find(x => x.round === i + 1 && x.won !== undefined); return `<i class="${h ? (h.won ? 'won' : 'lost') : (i + 1 === r.round && r.phase === 'battle' ? 'now' : '')}"></i>`; }).join('');
+  const setup = r.phase === 'battle' ? Run.battleSetup(r) : null;
+  const head = `<div class="runhead"><span class="rnd">第${rd}戦 / ${Run.ROUNDS}</span>${setup ? `<span>ライフ <b>${setup.lives[0]}</b></span>` : ''}<span>デッキ <b>${r.deck.length}</b>枚</span></div>
+    <div class="runsteps">${steps}</div><p>あなたのテーマ：${r.themes.map(themeChip).join('')}${themeChip('common')}</p>${effectsHTML(r)}
+    ${r.notice ? `<p class="runnotice">${r.notice}</p>` : ''}`;
   let main = '';
+  const deckBox = (title, opt) => `<div class="runbox"><h3>${title}（${r.deck.length}枚）</h3>${opt && opt.sub ? `<p class="sub">${opt.sub}</p>` : ''}${deckChips(r.deck, opt)}${opt && opt.after || ''}</div>`;
   if (r.phase === 'battle') {
-    const opp = Run.oppDeck(r, r.round), cpu = DIFF[Run.cpuFor(r.round)].label;
-    main = `<div class="runbox"><h3>次の相手</h3><p>${themeChip(opp.theme)}デッキ（CPU：${cpu}・ライフ${Run.lifeFor(r.round)}・${opp.deck.length}枚）</p>
+    const cpu = DIFF[setup.cpu].label, scouted = r.scout && r.scout >= r.round;
+    const after = scouted && r.round < Run.ROUNDS ? `<p class="sub">偵察：その次（第${r.round + 1}戦）の相手は ${themeChip(r.oppThemes[r.round])}</p>` : '';
+    main = `<div class="runbox"><h3>次の相手</h3><p>${themeChip(setup.oppTheme)}デッキ（CPU：${cpu}・ライフ${setup.lives[1]}・${setup.decks[1].length}枚）</p>
+      ${scouted ? `<p class="sub">偵察：相手のデッキ</p>${deckChips(setup.decks[1])}` : ''}${after}
       <div class="row"><button class="btn primary" id="runFight">${r.battle ? '対戦の続きから' : '対戦する'}</button></div></div>
-      <div class="runbox"><h3>あなたのデッキ（${r.deck.length}枚）</h3><p class="sub">タップでカードの説明</p>${deckChips(r.deck)}</div>
+      ${deckBox('あなたのデッキ', { sub: 'タップでカードの説明' })}
       <div class="row"><button class="btn ghost danger" id="runQuit">このランをあきらめる</button></div>`;
   } else if (r.phase === 'reward') {
-    const need = Math.min(r.need, r.offer.length), first = r.history.length === 0;
-    main = `<div class="runbox"><h3>${first ? '最初のカードを1枚選ぶ' : `勝利の報酬：${r.offer.length}枚から${need}枚選ぶ`}</h3>
-      <p class="sub">選んだカードはデッキに入ります。このあとデッキから1枚抜きます。</p>
-      <div class="pickgrid">${r.offer.map(id => `<div class="pick" data-id="${id}">${cardHTML({ uid: -1, id, owner: 0, bat: 0 }, { size: 'hand' })}<p>${themeChip(CARDS[id].theme)}<br>${cardTextPlain(CARDS[id])}</p></div>`).join('')}</div>
+    const need = Math.min(st.need, st.offer.length);
+    main = `<div class="runbox"><h3>${st.title || '報酬'}</h3>
+      <p class="sub">選んだカードはデッキに入ります。${need > 1 ? `${need}枚選んでください。` : ''}</p>
+      <div class="pickgrid">${st.offer.map(id => `<div class="pick" data-id="${id}">${cardHTML({ uid: -1, id, owner: 0, bat: 0 }, { size: 'hand' })}<p>${themeChip(CARDS[id].theme)}<br>${cardTextPlain(CARDS[id])}</p></div>`).join('')}</div>
       <div class="row"><button class="btn primary" id="runTake" disabled>決定（0/${need}）</button></div></div>
-      <div class="runbox"><h3>いまのデッキ（${r.deck.length}枚）</h3>${deckChips(r.deck)}</div>`;
+      ${deckBox('いまのデッキ')}`;
   } else if (r.phase === 'remove') {
-    main = `<div class="runbox"><h3>デッキから1枚抜く</h3><p class="sub">抜いたカードは、このランでは候補に出なくなります。</p>
-      <div id="rmList">${deckChips(r.deck)}</div>
-      <div class="row"><button class="btn" id="runInfo" disabled>説明を見る</button><button class="btn primary" id="runRemove" disabled>このカードを抜く</button></div></div>`;
+    const left = st.n || 1, filter = st.noBasic && r.deck.some(e => CARDS[E.baseId(e)].theme !== 'basic') ? (e => CARDS[E.baseId(e)].theme !== 'basic') : null;
+    main = deckBox(`デッキから${left > 1 ? `あと${left}枚` : '1枚'}抜く`, { sub: '抜いたカードは、このランでは候補に出なくなります。' + (filter ? '今回は基本カード以外から抜きます（大量生産）。' : ''), filter,
+      after: `<div class="row"><button class="btn" id="runInfo" disabled>説明を見る</button><button class="btn primary" id="runRemove" disabled>このカードを抜く</button></div>` });
+  } else if (r.phase === 'event') {
+    main = `<div class="runbox"><h3>イベント：1つ選ぶ</h3><p class="sub">選ばずに進むこともできます。</p>
+      <div class="evlist">${st.offer.map(id => { const ev = Run.EVENTS[id]; return `<button class="evcard ev-${ev.kind}" data-ev="${id}"><span class="evkind">${EV_KIND[ev.kind]}</span><b>${ev.name}</b><span>${ev.text}</span></button>`; }).join('')}</div>
+      <div class="row"><button class="btn ghost" id="runSkip">どれも選ばない</button></div></div>
+      ${deckBox('いまのデッキ')}`;
+  } else if (r.phase === 'copy') {
+    const filter = e => E.baseId(e) !== 'sabi' && (!st.themeOnly || CARDS[E.baseId(e)].theme !== 'basic');
+    main = deckBox(st.themeOnly ? '大量生産：複製するテーマのカードを選ぶ' : 'コピー機：複製するカードを選ぶ', { filter, sub: '選んだカードと同じものが1枚デッキに入ります。',
+      after: `<div class="row"><button class="btn primary" id="runCopy" disabled>このカードを複製</button></div>` });
+  } else if (r.phase === 'mod') {
+    const filter = e => CARDS[E.baseId(e)].kind === 'robo' && !e.includes('@') && !(st.mods.length === 1 && st.mods[0] === 'e' && CARDS[E.baseId(e)].enterBat);
+    const label = { a: '攻撃力+1', m: '電池上限+1', e: '付属電池を付ける' };
+    main = deckBox(st.mods.includes('e') ? '付属電池化：ロボを選ぶ' : '改造工場：ロボを選ぶ', { filter, sub: '改造したカードは名前に「改」が付きます（1枚につき1回）。',
+      after: `<div class="row">${st.mods.map(m => `<button class="btn primary" data-mod="${m}" disabled>${label[m]}</button>`).join('')}</div>` });
+  } else if (r.phase === 'branch') {
+    main = `<div class="runbox"><h3>分かれ道：第${r.nextRound}戦の相手を選ぶ</h3>
+      <div class="row">${st.options.map(t => `<button class="btn primary" data-branch="${t}">${themeChip(t)}デッキと戦う</button>`).join('')}</div></div>`;
   } else {
-    const clear = r.phase === 'clear', last = r.history[r.history.length - 1];
+    const clear = r.phase === 'clear', last = r.history.filter(h => h.won !== undefined).slice(-1)[0];
     main = `<div class="runbox runover"><h2>${clear ? '5連勝！ クリア' : `第${last.round}戦で敗退`}</h2>
-      <p>${r.history.map(h => `第${h.round}戦 ${themeChip(h.opp)} ${h.won ? '○' : '×'}`).join('　')}</p>
-      <h3>最後のデッキ（${r.deck.length}枚）</h3>${deckChips(r.deck)}
+      <p>${r.history.filter(h => h.won !== undefined).map(h => `第${h.round}戦 ${themeChip(h.opp)} ${h.won ? '○' : '×'}`).join('　')}</p>
+      ${deckBox('最後のデッキ')}
       <div class="row"><button class="btn primary" id="runAgain">もう一度</button><button class="btn" id="runTitle">タイトルへ</button></div></div>`;
   }
   body.innerHTML = head + main;
-  // 共通：デッキのカードはタップで説明（抜く画面では選択）
+  const after = f => { try { f(); } catch (e) { toast(e.message, 'err'); return; } saveRun(); renderRun(); window.scrollTo(0, 0); };
+  const pickMode = ['remove', 'copy', 'mod'].includes(r.phase);
+  const sel = () => { const b = body.querySelector('.dk.on'); return b && b.dataset.id; };
+  // デッキのカード：ふだんはタップで説明、抜く・複製・改造の時は選択
   body.querySelectorAll('.dk').forEach(b => b.addEventListener('click', () => {
-    if (r.phase !== 'remove') return runCardInfo(b.dataset.id);
+    if (!pickMode) return runCardInfo(b.dataset.id);
     body.querySelectorAll('.dk').forEach(x => x.classList.toggle('on', x === b));
-    $('#runRemove').disabled = false; $('#runInfo').disabled = false;
-    $('#runRemove').textContent = `${CARDS[b.dataset.id].name}を抜く`;
+    body.querySelectorAll('#runRemove,#runInfo,#runCopy,[data-mod]').forEach(x => { x.disabled = false; });
+    const rm = $('#runRemove'); if (rm) rm.textContent = `${entryName(b.dataset.id)}を抜く`;
   }));
   const on = (id, f) => { const el = body.querySelector('#' + id); if (el) el.addEventListener('click', f); };
   on('runFight', startRunBattle);
   on('runQuit', () => { if (!confirm('このランをあきらめますか？（記録は残りません）')) return; RUN = null; saveRun(); toTitle(); });
   on('runAgain', () => { RUN = Run.newRun((Math.random() * 2 ** 31) | 0); saveRun(); renderRun(); });
   on('runTitle', toTitle);
+  on('runInfo', () => sel() && runCardInfo(sel()));
+  on('runRemove', () => sel() && after(() => Run.removeCard(r, r.deck.indexOf(sel()))));
+  on('runCopy', () => sel() && after(() => Run.copyCard(r, r.deck.indexOf(sel()))));
+  body.querySelectorAll('[data-mod]').forEach(b => b.addEventListener('click', () => sel() && after(() => Run.modCard(r, r.deck.indexOf(sel()), b.dataset.mod))));
+  body.querySelectorAll('[data-ev]').forEach(b => b.addEventListener('click', () => after(() => Run.chooseEvent(r, b.dataset.ev))));
+  on('runSkip', () => after(() => Run.chooseEvent(r, null)));
+  body.querySelectorAll('[data-branch]').forEach(b => b.addEventListener('click', () => after(() => Run.chooseBranch(r, b.dataset.branch))));
   if (r.phase === 'reward') {
-    const need = Math.min(r.need, r.offer.length), btn = $('#runTake');
+    const need = Math.min(st.need, st.offer.length), btn = $('#runTake');
     const picked = () => [...body.querySelectorAll('.pick.on')].map(x => x.dataset.id);
     body.querySelectorAll('.pick').forEach(el => el.addEventListener('click', () => {
       if (!el.classList.contains('on') && picked().length >= need) { if (need === 1) body.querySelectorAll('.pick.on').forEach(x => x.classList.remove('on')); else return toast(`選べるのは${need}枚までです`); }
       el.classList.toggle('on');
       const n = picked().length; btn.disabled = n !== need; btn.textContent = `決定（${n}/${need}）`;
     }));
-    btn.addEventListener('click', () => { Run.takeCards(r, picked()); saveRun(); renderRun(); window.scrollTo(0, 0); });
-  }
-  if (r.phase === 'remove') {
-    const sel = () => { const b = body.querySelector('.dk.on'); return b && b.dataset.id; };
-    on('runInfo', () => sel() && runCardInfo(sel()));
-    on('runRemove', () => { const id = sel(); if (!id) return; Run.removeCard(r, r.deck.indexOf(id)); saveRun(); renderRun(); window.scrollTo(0, 0); });
+    btn.addEventListener('click', () => after(() => Run.takeCards(r, picked())));
   }
 }
 // 対戦中の状態をランと一緒に保存する（閉じても続きから再開。やり直しはできない）。
@@ -4496,13 +4719,35 @@ function resumeRunBattle() {
 }
 function startRunBattle() {
   if (RUN.battle) return resumeRunBattle();
-  const r = RUN, opp = Run.oppDeck(r, r.round), L = Run.lifeFor(r.round);
-  const diff = Run.cpuFor(r.round);
+  const b = Run.battleSetup(RUN);
   const rng = E.mulberry32((Math.random() * 2 ** 31) | 0);
   const first = Math.random() < 0.5 ? 0 : 1;
-  const s = E.newGame(rng, first, { decks: [r.deck, opp.deck], lives: [L, L] });
-  beginGame(s, diff, first, { round: r.round, opp: opp.theme, lifeMax: L }, `勝ち抜き 第${r.round}戦：${E.THEMES[opp.theme].name}デッキ`);
-  saveRunBattle();
+  const s = E.newGame(rng, first, { decks: b.decks, lives: b.lives, perks: b.perks, batPlus: b.batPlus });
+  const go = () => {
+    beginGame(s, b.cpu, first, { round: b.round, opp: b.oppTheme, lifeMax: b.lives[0] }, `勝ち抜き 第${b.round}戦：${E.THEMES[b.oppTheme].name}デッキ`);
+    saveRunBattle();
+  };
+  // パーツ「先読み回路」：山札の上3枚を見て、引く順番を決める（山札は配列の末尾から引く）
+  const fs = s.players[0].perks.foresight || 0, deck = s.players[0].deck;
+  if (!fs || deck.length < 2) return go();
+  const top = deck.slice(-fs).reverse(), order = [];
+  openSheet(`<h3>先読み回路：山札の上${top.length}枚</h3><p class="sub">引きたい順にタップ（最初にタップしたカードを最初に引きます）</p>
+    <div class="glist">${top.map(c => cardHTML(c, { size: 'hand', cls: 'pickg' })).join('')}</div><p class="sub" id="fsOrder"></p>
+    <div class="row"><button class="btn ghost" id="fsKeep">このままの順番</button><button class="btn primary" id="fsOk" disabled>この順番で引く</button></div>`, sh => {
+      sh.querySelectorAll('.pickg').forEach(el => el.addEventListener('click', () => {
+        const u = +el.dataset.uid; if (order.includes(u)) return;
+        order.push(u); el.classList.add('on'); el.dataset.n = order.length;
+        sh.querySelector('#fsOrder').textContent = order.map((x, i) => `${i + 1}. ${CARDS[top.find(c => c.uid === x).id].name}`).join('　');
+        sh.querySelector('#fsOk').disabled = order.length !== top.length;
+      }));
+      sh.querySelector('#fsKeep').addEventListener('click', () => { closeSheet(); go(); });
+      sh.querySelector('#fsOk').addEventListener('click', () => {
+        const rest = deck.slice(0, deck.length - top.length);
+        const picked = order.map(u => top.find(c => c.uid === u)).reverse();
+        deck.length = 0; deck.push(...rest, ...picked);
+        closeSheet(); go();
+      });
+    }, true);
 }
 function runGameOver(title, cls) {
   const s = G.s, won = s.winner === 0;
@@ -4510,7 +4755,7 @@ function runGameOver(title, cls) {
   delete RUN.battle;
   if (!s.draw) Run.finishBattle(RUN, won, { turns: s.turnNo });
   saveRun();
-  const msg = s.draw ? '引き分けなので、もう一度戦います。' : won ? (RUN.round >= Run.ROUNDS ? '5連勝！' : '報酬のカードを選びに行こう。') : 'ランはここで終わりです。';
+  const msg = s.draw ? '引き分けなので、もう一度戦います。' : won ? (RUN.phase === 'clear' ? '5連勝！' : '報酬のカードを選びに行こう。') : 'ランはここで終わりです。';
   openSheet(`<div class="over ${cls}"><div class="overhead">${img(won ? 'battery' : 'megaton', 'overart')}<div><h2>${title}</h2><p class="sub">勝ち抜き 第${G.run.round}戦・${s.turnNo}手番で決着</p></div></div>
     ${scoreboardHTML(s)}<p class="sub">${msg}</p></div>
     <div class="row"><button class="btn primary" id="runNext">${s.draw ? '再戦する' : '次へ'}</button></div>`, sh => {

@@ -9,12 +9,13 @@ for (let i = 0; i < N; i++) {
   const run = R.newRun(1234 + i * 7919);
   const rng = E.mulberry32(99 + i);
   const reward = () => {
-    const pick = run.offer.slice().sort(() => rng() - 0.5).slice(0, Math.min(run.need, run.offer.length));
-    R.takeCards(run, pick);
-    // 抜くのは基本カードからランダム（相手のデッキの作り方とそろえる）
-    const bi = run.deck.map((id, i) => CARDS_basic(id) ? i : -1).filter(i => i >= 0);
-    const idx = bi.length ? bi[Math.floor(rng() * bi.length)] : 0;
-    R.removeCard(run, idx);
+    let k = 0;
+    while (run.phase !== 'battle' && !['over', 'clear'].includes(run.phase) && k++ < 20) {
+      const st = run.step;
+      if (run.phase === 'reward') R.takeCards(run, st.offer.slice().sort(() => rng() - 0.5).slice(0, Math.min(st.need, st.offer.length)));
+      else if (run.phase === 'remove') { const bi = run.deck.map((id, i) => CARDS_basic(id) ? i : -1).filter(i => i >= 0); R.removeCard(run, bi.length ? bi[Math.floor(rng() * bi.length)] : 0); }
+      else if (run.phase === 'event') R.chooseEvent(run, null);
+    }
   };
   reward(); // ラン開始時の1枚
   while (run.phase === 'battle') {
@@ -33,10 +34,10 @@ for (let i = 0; i < N; i++) {
     const won = s.winner === 0;
     if (won) st.w++;
     R.finishBattle(run, won);
-    if (run.phase === 'reward') reward();
+    reward();
   }
   if (run.phase === 'clear') clears++;
 }
-function CARDS_basic(id) { return E.CARDS[id].theme === 'basic'; }
+function CARDS_basic(id) { return E.CARDS[E.baseId(id)].theme === 'basic'; }
 stat.forEach((st, i) => console.log(`第${i + 1}戦 ${st.n}戦 勝率${(100 * st.w / Math.max(1, st.n)).toFixed(0)}% 平均${(st.turns / Math.max(1, st.n)).toFixed(1)}手番 山札切れ${st.deckout}`));
 console.log(`クリア ${clears}/${N}`);

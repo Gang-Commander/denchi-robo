@@ -46,7 +46,7 @@ function show(id) {
 
 // ---------- カード描画 ----------
 function batPips(y) {
-  const max = CARDS[y.id].max; let h = '';
+  const max = E.capOf(y); let h = '';
   for (let i = 0; i < max; i++) h += `<i class="pip${i < y.bat ? ' on' : ''}"></i>`;
   return `<span class="pips" aria-label="電池 ${y.bat}/${max}">${h}</span>`;
 }
@@ -61,7 +61,11 @@ function termHelp(d) {
   return hit.map(t => `<p class="kwhelp"><b>${t.word}</b>：${t.help}</p>`).join('');
 }
 function cardTextPlain(d) { const k = kwList(d); return (k.length ? k.map(x => x.name).join('・') + '／' : '') + d.text; }
-function shownAtk(c) { const d = CARDS[c.id]; return E.atkOf({ id: c.id, bat: d.enterBat || 0 }); }
+// 場の外での攻撃力：付属電池と改造（攻撃力+1）を含めて表示する
+function shownAtk(c) { return E.atkOf({ id: c.id, bat: E.enterOf(c), atkPlus: c.atkPlus }); }
+// 表示名：改造したカードは「改」を付ける
+function cardName(c) { return CARDS[c.id].name + (E.isMod(c) ? '改' : ''); }
+function modNote(c) { return c.atkPlus ? '攻撃力+1' : c.modMax ? '電池上限+1' : c.enterPlus ? '付属電池+1' : ''; }
 function cardHTML(c, opts) {
   opts = opts || {};
   const d = CARDS[c.id];
@@ -82,12 +86,12 @@ function cardHTML(c, opts) {
     const onField = opts.zone === 'field';
     const atk = onField ? E.atkOf(c) : shownAtk(c);
     const hurt = onField && c.dmg > 0;
-    const boosted = !hurt && atk > d.atk;
+    const boosted = !hurt && atk > d.atk + (c.atkPlus || 0);
     return `<button class="${cls.join(' ')}" ${attrs}>
-      <span class="cname${d.name.length >= 6 ? ' long' : ''}">${d.name}</span>${d.rare ? '<span class="rare" title="レア">★</span>' : ''}
+      <span class="cname${cardName(c).length >= 6 ? ' long' : ''}">${cardName(c)}</span>${d.rare ? '<span class="rare" title="レア">★</span>' : ''}
       <span class="tag t-${d.eff}${onField && (d.eff === 'powered' || d.eff === 'release') ? (c.bat > 0 ? ' on' : ' off') : ''}">${EFF_LABEL[d.eff]}${onField && d.eff === 'powered' ? (c.bat > 0 ? ' ON' : ' OFF') : ''}</span>
       <span class="frame">${img(c.id)}</span>
-      <span class="foot"><b class="atk${boosted ? ' up' : ''}${hurt ? ' hurt' : ''}">${atk}</b>${hurt ? `<span class="dmgchip" title="この手番に受けたダメージ（手番の終わりに消える）">−${c.dmg}</span>` : ''}${onField ? batPips(c) : batPips({ id: c.id, bat: d.enterBat || 0 })}</span>
+      <span class="foot"><b class="atk${boosted ? ' up' : ''}${hurt ? ' hurt' : ''}">${atk}</b>${hurt ? `<span class="dmgchip" title="この手番に受けたダメージ（手番の終わりに消える）">−${c.dmg}</span>` : ''}${onField ? batPips(c) : batPips({ id: c.id, bat: E.enterOf(c), maxPlus: c.maxPlus })}</span>
       ${opts.badge ? `<span class="badge">${opts.badge}</span>` : ''}${opts.extra || ''}
     </button>`;
   }
@@ -666,11 +670,11 @@ function gatherSpell(id, casterPi, cb, cancel) {
       return startSel({ prompt: '2枚引いたあと、電池を入れる自分のロボを選ぶ', valid: new Set(ok.map(y => y.uid)), onDone: p => cb({ target: p[0] }), onCancel: cancel });
     }
     case 'ebattery': {
-      const ok = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < CARDS[y.id].max);
-      const n = Math.min(2, ok.reduce((a, y) => a + CARDS[y.id].max - y.bat, 0));
+      const ok = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < E.capOf(y));
+      const n = Math.min(2, ok.reduce((a, y) => a + E.capOf(y) - y.bat, 0));
       if (!n) { toast('電池を入れられるロボがいません'); return cancel && cancel(); }
       return startSel({ prompt: '電池を入れるロボを選ぶ（同じロボを何度でも）', valid: new Set(ok.map(y => y.uid)), max: n, min: 1, repeat: true,
-        cap: u => { const y = E.findRobo(s, u).y; return CARDS[y.id].max - y.bat; }, onDone: p => cb({ targets: p }), onCancel: cancel });
+        cap: u => { const y = E.findRobo(s, u).y; return E.capOf(y) - y.bat; }, onDone: p => cb({ targets: p }), onCancel: cancel });
     }
     case 'thunder': {
       const c = E.thunderCandidates(s, casterPi);
@@ -692,7 +696,7 @@ function gatherSpell(id, casterPi, cb, cancel) {
     }
     case 'swap': {
       const from = all.filter(y => y.bat > 0 && !E.immuneFrom(y, s, casterPi));
-      const to = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < CARDS[y.id].max);
+      const to = all.filter(y => !E.immuneFrom(y, s, casterPi) && y.bat < E.capOf(y));
       if (!from.length || to.length < 1) { toast('電池を移せるロボがいません'); return cancel && cancel(); }
       return startSel({ prompt: '電池を取るロボを選ぶ', valid: new Set(from.map(y => y.uid)), onCancel: cancel,
         onDone: p => {
@@ -1444,81 +1448,131 @@ function renderTitleStats() {
 }
 
 // ================= 勝ち抜きモード =================
-// 進行のルールは src/run.js（Run）。ここは画面と保存だけ。ランは対戦と対戦の間で保存する（対戦の途中は保存しない）
+// 進行のルールは src/run.js（Run）。ここは画面と保存だけ。ランは手順ごと・対戦中も保存する（やり直しはできない）
 let RUN = null;
 const RUN_KEY = 'denchi-run';
-function loadRun() { try { const v = JSON.parse(localStorage.getItem(RUN_KEY) || 'null'); return v && v.v === 1 ? v : null; } catch (e) { return null; } }
+function loadRun() { try { const v = JSON.parse(localStorage.getItem(RUN_KEY) || 'null'); return v && v.v === 2 ? v : null; } catch (e) { return null; } }
 function saveRun() {
   try { if (RUN && RUN.phase !== 'over' && RUN.phase !== 'clear') localStorage.setItem(RUN_KEY, JSON.stringify(RUN)); else localStorage.removeItem(RUN_KEY); } catch (e) {}
 }
-const themeChip = k => `<span class="themechip th-${k}">${k === 'basic' ? '基本' : E.THEMES[k].name}</span>`;
+const themeChip = k => `<span class="themechip th-${k}">${k === 'basic' ? '基本' : k === 'curse' ? '呪い' : E.THEMES[k].name}</span>`;
+const EV_KIND = { A: 'デッキ', B: '改造', C: 'パーツ', D: '取引', E: '特殊な対戦', F: '情報' };
 function startNewRun() {
   if (loadRun() && !confirm('続きのランがあります。新しく始めると、いまのランは消えます。よろしいですか？')) return;
   RUN = Run.newRun((Math.random() * 2 ** 31) | 0); saveRun(); openRun();
 }
 function continueRun() { RUN = loadRun(); if (!RUN) return toTitle(); openRun(); }
 function openRun() { G = null; closeSheet(); renderRun(); show('run'); }
-function runCardInfo(id) { openSheet(`${cardInfoHTML({ uid: -1, id, owner: 0, bat: 0 }, 'deck')}<div class="row"><button class="btn ghost" id="shClose">閉じる</button></div>`, sh => sh.querySelector('#shClose').addEventListener('click', closeSheet)); }
-function deckChips(deck, selId) {
-  return `<div class="decklist">${Run.deckSummary(deck).map(({ id, n }) => `<button class="dk ${CARDS[id].kind}${selId === id ? ' on' : ''}" data-id="${id}">${CARDS[id].name}${CARDS[id].rare ? '★' : ''} <b>×${n}</b></button>`).join('')}</div>`;
+// デッキの1枚（'normal' / 'normal@a' など）を表示用のカードにする
+const entryCard = e => E.makeCard(e, -1, 0);
+function entryName(e) { const c = entryCard(e); return cardName(c) + (CARDS[c.id].rare ? '★' : ''); }
+function runCardInfo(e) {
+  const c = entryCard(e), note = modNote(c);
+  openSheet(`${cardInfoHTML(c, 'deck')}${note ? `<p class="kwhelp"><b>改造</b>：${note}</p>` : ''}<div class="row"><button class="btn ghost" id="shClose">閉じる</button></div>`, sh => sh.querySelector('#shClose').addEventListener('click', closeSheet));
+}
+function deckChips(deck, opt) {
+  opt = opt || {};
+  return `<div class="decklist">${Run.deckSummary(deck).map(({ id, n }) => {
+    const off = opt.filter && !opt.filter(id);
+    return `<button class="dk ${CARDS[E.baseId(id)].kind}${off ? ' off' : ''}" data-id="${id}"${off ? ' disabled' : ''}>${entryName(id)} <b>×${n}</b></button>`;
+  }).join('')}</div>`;
+}
+// 次の対戦にかかっている効果・持っているパーツ
+function effectsHTML(r) {
+  const n = r.next || {}, items = [];
+  if (r.lifeMod) items.push(`闇市：ライフ${r.lifeMod}`);
+  if (n.life) items.push(`借金：次の対戦はライフ${n.life}`);
+  if (n.elite) items.push('エリート戦：相手が強い（勝てば報酬もう1回）');
+  if (n.handicap) items.push('ハンデ戦：ライフ半分（勝てばレア）');
+  if (n.weather) items.push('異常気象：お互いの電池上限+1');
+  const parts = (r.parts || []).map(id => `<span class="partchip" title="${Run.EVENTS[id].text}">${Run.EVENTS[id].name}</span>`).join('');
+  return (parts ? `<p>パーツ：${parts}</p>` : '') + (items.length ? `<ul class="effects">${items.map(x => `<li>${x}</li>`).join('')}</ul>` : '');
 }
 function renderRun() {
-  const r = RUN, body = $('#runBody');
-  const steps = Array.from({ length: Run.ROUNDS }, (_, i) => { const h = r.history.find(x => x.round === i + 1); return `<i class="${h ? (h.won ? 'won' : 'lost') : (i + 1 === r.round && r.phase === 'battle' ? 'now' : '')}"></i>`; }).join('');
-  const head = `<div class="runhead"><span class="rnd">第${Math.min(r.round, Run.ROUNDS)}戦 / ${Run.ROUNDS}</span><span>ライフ <b>${Run.lifeFor(Math.min(r.round, Run.ROUNDS))}</b></span><span>デッキ <b>${r.deck.length}</b>枚</span></div>
-    <div class="runsteps">${steps}</div><p>あなたのテーマ：${r.themes.map(themeChip).join('')}${themeChip('common')}</p>`;
+  const r = RUN, body = $('#runBody'), st = r.step || {};
+  const rd = Math.min(r.round, Run.ROUNDS);
+  const steps = Array.from({ length: Run.ROUNDS }, (_, i) => { const h = r.history.find(x => x.round === i + 1 && x.won !== undefined); return `<i class="${h ? (h.won ? 'won' : 'lost') : (i + 1 === r.round && r.phase === 'battle' ? 'now' : '')}"></i>`; }).join('');
+  const setup = r.phase === 'battle' ? Run.battleSetup(r) : null;
+  const head = `<div class="runhead"><span class="rnd">第${rd}戦 / ${Run.ROUNDS}</span>${setup ? `<span>ライフ <b>${setup.lives[0]}</b></span>` : ''}<span>デッキ <b>${r.deck.length}</b>枚</span></div>
+    <div class="runsteps">${steps}</div><p>あなたのテーマ：${r.themes.map(themeChip).join('')}${themeChip('common')}</p>${effectsHTML(r)}
+    ${r.notice ? `<p class="runnotice">${r.notice}</p>` : ''}`;
   let main = '';
+  const deckBox = (title, opt) => `<div class="runbox"><h3>${title}（${r.deck.length}枚）</h3>${opt && opt.sub ? `<p class="sub">${opt.sub}</p>` : ''}${deckChips(r.deck, opt)}${opt && opt.after || ''}</div>`;
   if (r.phase === 'battle') {
-    const opp = Run.oppDeck(r, r.round), cpu = DIFF[Run.cpuFor(r.round)].label;
-    main = `<div class="runbox"><h3>次の相手</h3><p>${themeChip(opp.theme)}デッキ（CPU：${cpu}・ライフ${Run.lifeFor(r.round)}・${opp.deck.length}枚）</p>
+    const cpu = DIFF[setup.cpu].label, scouted = r.scout && r.scout >= r.round;
+    const after = scouted && r.round < Run.ROUNDS ? `<p class="sub">偵察：その次（第${r.round + 1}戦）の相手は ${themeChip(r.oppThemes[r.round])}</p>` : '';
+    main = `<div class="runbox"><h3>次の相手</h3><p>${themeChip(setup.oppTheme)}デッキ（CPU：${cpu}・ライフ${setup.lives[1]}・${setup.decks[1].length}枚）</p>
+      ${scouted ? `<p class="sub">偵察：相手のデッキ</p>${deckChips(setup.decks[1])}` : ''}${after}
       <div class="row"><button class="btn primary" id="runFight">${r.battle ? '対戦の続きから' : '対戦する'}</button></div></div>
-      <div class="runbox"><h3>あなたのデッキ（${r.deck.length}枚）</h3><p class="sub">タップでカードの説明</p>${deckChips(r.deck)}</div>
+      ${deckBox('あなたのデッキ', { sub: 'タップでカードの説明' })}
       <div class="row"><button class="btn ghost danger" id="runQuit">このランをあきらめる</button></div>`;
   } else if (r.phase === 'reward') {
-    const need = Math.min(r.need, r.offer.length), first = r.history.length === 0;
-    main = `<div class="runbox"><h3>${first ? '最初のカードを1枚選ぶ' : `勝利の報酬：${r.offer.length}枚から${need}枚選ぶ`}</h3>
-      <p class="sub">選んだカードはデッキに入ります。このあとデッキから1枚抜きます。</p>
-      <div class="pickgrid">${r.offer.map(id => `<div class="pick" data-id="${id}">${cardHTML({ uid: -1, id, owner: 0, bat: 0 }, { size: 'hand' })}<p>${themeChip(CARDS[id].theme)}<br>${cardTextPlain(CARDS[id])}</p></div>`).join('')}</div>
+    const need = Math.min(st.need, st.offer.length);
+    main = `<div class="runbox"><h3>${st.title || '報酬'}</h3>
+      <p class="sub">選んだカードはデッキに入ります。${need > 1 ? `${need}枚選んでください。` : ''}</p>
+      <div class="pickgrid">${st.offer.map(id => `<div class="pick" data-id="${id}">${cardHTML({ uid: -1, id, owner: 0, bat: 0 }, { size: 'hand' })}<p>${themeChip(CARDS[id].theme)}<br>${cardTextPlain(CARDS[id])}</p></div>`).join('')}</div>
       <div class="row"><button class="btn primary" id="runTake" disabled>決定（0/${need}）</button></div></div>
-      <div class="runbox"><h3>いまのデッキ（${r.deck.length}枚）</h3>${deckChips(r.deck)}</div>`;
+      ${deckBox('いまのデッキ')}`;
   } else if (r.phase === 'remove') {
-    main = `<div class="runbox"><h3>デッキから1枚抜く</h3><p class="sub">抜いたカードは、このランでは候補に出なくなります。</p>
-      <div id="rmList">${deckChips(r.deck)}</div>
-      <div class="row"><button class="btn" id="runInfo" disabled>説明を見る</button><button class="btn primary" id="runRemove" disabled>このカードを抜く</button></div></div>`;
+    const left = st.n || 1, filter = st.noBasic && r.deck.some(e => CARDS[E.baseId(e)].theme !== 'basic') ? (e => CARDS[E.baseId(e)].theme !== 'basic') : null;
+    main = deckBox(`デッキから${left > 1 ? `あと${left}枚` : '1枚'}抜く`, { sub: '抜いたカードは、このランでは候補に出なくなります。' + (filter ? '今回は基本カード以外から抜きます（大量生産）。' : ''), filter,
+      after: `<div class="row"><button class="btn" id="runInfo" disabled>説明を見る</button><button class="btn primary" id="runRemove" disabled>このカードを抜く</button></div>` });
+  } else if (r.phase === 'event') {
+    main = `<div class="runbox"><h3>イベント：1つ選ぶ</h3><p class="sub">選ばずに進むこともできます。</p>
+      <div class="evlist">${st.offer.map(id => { const ev = Run.EVENTS[id]; return `<button class="evcard ev-${ev.kind}" data-ev="${id}"><span class="evkind">${EV_KIND[ev.kind]}</span><b>${ev.name}</b><span>${ev.text}</span></button>`; }).join('')}</div>
+      <div class="row"><button class="btn ghost" id="runSkip">どれも選ばない</button></div></div>
+      ${deckBox('いまのデッキ')}`;
+  } else if (r.phase === 'copy') {
+    const filter = e => E.baseId(e) !== 'sabi' && (!st.themeOnly || CARDS[E.baseId(e)].theme !== 'basic');
+    main = deckBox(st.themeOnly ? '大量生産：複製するテーマのカードを選ぶ' : 'コピー機：複製するカードを選ぶ', { filter, sub: '選んだカードと同じものが1枚デッキに入ります。',
+      after: `<div class="row"><button class="btn primary" id="runCopy" disabled>このカードを複製</button></div>` });
+  } else if (r.phase === 'mod') {
+    const filter = e => CARDS[E.baseId(e)].kind === 'robo' && !e.includes('@') && !(st.mods.length === 1 && st.mods[0] === 'e' && CARDS[E.baseId(e)].enterBat);
+    const label = { a: '攻撃力+1', m: '電池上限+1', e: '付属電池を付ける' };
+    main = deckBox(st.mods.includes('e') ? '付属電池化：ロボを選ぶ' : '改造工場：ロボを選ぶ', { filter, sub: '改造したカードは名前に「改」が付きます（1枚につき1回）。',
+      after: `<div class="row">${st.mods.map(m => `<button class="btn primary" data-mod="${m}" disabled>${label[m]}</button>`).join('')}</div>` });
+  } else if (r.phase === 'branch') {
+    main = `<div class="runbox"><h3>分かれ道：第${r.nextRound}戦の相手を選ぶ</h3>
+      <div class="row">${st.options.map(t => `<button class="btn primary" data-branch="${t}">${themeChip(t)}デッキと戦う</button>`).join('')}</div></div>`;
   } else {
-    const clear = r.phase === 'clear', last = r.history[r.history.length - 1];
+    const clear = r.phase === 'clear', last = r.history.filter(h => h.won !== undefined).slice(-1)[0];
     main = `<div class="runbox runover"><h2>${clear ? '5連勝！ クリア' : `第${last.round}戦で敗退`}</h2>
-      <p>${r.history.map(h => `第${h.round}戦 ${themeChip(h.opp)} ${h.won ? '○' : '×'}`).join('　')}</p>
-      <h3>最後のデッキ（${r.deck.length}枚）</h3>${deckChips(r.deck)}
+      <p>${r.history.filter(h => h.won !== undefined).map(h => `第${h.round}戦 ${themeChip(h.opp)} ${h.won ? '○' : '×'}`).join('　')}</p>
+      ${deckBox('最後のデッキ')}
       <div class="row"><button class="btn primary" id="runAgain">もう一度</button><button class="btn" id="runTitle">タイトルへ</button></div></div>`;
   }
   body.innerHTML = head + main;
-  // 共通：デッキのカードはタップで説明（抜く画面では選択）
+  const after = f => { try { f(); } catch (e) { toast(e.message, 'err'); return; } saveRun(); renderRun(); window.scrollTo(0, 0); };
+  const pickMode = ['remove', 'copy', 'mod'].includes(r.phase);
+  const sel = () => { const b = body.querySelector('.dk.on'); return b && b.dataset.id; };
+  // デッキのカード：ふだんはタップで説明、抜く・複製・改造の時は選択
   body.querySelectorAll('.dk').forEach(b => b.addEventListener('click', () => {
-    if (r.phase !== 'remove') return runCardInfo(b.dataset.id);
+    if (!pickMode) return runCardInfo(b.dataset.id);
     body.querySelectorAll('.dk').forEach(x => x.classList.toggle('on', x === b));
-    $('#runRemove').disabled = false; $('#runInfo').disabled = false;
-    $('#runRemove').textContent = `${CARDS[b.dataset.id].name}を抜く`;
+    body.querySelectorAll('#runRemove,#runInfo,#runCopy,[data-mod]').forEach(x => { x.disabled = false; });
+    const rm = $('#runRemove'); if (rm) rm.textContent = `${entryName(b.dataset.id)}を抜く`;
   }));
   const on = (id, f) => { const el = body.querySelector('#' + id); if (el) el.addEventListener('click', f); };
   on('runFight', startRunBattle);
   on('runQuit', () => { if (!confirm('このランをあきらめますか？（記録は残りません）')) return; RUN = null; saveRun(); toTitle(); });
   on('runAgain', () => { RUN = Run.newRun((Math.random() * 2 ** 31) | 0); saveRun(); renderRun(); });
   on('runTitle', toTitle);
+  on('runInfo', () => sel() && runCardInfo(sel()));
+  on('runRemove', () => sel() && after(() => Run.removeCard(r, r.deck.indexOf(sel()))));
+  on('runCopy', () => sel() && after(() => Run.copyCard(r, r.deck.indexOf(sel()))));
+  body.querySelectorAll('[data-mod]').forEach(b => b.addEventListener('click', () => sel() && after(() => Run.modCard(r, r.deck.indexOf(sel()), b.dataset.mod))));
+  body.querySelectorAll('[data-ev]').forEach(b => b.addEventListener('click', () => after(() => Run.chooseEvent(r, b.dataset.ev))));
+  on('runSkip', () => after(() => Run.chooseEvent(r, null)));
+  body.querySelectorAll('[data-branch]').forEach(b => b.addEventListener('click', () => after(() => Run.chooseBranch(r, b.dataset.branch))));
   if (r.phase === 'reward') {
-    const need = Math.min(r.need, r.offer.length), btn = $('#runTake');
+    const need = Math.min(st.need, st.offer.length), btn = $('#runTake');
     const picked = () => [...body.querySelectorAll('.pick.on')].map(x => x.dataset.id);
     body.querySelectorAll('.pick').forEach(el => el.addEventListener('click', () => {
       if (!el.classList.contains('on') && picked().length >= need) { if (need === 1) body.querySelectorAll('.pick.on').forEach(x => x.classList.remove('on')); else return toast(`選べるのは${need}枚までです`); }
       el.classList.toggle('on');
       const n = picked().length; btn.disabled = n !== need; btn.textContent = `決定（${n}/${need}）`;
     }));
-    btn.addEventListener('click', () => { Run.takeCards(r, picked()); saveRun(); renderRun(); window.scrollTo(0, 0); });
-  }
-  if (r.phase === 'remove') {
-    const sel = () => { const b = body.querySelector('.dk.on'); return b && b.dataset.id; };
-    on('runInfo', () => sel() && runCardInfo(sel()));
-    on('runRemove', () => { const id = sel(); if (!id) return; Run.removeCard(r, r.deck.indexOf(id)); saveRun(); renderRun(); window.scrollTo(0, 0); });
+    btn.addEventListener('click', () => after(() => Run.takeCards(r, picked())));
   }
 }
 // 対戦中の状態をランと一緒に保存する（閉じても続きから再開。やり直しはできない）。
@@ -1537,13 +1591,35 @@ function resumeRunBattle() {
 }
 function startRunBattle() {
   if (RUN.battle) return resumeRunBattle();
-  const r = RUN, opp = Run.oppDeck(r, r.round), L = Run.lifeFor(r.round);
-  const diff = Run.cpuFor(r.round);
+  const b = Run.battleSetup(RUN);
   const rng = E.mulberry32((Math.random() * 2 ** 31) | 0);
   const first = Math.random() < 0.5 ? 0 : 1;
-  const s = E.newGame(rng, first, { decks: [r.deck, opp.deck], lives: [L, L] });
-  beginGame(s, diff, first, { round: r.round, opp: opp.theme, lifeMax: L }, `勝ち抜き 第${r.round}戦：${E.THEMES[opp.theme].name}デッキ`);
-  saveRunBattle();
+  const s = E.newGame(rng, first, { decks: b.decks, lives: b.lives, perks: b.perks, batPlus: b.batPlus });
+  const go = () => {
+    beginGame(s, b.cpu, first, { round: b.round, opp: b.oppTheme, lifeMax: b.lives[0] }, `勝ち抜き 第${b.round}戦：${E.THEMES[b.oppTheme].name}デッキ`);
+    saveRunBattle();
+  };
+  // パーツ「先読み回路」：山札の上3枚を見て、引く順番を決める（山札は配列の末尾から引く）
+  const fs = s.players[0].perks.foresight || 0, deck = s.players[0].deck;
+  if (!fs || deck.length < 2) return go();
+  const top = deck.slice(-fs).reverse(), order = [];
+  openSheet(`<h3>先読み回路：山札の上${top.length}枚</h3><p class="sub">引きたい順にタップ（最初にタップしたカードを最初に引きます）</p>
+    <div class="glist">${top.map(c => cardHTML(c, { size: 'hand', cls: 'pickg' })).join('')}</div><p class="sub" id="fsOrder"></p>
+    <div class="row"><button class="btn ghost" id="fsKeep">このままの順番</button><button class="btn primary" id="fsOk" disabled>この順番で引く</button></div>`, sh => {
+      sh.querySelectorAll('.pickg').forEach(el => el.addEventListener('click', () => {
+        const u = +el.dataset.uid; if (order.includes(u)) return;
+        order.push(u); el.classList.add('on'); el.dataset.n = order.length;
+        sh.querySelector('#fsOrder').textContent = order.map((x, i) => `${i + 1}. ${CARDS[top.find(c => c.uid === x).id].name}`).join('　');
+        sh.querySelector('#fsOk').disabled = order.length !== top.length;
+      }));
+      sh.querySelector('#fsKeep').addEventListener('click', () => { closeSheet(); go(); });
+      sh.querySelector('#fsOk').addEventListener('click', () => {
+        const rest = deck.slice(0, deck.length - top.length);
+        const picked = order.map(u => top.find(c => c.uid === u)).reverse();
+        deck.length = 0; deck.push(...rest, ...picked);
+        closeSheet(); go();
+      });
+    }, true);
 }
 function runGameOver(title, cls) {
   const s = G.s, won = s.winner === 0;
@@ -1551,7 +1627,7 @@ function runGameOver(title, cls) {
   delete RUN.battle;
   if (!s.draw) Run.finishBattle(RUN, won, { turns: s.turnNo });
   saveRun();
-  const msg = s.draw ? '引き分けなので、もう一度戦います。' : won ? (RUN.round >= Run.ROUNDS ? '5連勝！' : '報酬のカードを選びに行こう。') : 'ランはここで終わりです。';
+  const msg = s.draw ? '引き分けなので、もう一度戦います。' : won ? (RUN.phase === 'clear' ? '5連勝！' : '報酬のカードを選びに行こう。') : 'ランはここで終わりです。';
   openSheet(`<div class="over ${cls}"><div class="overhead">${img(won ? 'battery' : 'megaton', 'overart')}<div><h2>${title}</h2><p class="sub">勝ち抜き 第${G.run.round}戦・${s.turnNo}手番で決着</p></div></div>
     ${scoreboardHTML(s)}<p class="sub">${msg}</p></div>
     <div class="row"><button class="btn primary" id="runNext">${s.draw ? '再戦する' : '次へ'}</button></div>`, sh => {

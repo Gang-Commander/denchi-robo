@@ -741,6 +741,19 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
 .decklist .dk b { color: var(--gold); }
 .decklist .dk.on { outline: 3px solid #ff6b5a; }
 .runover { text-align: center; }
+.decklist .dk.off { opacity: .35; }
+.partchip { display: inline-block; padding: 1px 8px; margin: 0 4px 4px 0; border: 2px solid #1b1424; background: #2f6a37; color: #fff; font-size: 12px; font-weight: 700; }
+.effects { margin: 4px 0 8px; padding-left: 18px; font-size: 13px; color: #ffd79a; }
+.runnotice { background: #3b2a12; border: 2px solid var(--gold); padding: 6px 10px; color: #ffe9b0; font-weight: 700; }
+.evlist { display: grid; gap: 8px; }
+.evcard { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; text-align: left; padding: 10px 12px; border: 3px solid #1b1424; background: #26284f; color: #ece4cf; cursor: pointer; font: inherit; }
+.evcard b { font-size: 16px; } .evcard span:last-child { grid-column: 1 / -1; font-size: 13px; color: #cfcbe6; }
+.evcard .evkind { font-size: 11px; padding: 1px 6px; background: #3b3d78; color: #fff; align-self: center; }
+.evcard.ev-A .evkind { background: #2c5f9e; } .evcard.ev-B .evkind { background: #8a5a1e; } .evcard.ev-C .evkind { background: #2f7d4f; }
+.evcard.ev-D .evkind { background: #a33040; } .evcard.ev-E .evkind { background: #6b5aa0; } .evcard.ev-F .evkind { background: #5a5f6e; }
+.evcard:hover { border-color: var(--gold); }
+.glist .pickg.on { outline: 3px solid var(--volt); }
+.th-curse { background: #4a3a2a; }
 .runover h2 { font-family: var(--f-dot); font-size: 30px; margin: 8px 0; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
