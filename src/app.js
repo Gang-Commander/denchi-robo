@@ -1533,7 +1533,8 @@ function loadRun() { try { const v = JSON.parse(localStorage.getItem(RUN_KEY) ||
 function saveRun() {
   try { if (RUN && RUN.phase !== 'over' && RUN.phase !== 'clear') localStorage.setItem(RUN_KEY, JSON.stringify(RUN)); else localStorage.removeItem(RUN_KEY); } catch (e) {}
 }
-const themeChip = k => `<span class="themechip th-${k}">${k === 'basic' ? '基本' : k === 'curse' ? '呪い' : E.THEMES[k].name}</span>`;
+const themeName = k => k === 'basic' ? '基本' : k === 'curse' ? '呪い' : E.THEMES[k] ? E.THEMES[k].name : k;
+const themeChip = k => `<span class="themechip th-${k}">${themeName(k)}</span>`;
 const EV_KIND = { A: 'デッキ', B: '改造', C: 'パーツ', D: '取引', E: '特殊な対戦', F: '情報' };
 function startNewRun() {
   if (loadRun() && !confirm('続きのランがあります。新しく始めると、いまのランは消えます。よろしいですか？')) return;
@@ -1770,7 +1771,7 @@ function dbgState(turnNo, owner) {
 }
 function dbgRenderEditor() {
   // デバッグでは、トークンや不採用カードも置けるようにする
-  const tag = id => E.RETIRED_IDS.includes(id) ? '・不採用' : CARDS[id].token ? '・トークン' : !E.DECK_IDS.includes(id) && CARDS[id].theme ? '・' + (CARDS[id].theme === 'basic' ? '基本' : E.THEMES[CARDS[id].theme].name) : '';
+  const tag = id => E.RETIRED_IDS.includes(id) ? '・不採用' : CARDS[id].token ? '・トークン' : !E.DECK_IDS.includes(id) && CARDS[id].theme ? '・' + themeName(CARDS[id].theme) : '';
   const order = E.DECK_IDS.concat(E.TOKEN_IDS, E.RETIRED_IDS, Object.keys(CARDS).filter(id => !E.DECK_IDS.includes(id) && !E.TOKEN_IDS.includes(id) && !E.RETIRED_IDS.includes(id)));
   const yIds = order.filter(id => CARDS[id].kind === 'robo');
   const sIds = order.filter(id => CARDS[id].kind === 'spell' && !CARDS[id].noSet);
