@@ -879,7 +879,6 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
     <h3>キーワード能力</h3>
     <ul>
       <li><b>付属電池N</b>：このロボは電池をN本入れた状態で場に出る（リペアキットでの起動や、効果で出た時も）。効果文の1行目に書いてあります。手札でもその本数ぶんの攻撃力で表示されます。付属電池は重なります（例：付属電池1のロボに、さらに付属電池1が付けば付属電池2）。</li>
-      <li><b>挑発</b>：相手は、挑発しているロボ以外の自分のロボを攻撃できません。本文の中に太字で書いてあります（ガードロボは電池が入っている間だけ挑発）。</li>
     </ul>
     <p class="note">電池を入れると、どのロボも攻撃力が1上がります（ターボロボはさらに+1）。放電で電池を抜くと、そのぶん攻撃力も下がります。</p>
     <h2>戦闘</h2>
@@ -893,7 +892,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
       <li>ボムロボ：戦闘時に電池があれば、戦闘相手が生き残っても手番終了時に破壊します。</li>
       <li>マグネットロボ：放電後、マグネットロボと相手のロボの持ち主（コントロール）を入れ替えます。電池は入ったまま移ります。</li>
       <li>リペアキットで起動したメガトンロボは、自分の手番なら起動した手番の攻撃禁止が働きます。</li>
-      <li>破壊されたカードは元の持ち主のスクラップへ行きます。トークン（アニキロボ・ガードボットなど、デッキに入らないロボ）は、場に出たあとは普通のカードとして扱います。破壊されればスクラップへ行き、ワープ装置で戻せば手札へ行き、リペアキットやジャンク回収の対象にもなります（取り除く場合はカードに書いてあります）。</li>
+      <li>破壊されたカードは元の持ち主のスクラップへ行きます。トークン（アニキロボなど、デッキに入らないロボ）は、場に出たあとは普通のカードとして扱います。破壊されればスクラップへ行き、ワープ装置で戻せば手札へ行き、リペアキットやジャンク回収の対象にもなります（取り除く場合はカードに書いてあります）。</li>
       <li>リミッター解除：自分のロボにも、相手のロボにも使えます。伏せておけば、攻撃してきた相手のロボにも使えます（+3されて戦闘はきびしくなりますが、手番終了時にそのロボは破壊されます）。上がるのは+3で固定です（電池の本数には関係しません）。</li>
       <li>リサイクルロボ：起動した時、起動したプレイヤーのスクラップにある一番新しいアクションを1枚手札に戻します（ワンモアは対象外）。リペアキットで起動した場合は「リペアキットの処理が終わってスクラップへ置かれる → リサイクルロボの効果」の順なので、そのリペアキットを回収できます。</li>
       <li>ドロボ：相手の場に電池入りのロボがいなければ何も起きません。攻撃力が同じなら左のロボから奪います。</li>
@@ -927,6 +926,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
     <h3>キーワード能力（このモードのカード）</h3>
     <ul>
       <li><b>満充電</b>：電池が上限まで入っている間だけ働く効果。</li>
+      <li><b>挑発</b>：相手は、挑発しているロボ以外の自分のロボを攻撃できません。本文の中に太字で書いてあります（ガードロボ・ガードボットは電池が入っている間だけ挑発）。</li>
       <li><b>バックアップ</b>：このロボが破壊された時、入っていた電池を自分の場のロボに移します（攻撃力の高いロボから順に、上限まで。選ばない）。</li>
     </ul>
     <h3>細かい裁定（このモードのカード）</h3>
@@ -1025,7 +1025,7 @@ Object.assign(CARDS, {
   proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'normal', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を1枚出す（新しく出たカードは、そのあと普通のカードとして扱う）。' },
   sorter:  { id:'sorter',  name:'検品ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、山札の一番上を見る。ロボなら手札に、アクションならスクラップに置く。' },
   // 防衛
-  guardian:{ id:'guardian',name:'警備隊長ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、自分の場に「ガードボット」を1体出す。' },
+  guardian:{ id:'guardian',name:'警備隊長ロボ',   kind:'robo', atk:3, max:3, eff:'const', text:'【常時】このロボを起動した時、自分の場に「ガードボット」を1体出す。' },
   guardbot:{ id:'guardbot',name:'ガードボット',   kind:'robo', atk:0, max:1, eff:'powered', token:true, enterBat:1, taunt:'powered', noBattleDmg:true,
              text:'【通電中】挑発。【常時】このロボの戦闘では、どちらのプレイヤーもダメージを受けない。（警備隊長ロボから出るトークン）' },
   wall:    { id:'wall',    name:'ウォールロボ',   kind:'robo', atk:5, max:0, eff:'const', text:'【常時】このロボは攻撃できない。' },
@@ -1067,9 +1067,9 @@ const THEMES = {
   charge:   { name:'充電',       ids:['turbo','megaton','ebattery','manual','charge','dynamo','gigant','solar','feeder','relay'] },
   demolish: { name:'解体',       ids:['thunder','sniper','short','souji','magnet','drill','hammer','emp'] },
   scrap:    { name:'スクラップ', ids:['recycle','repair','kobun','crane','reboot','parts','junk','gattai','hack','press','proto','sorter'] },
-  defense:  { name:'防衛',       ids:['barrier','daruma','bomb','wall','medic','fortress','guard','jammer'] },
+  defense:  { name:'防衛',       ids:['barrier','daruma','bomb','wall','medic','fortress','guard','jammer','guardian'] },
   rampage:  { name:'暴走',       ids:['heat','limiter','bakushin','kajiba','runaway','spark','overload','rocket'] },
-  common:   { name:'共通',       ids:['swap','thief','scout','socket','warp','batpack','leak','copy','guardian'] },
+  common:   { name:'共通',       ids:['swap','thief','scout','socket','warp','batpack','leak','copy'] },
 };
 const BASIC_DECK = ['normal','normal','normal','mini','mini','garakuta','drycell','drycell','static','static'];
 const BASIC_IDS = ['normal','mini','garakuta','drycell','static'];
@@ -1082,7 +1082,7 @@ const TERMS = [
   { word:'破裂N', match:/破裂[0-9X]/, kw:/破裂[0-9X]+/g, help:'そのロボの電池を1本破壊し、そのロボにNダメージを与える。ダメージは手番の終わりまで残り、そのぶん攻撃力が下がる。「電池を外す」はダメージなし。' },
 ];
 const KEYWORDS = {
-  enterBat: { name:'付属電池N', help:'このロボは電池をN本入れた状態で場に出る（リペアキットでの起動や、効果で出た時も）。付属電池は重なる（給電ロボなど）。' },
+  enterBat: { name:'付属電池N', help:'このロボは電池をN本入れた状態で場に出る（リペアキットでの起動や、効果で出た時も）。付属電池は重なる。' },
   full:     { name:'満充電',   help:'電池が上限まで入っている間だけ働く効果。' },
   backup:   { name:'バックアップ', help:'このロボが破壊された時、入っていた電池を自分の場のロボに移す（攻撃力の高いロボから順に、上限まで。選ばない）。' },
 };
@@ -5169,7 +5169,7 @@ function renderRules() {
   const ys = E.ROBO_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const ss = E.SPELL_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   // デッキに入らないカード（後攻が持つワンモア、コブンロボから出るアニキロボ）
-  const ts = ['onemore', 'aniki', 'guardbot'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  const ts = ['onemore', 'aniki'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const rs = E.RETIRED_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const row = c => { const d = CARDS[c.id]; return `<div class="dex">${cardHTML(c, { size: 'hand' })}<div><h4>${d.name}${d.rare ? ' ★' : ''}${d.kind === 'robo' ? `<span class="dexmeta">攻撃力${shownAtk(c)}${d.enterBat ? '（電池込み）' : ''}・電池上限${d.max}・${EFF_LABEL[d.eff]}</span>` : '<span class="dexmeta">アクション</span>'}</h4><p>${cardText(d)}</p></div></div>`; };
   // ロボは効果の種類ごとにまとめ、グループ内は攻撃力→名前の順。アクションは名前順
@@ -5192,6 +5192,7 @@ function renderRules() {
   const asCards = ids => ids.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   $('#dexRogue').innerHTML = Object.keys(E.THEMES).map(k => `<h3 class="dexgrp">${E.THEMES[k].name}</h3>` + sortT(asCards(E.THEMES[k].ids)).map(row).join('')).join('')
     + `<h3 class="dexgrp">基本カード（最初のデッキ）</h3>` + sortT(asCards(E.BASIC_IDS)).map(row).join('')
+    + `<h3 class="dexgrp">デッキに入らないカード</h3>` + asCards(['guardbot']).map(row).join('')
     + `<h3 class="dexgrp">そのほか</h3>` + asCards(['sabi']).map(row).join('');
   // イベントの一覧（種類ごと）
   const KIND = { A: 'デッキ', B: '改造', C: 'パーツ（ラン中ずっと効く）', D: '取引・賭け', E: '特殊な対戦', F: '情報・選択' };

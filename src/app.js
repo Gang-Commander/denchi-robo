@@ -1937,7 +1937,7 @@ function renderRules() {
   const ys = E.ROBO_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const ss = E.SPELL_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   // デッキに入らないカード（後攻が持つワンモア、コブンロボから出るアニキロボ）
-  const ts = ['onemore', 'aniki', 'guardbot'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  const ts = ['onemore', 'aniki'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const rs = E.RETIRED_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const row = c => { const d = CARDS[c.id]; return `<div class="dex">${cardHTML(c, { size: 'hand' })}<div><h4>${d.name}${d.rare ? ' ★' : ''}${d.kind === 'robo' ? `<span class="dexmeta">攻撃力${shownAtk(c)}${d.enterBat ? '（電池込み）' : ''}・電池上限${d.max}・${EFF_LABEL[d.eff]}</span>` : '<span class="dexmeta">アクション</span>'}</h4><p>${cardText(d)}</p></div></div>`; };
   // ロボは効果の種類ごとにまとめ、グループ内は攻撃力→名前の順。アクションは名前順
@@ -1960,6 +1960,7 @@ function renderRules() {
   const asCards = ids => ids.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   $('#dexRogue').innerHTML = Object.keys(E.THEMES).map(k => `<h3 class="dexgrp">${E.THEMES[k].name}</h3>` + sortT(asCards(E.THEMES[k].ids)).map(row).join('')).join('')
     + `<h3 class="dexgrp">基本カード（最初のデッキ）</h3>` + sortT(asCards(E.BASIC_IDS)).map(row).join('')
+    + `<h3 class="dexgrp">デッキに入らないカード</h3>` + asCards(['guardbot']).map(row).join('')
     + `<h3 class="dexgrp">そのほか</h3>` + asCards(['sabi']).map(row).join('');
   // イベントの一覧（種類ごと）
   const KIND = { A: 'デッキ', B: '改造', C: 'パーツ（ラン中ずっと効く）', D: '取引・賭け', E: '特殊な対戦', F: '情報・選択' };

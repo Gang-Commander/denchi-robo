@@ -64,7 +64,7 @@ Object.assign(CARDS, {
   proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'normal', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を1枚出す（新しく出たカードは、そのあと普通のカードとして扱う）。' },
   sorter:  { id:'sorter',  name:'検品ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、山札の一番上を見る。ロボなら手札に、アクションならスクラップに置く。' },
   // 防衛
-  guardian:{ id:'guardian',name:'警備隊長ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、自分の場に「ガードボット」を1体出す。' },
+  guardian:{ id:'guardian',name:'警備隊長ロボ',   kind:'robo', atk:3, max:3, eff:'const', text:'【常時】このロボを起動した時、自分の場に「ガードボット」を1体出す。' },
   guardbot:{ id:'guardbot',name:'ガードボット',   kind:'robo', atk:0, max:1, eff:'powered', token:true, enterBat:1, taunt:'powered', noBattleDmg:true,
              text:'【通電中】挑発。【常時】このロボの戦闘では、どちらのプレイヤーもダメージを受けない。（警備隊長ロボから出るトークン）' },
   wall:    { id:'wall',    name:'ウォールロボ',   kind:'robo', atk:5, max:0, eff:'const', text:'【常時】このロボは攻撃できない。' },
@@ -106,9 +106,9 @@ const THEMES = {
   charge:   { name:'充電',       ids:['turbo','megaton','ebattery','manual','charge','dynamo','gigant','solar','feeder','relay'] },
   demolish: { name:'解体',       ids:['thunder','sniper','short','souji','magnet','drill','hammer','emp'] },
   scrap:    { name:'スクラップ', ids:['recycle','repair','kobun','crane','reboot','parts','junk','gattai','hack','press','proto','sorter'] },
-  defense:  { name:'防衛',       ids:['barrier','daruma','bomb','wall','medic','fortress','guard','jammer'] },
+  defense:  { name:'防衛',       ids:['barrier','daruma','bomb','wall','medic','fortress','guard','jammer','guardian'] },
   rampage:  { name:'暴走',       ids:['heat','limiter','bakushin','kajiba','runaway','spark','overload','rocket'] },
-  common:   { name:'共通',       ids:['swap','thief','scout','socket','warp','batpack','leak','copy','guardian'] },
+  common:   { name:'共通',       ids:['swap','thief','scout','socket','warp','batpack','leak','copy'] },
 };
 const BASIC_DECK = ['normal','normal','normal','mini','mini','garakuta','drycell','drycell','static','static'];
 const BASIC_IDS = ['normal','mini','garakuta','drycell','static'];
@@ -121,7 +121,7 @@ const TERMS = [
   { word:'破裂N', match:/破裂[0-9X]/, kw:/破裂[0-9X]+/g, help:'そのロボの電池を1本破壊し、そのロボにNダメージを与える。ダメージは手番の終わりまで残り、そのぶん攻撃力が下がる。「電池を外す」はダメージなし。' },
 ];
 const KEYWORDS = {
-  enterBat: { name:'付属電池N', help:'このロボは電池をN本入れた状態で場に出る（リペアキットでの起動や、効果で出た時も）。付属電池は重なる（給電ロボなど）。' },
+  enterBat: { name:'付属電池N', help:'このロボは電池をN本入れた状態で場に出る（リペアキットでの起動や、効果で出た時も）。付属電池は重なる。' },
   full:     { name:'満充電',   help:'電池が上限まで入っている間だけ働く効果。' },
   backup:   { name:'バックアップ', help:'このロボが破壊された時、入っていた電池を自分の場のロボに移す（攻撃力の高いロボから順に、上限まで。選ばない）。' },
 };
