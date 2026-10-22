@@ -22,7 +22,10 @@ const OPP_EXTRA = 1;       // 相手のデッキは、同じ回戦の自分よ�
 const CPU_BY_ROUND = ['easy', 'normal', 'normal', 'hard', 'hard'];
 const CPU_LADDER = ['easy', 'normal', 'hard'];
 function cpuFor(round) { return CPU_BY_ROUND[Math.min(round, CPU_BY_ROUND.length) - 1]; }
-const THEME_KEYS = Object.keys(THEMES).filter(k => k !== 'common');
+// 共通カード（どのテーマを選んでも報酬に出る）
+const COMMON_KEYS = ['common', 'common2'];
+const COMMON_IDS = COMMON_KEYS.reduce((a, k) => a.concat(THEMES[k].ids), []);
+const THEME_KEYS = Object.keys(THEMES).filter(k => !COMMON_KEYS.includes(k));
 const baseId = E.baseId;
 const isBasic = e => CARDS[baseId(e)].theme === 'basic';
 
@@ -52,7 +55,7 @@ function weightedPick(o, ids, n) {
 // ---------- 候補の出どころ ----------
 // 報酬の候補になりうるカード：自分の2テーマ＋共通。取ったカード・抜いたカードは除く
 function rewardPool(run) {
-  const ids = run.themes.concat('common').reduce((a, k) => a.concat(THEMES[k].ids), []);
+  const ids = run.themes.concat(COMMON_KEYS).reduce((a, k) => a.concat(THEMES[k].ids), []);
   return ids.filter(id => !run.taken.includes(id) && !run.removed.includes(id));
 }
 const rarePool = run => rewardPool(run).filter(id => CARDS[id].rare);
@@ -153,7 +156,7 @@ function oppDeck(run, round, extra) {
   const theme = run.oppThemes[round - 1];
   const add = 3 * (round - 1) + OPP_EXTRA + (extra || 0), cut = (round - 1) + OPP_EXTRA;
   let picks = weightedPick(o, THEMES[theme].ids, add);
-  if (picks.length < add) picks = picks.concat(weightedPick(o, THEMES.common.ids, add - picks.length));
+  if (picks.length < add) picks = picks.concat(weightedPick(o, COMMON_IDS, add - picks.length));
   const basics = shuffleWith(o, BASIC_DECK.slice()).slice(cut);
   return { theme, deck: basics.concat(picks) };
 }

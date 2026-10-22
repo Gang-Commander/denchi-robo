@@ -87,6 +87,10 @@ function sideVal(s, pi, w) {
   v += w.hand * p.hand.length;
   for (const c of p.hand) { if (c.id === 'onemore') { v += (w.coin ?? 0.8) - w.hand; continue; } if (CARDS[c.id].kind === 'spell') v += w.handSpell; }
   if (p.set) v += w.set;
+  // 一時的な効果（連撃回路の追加の攻撃、オーバーロードの次の手番の行動、シールド）
+  const fx = p.fx || {};
+  v += (w.extraAtk ?? 2.5) * ((fx.extraAttack || 0) + (fx.nextExtraAttack || 0)) + (w.bonusAct ?? 1.0) * (fx.bonusActions || 0);
+  for (const y of p.field) if (y.shield) v += (w.shield ?? 0.6);
   return v;
 }
 // next: 次に手番を持つプレイヤー
@@ -110,8 +114,9 @@ function multisets(items, k) {
   return out;
 }
 // AI用のアクション選択肢（明らかに無意味なものは省く）
-function spellChoices(s, pi, id) {
+function spellChoices(s, pi, id, uid) {
   const P = s.players[pi], O = s.players[1 - pi];
+  if (id === 'bakaji' && P.life > E.RAGE_LIFE) return [];
   if (id === 'junk') {
     // 種類ごとに1枚（同じカード名は1つにまとめる）
     const { robos, spells } = E.junkPool(s, pi), uniq = l => { const seen = {}; return l.filter(c => !seen[c.id] && (seen[c.id] = 1)); };
@@ -168,7 +173,8 @@ function spellChoices(s, pi, id) {
     case 'thunder': return E.thunderCandidates(s, pi).map(y => ({ target: y.uid }));
     case 'hack': return P.field.length >= 3 ? [] : E.hackCandidates(s, pi).map(y => ({ target: y.uid }));
     case 'limiter': return E.allField(s).filter(y => !E.immuneFrom(y, s, pi)).map(y => ({ target: y.uid }));
-    case 'overload': case 'emp': return [{}];
+    case 'overload': case 'emp': case 'estop': case 'medkit': case 'decoy': case 'yakekuso': case 'combo': case 'dorder': case 'echarge': return [{}];
+    case 'eject': return E.ejectPool(s, uid).map(q => ({ pi: q }));
     default: if (CARDS[id].burn) return [{}];
   }
   return [];
@@ -191,7 +197,7 @@ function mainActions(s) {
         else acts.push({ t: 'play', uid: c.uid });
       }
     }
-    else if (!jam) for (const ch of spellChoices(s, pi, c.id)) acts.push({ t: 'play', uid: c.uid, ch });
+    else if (!jam) for (const ch of spellChoices(s, pi, c.id, c.uid)) acts.push({ t: 'play', uid: c.uid, ch });
   }
   for (const y of P.field) if (y.bat < E.capOf(y)) acts.push({ t: 'place', target: y.uid });
   for (const y of P.field) if (y.bat > 0) {
@@ -224,7 +230,7 @@ function attackOptions(s) {
 function respondOptions(s) {
   const di = 1 - s.turn, c = s.players[di].set;
   let base = [null];
-  if (c && E.canRespondSet(s)) base = base.concat(spellChoices(s, di, c.id).filter(ch => !E.respondChoiceError(s, ch)).map(ch => ({ ch })));
+  if (c && E.canRespondSet(s)) base = base.concat(spellChoices(s, di, c.id, c.uid).filter(ch => !E.respondChoiceError(s, ch)).map(ch => ({ ch })));
   if (!E.rocketDefends(s)) return base;
   // ロケットロボを点火するかどうか
   return base.concat(base.map(r => Object.assign({}, r || {}, { boost: true })));

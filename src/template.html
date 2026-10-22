@@ -469,6 +469,7 @@ h1 { letter-spacing: .1em; text-shadow: var(--px) var(--px) 0 var(--red), calc(v
 .card .rare { position: absolute; top: 1px; right: 3px; font-size: 11px; color: var(--gold); text-shadow: 1px 1px 0 #1b1424; z-index: 2; }
 .dmg.heal { color: #6fe38a; }
 .card .atk.hurt { background: #c8323f; color: #fff; }
+.card .shieldchip { font-size: 10px; font-weight: 700; color: #1b1424; background: #8fd3ff; border: 2px solid #1b1424; padding: 0 2px; margin-left: 2px; line-height: 1.2; }
 .card .dmgchip { font-family: var(--f-dot); font-size: 11px; font-weight: 700; color: #fff; background: #c8323f; border: 2px solid #1b1424; padding: 0 3px; margin-left: 2px; line-height: 1.2; }
 .pip { border-radius: 0; border: 0; background: #3a3550; box-shadow: inset 1px 1px 0 rgba(0,0,0,.5); transform: rotate(45deg) scale(.82); }
 .pip.on { background: var(--volt); box-shadow: inset 1px 1px 0 #e8fbff, 0 0 4px var(--volt); }
@@ -910,7 +911,7 @@ button.cnt[data-scrap]:active { transform: translateY(1px); }
     <ul>
       <li>CPUと<b>5連戦</b>して、5連勝でクリア。1回でも負けたらランは終わりです（引き分けはその回戦をやり直し）。</li>
       <li>最初のデッキは<b>基本カード10枚</b>。ライフは第1戦が<b>7</b>で、1戦ごとに+2（第5戦は15）。相手も同じライフで、デッキの枚数もあなたとそろえてあります。</li>
-      <li>ランの最初に、あなたのテーマが<b>2つ</b>決まります。もらえるカードは、その2テーマと「共通」から出ます。</li>
+      <li>ランの最初に、あなたのテーマが<b>2つ</b>決まります。もらえるカードは、その2テーマと「共通」「共通2」から出ます。</li>
       <li>始める時に候補3枚から1枚もらい、デッキから1枚抜きます。</li>
       <li>勝つたびに、候補6枚から<b>3枚</b>もらい、デッキから<b>1枚抜きます</b>。一度もらったカード・抜いたカードは、そのランでは候補に出ません。★はレアで、出にくくなっています。</li>
       <li>相手は1戦ごとに別のテーマのデッキ（1テーマだけ）。CPUは第1戦「やさしい」、第2・3戦「ふつう」、第4・5戦「つよい」です。</li>

@@ -93,7 +93,7 @@ function cardHTML(c, opts) {
       <span class="cname${cardName(c).length >= 6 ? ' long' : ''}">${cardName(c)}</span>${d.rare ? '<span class="rare" title="レア">★</span>' : ''}
       <span class="tag t-${d.eff}${onField && (d.eff === 'powered' || d.eff === 'release') ? (c.bat > 0 ? ' on' : ' off') : ''}">${EFF_LABEL[d.eff]}${onField && d.eff === 'powered' ? (c.bat > 0 ? ' ON' : ' OFF') : ''}</span>
       <span class="frame">${img(c.id)}</span>
-      <span class="foot"><b class="atk${boosted ? ' up' : ''}${hurt ? ' hurt' : ''}">${atk}</b>${hurt ? `<span class="dmgchip" title="この手番に受けたダメージ（手番の終わりに消える）">−${c.dmg}</span>` : ''}${onField ? batPips(c) : batPips({ id: c.id, bat: E.enterOf(c), maxPlus: c.maxPlus })}</span>
+      <span class="foot"><b class="atk${boosted ? ' up' : ''}${hurt ? ' hurt' : ''}">${atk}</b>${hurt ? `<span class="dmgchip" title="この手番に受けたダメージ（手番の終わりに消える）">−${c.dmg}</span>` : ''}${onField && c.shield ? '<span class="shieldchip" title="シールド：破裂のダメージを1回無効">盾</span>' : ''}${onField ? batPips(c) : batPips({ id: c.id, bat: E.enterOf(c), maxPlus: c.maxPlus })}</span>
       ${opts.badge ? `<span class="badge">${opts.badge}</span>` : ''}${opts.extra || ''}
     </button>`;
   }
@@ -646,8 +646,14 @@ function playRobo(c) {
   if (err) { toast(err, 'err'); return; }
   gatherPick(d.deployPick, 0, c.uid, ch => humanAct({ t: 'play', uid: c.uid, ch }), () => render());
 }
-function gatherSpell(id, casterPi, cb, cancel) {
+function gatherSpell(id, casterPi, cb, cancel, selfUid) {
   const s = G.s;
+  if (id === 'bakaji' && s.players[casterPi].life > E.RAGE_LIFE) { toast(`自分のライフが${E.RAGE_LIFE}以下の時だけ使えます`, 'err'); return cancel && cancel(); }
+  if (id === 'eject') {
+    const pool = E.ejectPool(s, selfUid);
+    if (!pool.length) { toast('伏せ札がありません', 'err'); return cancel && cancel(); }
+    return startSel({ prompt: '破壊する伏せ札を選ぶ', valid: new Set(pool.map(q => 'set' + q)), onDone: p => cb({ pi: p[0] === 'set0' ? 0 : 1 }), onCancel: cancel });
+  }
   const all = E.allField(s);
   if (id === 'junk') {
     const { robos, spells } = E.junkPool(s, casterPi);
@@ -665,7 +671,7 @@ function gatherSpell(id, casterPi, cb, cancel) {
   if (CARDS[id].pick) return gatherPick(CARDS[id].pick, casterPi, null, cb, cancel);
   switch (id) {
     case 'overload': return cb({});
-    case 'onemore': case 'emp': return cb({});
+    case 'onemore': case 'emp': case 'estop': case 'medkit': case 'decoy': case 'yakekuso': case 'combo': case 'dorder': case 'echarge': return cb({});
     case 'manual': {
       const ok = E.maintTargets(s, casterPi);
       if (!ok.length) return cb({});
@@ -789,8 +795,9 @@ async function finishMyAttack() {
   render();
   tutAfter({ t: 'attack-resolved' });
   if (G.mode === 'debug') return dbgAfterMyBattle();
-  // 攻撃は1手番に1回なので、戦闘が終わったら自動でターン終了
-  if (G.mode === 'game' && !E.isOver(s) && s.turn === 0) {
+  // 攻撃は1手番に1回なので、戦闘が終わったら自動でターン終了（連撃回路でもう1回攻撃できる時は終わらない）
+  const more = !s.attacked && s.players[0].field.some(y => !E.cantAttack(y));
+  if (G.mode === 'game' && !E.isOver(s) && s.turn === 0 && !more) {
     G.busy = true; render();
     await sleep(reduceMotion ? 200 : 600);
     if (!G || G.id !== my || E.isOver(s) || s.turn !== 0) return;
@@ -869,7 +876,7 @@ function humanRespondSet() {
             if (err) { toast(err, 'err'); return ask(); }
             if (G.mode === 'tut' && !tutGate({ t: 'respond', resp: { ch }, id: set.id })) { render(); return ask(); }
             render(); resolve({ ch });
-          }, () => ask());
+          }, () => ask(), set.uid);
         });
       }, true);
     ask();
@@ -957,7 +964,7 @@ function doCardAction(k, c) {
   if (k === 'play') return playRobo(c);
   if (k === 'set') return humanAct({ t: 'set', uid });
   if (k === 'place') return humanAct({ t: 'place', target: uid });
-  if (k === 'cast') return gatherSpell(c.id, 0, ch => humanAct({ t: 'play', uid, ch }), () => render());
+  if (k === 'cast') return gatherSpell(c.id, 0, ch => humanAct({ t: 'play', uid, ch }), () => render(), uid);
   if (k === 'release') {
     if (c.id === 'souji') {
       const v = new Set(); if (s.players[0].set) v.add('set0'); if (s.players[1].set) v.add('set1');
@@ -1500,7 +1507,7 @@ function renderRun() {
   const steps = Array.from({ length: Run.ROUNDS }, (_, i) => { const h = r.history.find(x => x.round === i + 1 && x.won !== undefined); return `<i class="${h ? (h.won ? 'won' : 'lost') : (i + 1 === r.round && r.phase === 'battle' ? 'now' : '')}"></i>`; }).join('');
   const setup = r.phase === 'battle' ? Run.battleSetup(r) : null;
   const head = `<div class="runhead"><span class="rnd">第${rd}戦 / ${Run.ROUNDS}</span>${setup ? `<span>ライフ <b>${setup.lives[0]}</b></span>` : ''}<span>デッキ <b>${r.deck.length}</b>枚</span></div>
-    <div class="runsteps">${steps}</div><p>あなたのテーマ：${r.themes.map(themeChip).join('')}${themeChip('common')}</p>${effectsHTML(r)}
+    <div class="runsteps">${steps}</div><p>あなたのテーマ：${r.themes.map(themeChip).join('')}${themeChip('common')}${themeChip('common2')}</p>${effectsHTML(r)}
     ${r.notice ? `<p class="runnotice">${r.notice}</p>` : ''}`;
   let main = '';
   const deckBox = (title, opt) => `<div class="runbox"><h3>${title}（${r.deck.length}枚）</h3>${opt && opt.sub ? `<p class="sub">${opt.sub}</p>` : ''}${deckChips(r.deck, opt)}${opt && opt.after ? '<div class="pickprev" id="pickPrev"></div>' + opt.after : ''}</div>`;

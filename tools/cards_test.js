@@ -134,4 +134,72 @@ const err = (s, a) => E.checkAction(s, a);
   play(s, u, { target: 777 }); ok(s.players[0].hand.some(c => c.id === 'aniki'), 'warp token -> hand'); }
 { const s = board([], []); s.players[0].scrap.push({ uid: 778, id: 'aniki', owner: 0, bat: 0 }); const u = hand(s, 0, 'junk'); play(s, u, { uid: 778 }); ok(s.players[0].hand.some(c => c.id === 'aniki'), 'junk can return token'); }
 { const s = board([], []); const u = hand(s, 0, 'onemore'); play(s, u, {}); ok(!s.players[0].scrap.some(c => c.id === 'onemore') && s.actions === 3, 'onemore is removed from game'); }
+// ===== 10/22 追加カード =====
+const resp = (s, ch) => E.respond(s, { ch });
+const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat: 0 }; s.players[pi].set = c; return c.uid; };
+// 防衛
+{ const s = board([{ id: 'normal', bat: 0 }], [{ id: 'heat', bat: 1 }]); const l = L(s, 0); setCard(s, 0, 'estop'); s.turn = 1;
+  E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: F(s, 0, 0).uid }); resp(s, {});
+  ok(s.players[0].field.length === 1 && L(s, 0) === l, 'estop: no destroy, no damage');
+  E.apply(s, { t: 'end' }); ok(!s.players[0].fx.protect, 'estop ends at turn end'); }
+{ const s = board([], [{ id: 'normal', bat: 2 }]); const u = hand(s, 0, 'static'); s.players[1].field[0].shield = true;
+  play(s, u, { target: F(s, 1, 0).uid }); ok(F(s, 1, 0).bat === 1 && !F(s, 1, 0).dmg && !F(s, 1, 0).shield, 'shield blocks burst damage once'); }
+{ const s = board([{ id: 'normal', bat: 0 }], []); const u = hand(s, 0, 'shield'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).shield, 'shield attaches'); }
+{ const s = board([], []); s.players[0].life = 10; deck(s, 0, ['normal']); const u = hand(s, 0, 'medkit'); play(s, u, {}); ok(L(s, 0) === 13 && s.players[0].hand.length === 1, 'medkit heal 3 draw 1'); }
+{ const s = board([], [{ id: 'heat', bat: 1 }]); setCard(s, 0, 'decoy'); s.turn = 1;
+  E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: 'player' });
+  const l = L(s, 0); resp(s, {}); ok(s.players[0].scrap.some(c => c.id === 'guardbot') && L(s, 0) === l, 'decoy redirects to guardbot, no damage'); }
+{ const s = board([{ id: 'normal', bat: 0 }], [{ id: 'normal', bat: 0 }]); setCard(s, 0, 'counter'); s.turn = 1;
+  E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: F(s, 0, 0).uid }); resp(s, { target: F(s, 0, 0).uid });
+  ok(s.players[1].field.length === 0 && s.players[0].field.length === 1, 'counter +2 when attacked (2+2 vs 3)'); }
+{ const s = board([{ id: 'normal', bat: 0 }], [{ id: 'heat', bat: 1 }]); setCard(s, 0, 'parry'); s.turn = 1;
+  E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: F(s, 0, 0).uid }); resp(s, { target: F(s, 0, 0).uid });
+  ok(s.players[0].hand.some(c => c.id === 'normal') && !s.players[0].scrap.some(c => c.id === 'normal'), 'parry returns to hand instead'); }
+// 解体
+{ const s = board([], [{ id: 'normal', bat: 2 }]); const u = hand(s, 0, 'breaker'); play(s, u, { target: F(s, 1, 0).uid }); ok(F(s, 1, 0).bat === 1 && F(s, 1, 0).dmg === 2, 'breaker burst2'); }
+{ const s = board([], []); setCard(s, 1, 'thunder'); deck(s, 0, ['normal']); const u = hand(s, 0, 'eject');
+  ok(!!err(s, { t: 'play', uid: u, ch: { pi: 0 } }), 'eject: must pick existing set');
+  play(s, u, { pi: 1 }); ok(!s.players[1].set && s.players[0].hand.length === 1, 'eject destroys set + draw'); }
+{ const s = board([{ id: 'normal', bat: 0 }], [{ id: 'heat', bat: 0 }]); setCard(s, 0, 'eject'); s.turn = 1;
+  ok(!!E.respondChoiceError(s, { pi: 0 }), 'eject from set cannot target itself'); }
+{ const s = board([{ id: 'rat', bat: 1 }], [{ id: 'normal', bat: 1 }]); E.apply(s, { t: 'release', src: F(s, 0, 0).uid, ch: { target: F(s, 1, 0).uid } });
+  ok(F(s, 1, 0).bat === 0 && F(s, 1, 0).dmg === 1, 'rat release burst1'); }
+{ const s = board([{ id: 'crusher', bat: 1 }], [{ id: 'normal', bat: 0 }]); s.players[1].set = { uid: 5000, id: 'eject', owner: 1, bat: 0 };
+  E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(!s.players[1].set && s.players[1].field.length === 0, 'crusher destroys set after kill'); }
+{ const s = board([{ id: 'normal', bat: 0 }], [{ id: 'mini', bat: 1 }]); const u = hand(s, 0, 'dismantle');
+  play(s, u, { target: F(s, 1, 0).uid }); ok(s.players[1].field.length === 0 && F(s, 0, 0).bat === 1, 'dismantle steals batteries'); }
+{ const s = board([], [{ id: 'normal', bat: 1 }, { id: 'normal', bat: 2 }]); const u = hand(s, 0, 'demolisher'); play(s, u);
+  ok(F(s, 1, 1).bat === 1 && F(s, 1, 1).dmg === 1 && F(s, 1, 0).bat === 1, 'demolisher bursts most-battery robo'); }
+{ const s = board([], [{ id: 'normal', bat: 1 }, { id: 'heat', bat: 2 }]); const u = hand(s, 0, 'dorder'); play(s, u, {});
+  ok(s.players[1].field.length === 1 && F(s, 1, 0).id === 'heat' && F(s, 1, 0).bat === 1, 'dorder burst2 all'); }
+// 暴走
+{ const s = board([{ id: 'selfdestruct', bat: 0 }], [{ id: 'normal', bat: 1 }]); const l0 = L(s, 0), l1 = L(s, 1);
+  E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(L(s, 0) === l0 - 2 && L(s, 1) === l1 - 2, 'selfdestruct both take 2 (tie)'); }
+{ const s = board([{ id: 'kamikaze', bat: 0 }], []); const l0 = L(s, 0), l1 = L(s, 1);
+  E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(L(s, 1) === l1 - 4 && L(s, 0) === l0 - 1, 'kamikaze +2, self 1'); }
+{ const s = board([{ id: 'overheat', bat: 0 }], []); const u = hand(s, 0, 'runaway'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).bat === 1, 'overheat gains battery on damage'); }
+{ const s = board([], [{ id: 'rengine', bat: 0 }]); const l = L(s, 1); E.apply(s, { t: 'end' }); ok(F(s, 1, 0).bat === 1 && L(s, 1) === l - 1, 'rengine start of turn'); }
+{ const s = board([], []); deck(s, 0, ['normal', 'normal', 'normal']); s.players[0].life = 5; const u = hand(s, 0, 'yakekuso'); play(s, u, {}); ok(s.players[0].hand.length === 3, 'yakekuso low life draw 3'); }
+{ const s = board([{ id: 'normal', bat: 1 }], []); const u = hand(s, 0, 'bakaji');
+  ok(!!err(s, { t: 'play', uid: u, ch: { target: F(s, 0, 0).uid } }), 'bakaji needs life<=5');
+  s.players[0].life = 5; play(s, u, { target: F(s, 0, 0).uid }); ok(E.atkOf(F(s, 0, 0)) === 6, 'bakaji x2'); }
+{ const s = board([{ id: 'normal', bat: 0 }, { id: 'normal', bat: 0 }], []); const u = hand(s, 0, 'combo'); const l = L(s, 0); play(s, u, {});
+  ok(L(s, 0) === l - 5, 'combo self 5');
+  E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(!s.attacked && !err(s, { t: 'attack', att: F(s, 0, 1).uid, tgt: 'player' }), 'combo second attack');
+  E.attackFull(s, F(s, 0, 1).uid, 'player', null); ok(s.attacked, 'combo then no more'); }
+{ const s = board([{ id: 'normal', bat: 0 }], [{ id: 'normal', bat: 0 }]); setCard(s, 0, 'combo'); s.turn = 1;
+  E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: F(s, 0, 0).uid }); resp(s, {});
+  ok(s.players[0].fx.nextExtraAttack === 1, 'combo on opp turn -> next turn');
+  E.apply(s, { t: 'end' }); ok(s.players[0].fx.extraAttack === 1, 'combo carried to own turn'); }
+{ const s = board([{ id: 'normal', bat: 0 }], [{ id: 'normal', bat: 0 }]); setCard(s, 0, 'overload'); s.turn = 1; const l = L(s, 0);
+  E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: F(s, 0, 0).uid }); resp(s, {}); E.apply(s, { t: 'end' });
+  ok(s.actions === 4, 'overload on opp turn: +2 next turn'); E.apply(s, { t: 'end' }); ok(L(s, 0) <= l - 4, 'overload 4 at that turn end'); }
+// 共通2
+{ const s = board([{ id: 'normal', bat: 0 }, { id: 'heat', bat: 0 }], [{ id: 'normal', bat: 0 }]); const u = hand(s, 0, 'bulwark'); play(s, u, { target: F(s, 0, 0).uid });
+  ok(E.guardsOf(s, 0).length === 1 && E.atkOf(F(s, 0, 0)) === 3, 'bulwark taunt +1'); E.apply(s, { t: 'end' }); ok(!E.guardsOf(s, 0).length, 'bulwark ends'); }
+{ const s = board([{ id: 'normal', bat: 0 }, { id: 'heat', bat: 1 }], []); const u = hand(s, 0, 'echarge'); play(s, u, {});
+  ok(F(s, 0, 0).bat === 1 && F(s, 0, 1).bat === 2, 'echarge +1 all'); E.apply(s, { t: 'end' }); ok(F(s, 0, 0).bat === 0 && F(s, 0, 1).bat === 1, 'echarge removed at end'); }
+{ const s = board([{ id: 'mini', bat: 3 }], []); const u = hand(s, 0, 'brace'); play(s, u, { target: F(s, 0, 0).uid }); ok(E.capOf(F(s, 0, 0)) === 4 && F(s, 0, 0).bat === 4, 'brace cap+1 bat+1'); }
+{ const s = board([{ id: 'normal', bat: 1 }], []); s.players[0].life = 10; const u = hand(s, 0, 'retreat'); play(s, u, { target: F(s, 0, 0).uid });
+  ok(s.players[0].hand.some(c => c.id === 'normal') && L(s, 0) === 12, 'retreat bounce + heal 2'); }
 done();

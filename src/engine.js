@@ -51,6 +51,16 @@ Object.assign(CARDS, {
   relay:   { id:'relay',   name:'リレーロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】自分のロボすべては、バックアップを持つ（このロボ自身も）。' },
   // 解体
   drill:   { id:'drill',   name:'ドリルロボ',     kind:'robo', atk:3, max:2, eff:'powered', text:'【通電中】このロボが攻撃した時、戦闘の前に相手のロボの電池を1本外す。' },
+  breaker: { id:'breaker', name:'ブレーカー',     kind:'spell', text:'電池が入ったロボを1体選び、破裂2。',
+             pick:{ side:'any', cond:'bat', prompt:'破裂2させるロボを選ぶ', none:'電池が入ったロボがいません' } },
+  eject:   { id:'eject',   name:'強制排出',       kind:'spell', text:'伏せ札を1枚破壊する。山札を1枚引く。' },
+  rat:     { id:'rat',     name:'ネズミロボ',     kind:'robo', atk:1, max:1, eff:'release', enterBat:1, text:'【放電】電池が入った相手のロボ1体に、破裂1。',
+             pick:{ side:'opp', cond:'bat', prompt:'破裂1させる相手のロボを選ぶ', none:'電池が入った相手のロボがいません' } },
+  crusher: { id:'crusher', name:'クラッシャーロボ', kind:'robo', atk:3, max:3, eff:'powered', text:'【通電中】このロボが戦闘でロボを破壊した時、相手の伏せ札を破壊する。' },
+  dismantle:{ id:'dismantle',name:'分解',         kind:'spell', text:'攻撃力2以下のロボを1体破壊し、その電池を自分の場のロボに移す（攻撃力の高い順）。',
+             pick:{ side:'any', maxAtk:2, prompt:'分解するロボを選ぶ（攻撃力2以下）', none:'攻撃力2以下のロボがいません' } },
+  demolisher:{ id:'demolisher',name:'解体ロボ',   kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、相手の場で電池が一番多いロボに破裂1（同じなら左。選ばない）。' },
+  dorder:  { id:'dorder',  name:'解体命令',       kind:'spell', rare:true, text:'相手の場の電池が入ったロボすべてに、破裂2（選ばない効果）。' },
   hammer:  { id:'hammer',  name:'ハンマー',       kind:'spell', text:'攻撃力4以下のロボを1体選び、破壊する。',
              pick:{ side:'any', maxAtk:4, prompt:'破壊するロボを選ぶ（攻撃力4以下）', none:'攻撃力4以下のロボがいません' } },
   emp:     { id:'emp',     name:'EMP',            kind:'spell', text:'相手の場の電池が入ったロボすべてに、破裂1（選ばない効果）。' },
@@ -63,7 +73,16 @@ Object.assign(CARDS, {
   press:   { id:'press',   name:'プレスロボ',     kind:'robo', atk:4, max:1, eff:'const', rare:true, text:'【常時】このロボを起動した時、お互いに、自分の場で攻撃力が一番低いロボを1体破壊する（このロボも含む。同じなら左のロボ。選ばない効果）。' },
   proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'normal', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を1枚出す（新しく出たカードは、そのあと普通のカードとして扱う）。' },
   sorter:  { id:'sorter',  name:'検品ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、山札の一番上を見る。ロボなら手札に、アクションならスクラップに置く。' },
-  // 防衛
+  // 防衛（10/22 追加・名前は仮）
+  estop:   { id:'estop',   name:'緊急停止',       kind:'spell', text:'この手番の間、自分と自分のロボはダメージを受けず、自分のロボは戦闘で破壊されない。' },
+  shield:  { id:'shield',  name:'防護シールド',   kind:'spell', text:'自分のロボ1体にシールドを付ける。',
+             pick:{ side:'own', prompt:'シールドを付ける自分のロボを選ぶ', none:'自分の場にロボがいません' } },
+  medkit:  { id:'medkit',  name:'救急キット',     kind:'spell', draw:1, text:'自分のライフを3回復する。山札を1枚引く。' },
+  decoy:   { id:'decoy',   name:'おとり人形',     kind:'spell', text:'自分の場にガードボットを1体出す。攻撃されている時に使ったら、攻撃の対象をそのガードボットに変える。' },
+  counter: { id:'counter', name:'反撃準備',       kind:'spell', text:'自分のロボ1体を選ぶ。この手番の間、攻撃力+1（攻撃されているロボなら+2）。',
+             pick:{ side:'own', prompt:'攻撃力を上げる自分のロボを選ぶ', none:'自分の場にロボがいません' } },
+  parry:   { id:'parry',   name:'受け流し',       kind:'spell', text:'自分のロボ1体を選ぶ。この手番の間、そのロボは戦闘で破壊される時、代わりに持ち主の手札に戻る。',
+             pick:{ side:'own', prompt:'受け流すロボを選ぶ', none:'自分の場にロボがいません' } },
   guardian:{ id:'guardian',name:'警備隊長ロボ',   kind:'robo', atk:3, max:3, eff:'const', text:'【常時】このロボを起動した時、自分の場に「ガードボット」を1体出す。' },
   guardbot:{ id:'guardbot',name:'ガードボット',   kind:'robo', atk:0, max:1, eff:'powered', token:true, enterBat:1, taunt:'powered', noBattleDmg:true,
              text:'【通電中】挑発。【常時】このロボの戦闘では、どちらのプレイヤーもダメージを受けない。（警備隊長ロボから出るトークン）' },
@@ -77,7 +96,23 @@ Object.assign(CARDS, {
              pick:{ side:'own', prompt:'暴走させる自分のロボを選ぶ（攻撃力+2）', none:'自分の場にロボがいません' } },
   spark:   { id:'spark',   name:'スパークボム',   kind:'spell', text:'自分は2ダメージを受ける。相手か、ロボを1体選び、3ダメージを与える。',
              pick:{ side:'any', player:true, prompt:'3ダメージを与えるロボを選ぶ', none:'' } },
-  overload:{ id:'overload',name:'オーバーロード', kind:'spell', rare:true, text:'この手番の行動を2回増やす。手番終了時、自分は4ダメージを受ける。' },
+  overload:{ id:'overload',name:'オーバーロード', kind:'spell', rare:true, text:'自分のメインフェイズ中に使ったら、この手番の行動を2回増やす。それ以外なら、次の自分の手番の行動を2回増やす。行動が増えた手番の終わりに、自分は4ダメージを受ける。' },
+  selfdestruct:{ id:'selfdestruct',name:'自爆ロボ', kind:'robo', atk:3, max:1, eff:'const', text:'【常時】このロボが破壊された時、お互いに2ダメージを受ける。' },
+  kamikaze:{ id:'kamikaze',name:'特攻ロボ',       kind:'robo', atk:2, max:1, eff:'const', onAttack:{ atk:2, self:1 }, text:'【常時】このロボが攻撃した時、その戦闘の間、攻撃力+2。自分は1ダメージを受ける。' },
+  overheat:{ id:'overheat',name:'過熱ロボ',       kind:'robo', atk:3, max:2, eff:'const', text:'【常時】自分がダメージを受けるたびに、このロボに電池を1本入れる。' },
+  rengine: { id:'rengine', name:'暴走機関ロボ',   kind:'robo', atk:5, max:2, eff:'const', text:'【常時】自分の手番開始時、このロボに電池を1本入れ、自分は1ダメージを受ける。' },
+  yakekuso:{ id:'yakekuso',name:'ヤケクソ',       kind:'spell', text:'自分のライフが5以下なら、山札を3枚引く。そうでなければ1枚引く。' },
+  bakaji:  { id:'bakaji',  name:'火事場の馬鹿力', kind:'spell', text:'自分のライフが5以下の時だけ使える。自分のロボ1体を選び、この手番の間、攻撃力を2倍にする。',
+             pick:{ side:'own', prompt:'攻撃力を2倍にする自分のロボを選ぶ', none:'自分の場にロボがいません' } },
+  combo:   { id:'combo',   name:'連撃回路',       kind:'spell', rare:true, text:'次の自分のバトルフェイズで、もう1回攻撃できる。自分は5ダメージを受ける。' },
+  // 共通2（10/22 追加・名前は仮）
+  bulwark: { id:'bulwark', name:'防壁展開',       kind:'spell', text:'自分のロボ1体を選ぶ。この手番の間、そのロボは挑発を持ち、攻撃力+1。',
+             pick:{ side:'own', prompt:'防壁を展開するロボを選ぶ', none:'自分の場にロボがいません' } },
+  echarge: { id:'echarge', name:'緊急充電',       kind:'spell', text:'自分のロボすべてに電池を1本ずつ入れる。この手番の終わりに、入れた電池を外す。' },
+  brace:   { id:'brace',   name:'補強材',         kind:'spell', text:'自分のロボ1体を選ぶ。そのロボは、場にいる間、電池上限+1。電池を1本入れる。',
+             pick:{ side:'own', prompt:'補強するロボを選ぶ', none:'自分の場にロボがいません' } },
+  retreat: { id:'retreat', name:'退避命令',       kind:'spell', text:'自分のロボ1体を手札に戻す。自分のライフを2回復する。',
+             pick:{ side:'own', prompt:'手札に戻すロボを選ぶ', none:'自分の場にロボがいません' } },
   // 共通
   scout:   { id:'scout',   name:'スカウトロボ',   kind:'robo', atk:1, max:1, eff:'const', enterBat:1, text:'【常時】このロボを起動した時、山札を1枚引く。' },
   socket:  { id:'socket',  name:'ソケットロボ',   kind:'robo', atk:1, max:4, eff:'const', text:'【常時】このロボに「電池を入れる」行動をした時、電池が2本入る。' },
@@ -104,11 +139,12 @@ for (const id of ['megaton','thunder','kobun','limiter']) CARDS[id].rare = true;
 // テーマ（ローグライトの報酬の出どころ）。basic は最初のデッキ専用
 const THEMES = {
   charge:   { name:'充電',       ids:['turbo','megaton','ebattery','manual','charge','dynamo','gigant','solar','feeder','relay'] },
-  demolish: { name:'解体',       ids:['thunder','sniper','short','souji','magnet','drill','hammer','emp'] },
+  demolish: { name:'解体',       ids:['thunder','sniper','short','souji','magnet','drill','hammer','emp','breaker','eject','rat','crusher','dismantle','demolisher','dorder'] },
   scrap:    { name:'スクラップ', ids:['recycle','repair','kobun','crane','reboot','parts','junk','gattai','hack','press','proto','sorter'] },
-  defense:  { name:'防衛',       ids:['barrier','daruma','bomb','wall','medic','fortress','guard','jammer','guardian'] },
-  rampage:  { name:'暴走',       ids:['heat','limiter','bakushin','kajiba','runaway','spark','overload','rocket'] },
+  defense:  { name:'防衛',       ids:['barrier','daruma','bomb','wall','medic','fortress','guard','jammer','guardian','estop','shield','medkit','decoy','counter','parry'] },
+  rampage:  { name:'暴走',       ids:['heat','limiter','bakushin','kajiba','runaway','spark','overload','rocket','selfdestruct','kamikaze','overheat','rengine','yakekuso','bakaji','combo'] },
   common:   { name:'共通',       ids:['swap','thief','scout','socket','warp','batpack','leak','copy'] },
+  common2:  { name:'共通2',      ids:['bulwark','echarge','brace','retreat'] },
 };
 const BASIC_DECK = ['normal','normal','normal','mini','mini','garakuta','drycell','drycell','static','static'];
 const BASIC_IDS = ['normal','mini','garakuta','drycell','static'];
@@ -117,6 +153,7 @@ for (const id of BASIC_IDS) CARDS[id].theme = 'basic';
 // キーワード
 // ルール用語：本文の中で使う言葉。カードの表面には見出しを出さず、詳細画面で本文に含まれていれば説明を添える
 const TERMS = [
+  { word:'シールド', match:/シールド/, kw:/シールド/g, help:'破裂のダメージを1回だけ無効にする（電池は破壊される）。無効にしたらシールドはなくなる。戦闘での破壊や、ほかのダメージは防がない。' },
   { word:'挑発', match:/挑発/, kw:/挑発/g, help:'相手は、挑発しているロボ以外の自分のロボを攻撃できない（攻撃するなら、挑発しているロボを選ぶ）。' },
   { word:'破裂N', match:/破裂[0-9X]/, kw:/破裂[0-9X]+/g, help:'そのロボの電池を1本破壊し、そのロボにNダメージを与える。ダメージは手番の終わりまで残り、そのぶん攻撃力が下がる。「電池を外す」はダメージなし。' },
 ];
@@ -160,7 +197,7 @@ function newGame(rng, first, opts) {
   const players = [0, 1].map(pi => {
     const deck = shuffle(decks[pi].map(e => makeCard(e, uid++, pi)), rng);
     if (opts.batPlus) for (const c of deck) if (CARDS[c.id].kind === 'robo') c.maxPlus = (c.maxPlus || 0) + opts.batPlus; // 異常気象：全員の電池上限+N
-    return { life: opts.lives ? opts.lives[pi] : LIFE_MAX, deck, hand: [], field: [], set: null, scrap: [], perks: (opts.perks && opts.perks[pi]) || {} };
+    return { life: opts.lives ? opts.lives[pi] : LIFE_MAX, deck, hand: [], field: [], set: null, scrap: [], perks: (opts.perks && opts.perks[pi]) || {}, fx: {} };
   });
   const s = {
     players, turn: first, turnNo: 0, actions: ACTIONS,
@@ -180,12 +217,12 @@ function newGame(rng, first, opts) {
   return s;
 }
 
-function cloneCard(c) { const o = { uid: c.uid, id: c.id, owner: c.owner, bat: c.bat }; if (c.atkPlus) o.atkPlus = c.atkPlus; if (c.maxPlus) o.maxPlus = c.maxPlus; if (c.modMax) o.modMax = c.modMax; if (c.enterPlus) o.enterPlus = c.enterPlus; if (c.lim) o.lim = true; if (c.boost) o.boost = c.boost; if (c.home !== undefined) o.home = c.home; if (c.dmg) o.dmg = c.dmg; if (c.rboost) o.rboost = c.rboost; if (c.copyAtk !== undefined) o.copyAtk = c.copyAtk; if (c.rage) o.rage = true; return o; }
+function cloneCard(c) { const o = { uid: c.uid, id: c.id, owner: c.owner, bat: c.bat }; if (c.atkPlus) o.atkPlus = c.atkPlus; if (c.maxPlus) o.maxPlus = c.maxPlus; if (c.modMax) o.modMax = c.modMax; if (c.enterPlus) o.enterPlus = c.enterPlus; if (c.lim) o.lim = true; if (c.boost) o.boost = c.boost; if (c.home !== undefined) o.home = c.home; if (c.dmg) o.dmg = c.dmg; if (c.rboost) o.rboost = c.rboost; if (c.copyAtk !== undefined) o.copyAtk = c.copyAtk; if (c.rage) o.rage = true; if (c.shield) o.shield = true; if (c.tTaunt) o.tTaunt = true; if (c.tBat) o.tBat = c.tBat; if (c.parry) o.parry = true; if (c.capPlus) o.capPlus = c.capPlus; return o; }
 function clone(s) {
   const players = s.players.map(p => ({
     life: p.life,
     deck: p.deck.map(cloneCard), hand: p.hand.map(cloneCard), field: p.field.map(cloneCard),
-    set: p.set ? cloneCard(p.set) : null, scrap: p.scrap.map(cloneCard), perks: Object.assign({}, p.perks || {}),
+    set: p.set ? cloneCard(p.set) : null, scrap: p.scrap.map(cloneCard), perks: Object.assign({}, p.perks || {}), fx: Object.assign({}, p.fx || {}),
   }));
   return {
     players, turn: s.turn, turnNo: s.turnNo, actions: s.actions, phase: s.phase,
@@ -203,7 +240,7 @@ function cname(c) { return CARDS[c.id].name; }
 // ---------- 参照系 ----------
 // カード1枚ごとの補正（勝ち抜きモードの改造・異常気象）：atkPlus＝攻撃力、maxPlus＝電池上限、enterPlus＝付属電池。
 // 場を離れても消えない（そのカード自体の性能）
-function capOf(y) { return CARDS[y.id].max + (y.maxPlus || 0); }
+function capOf(y) { return CARDS[y.id].max + (y.maxPlus || 0) + (y.capPlus || 0); }
 function enterOf(y) { return (CARDS[y.id].enterBat || 0) + (y.enterPlus || 0); }
 function isMod(y) { return !!(y.atkPlus || y.modMax || y.enterPlus); }
 // デッキの書き方：'normal' または 'normal@a'（攻撃力+1）/'@m'（電池上限+1）/'@e'（付属電池）。改造は1枚につき1つ
@@ -275,7 +312,8 @@ function sniperCandidates(s, srcUid) {
 }
 // 攻撃対象の制限：電池入りのガードロボがいれば、それ以外は狙えない（不採用カード）
 // 挑発しているロボ（いれば、相手はこの中からしか攻撃対象を選べない）。taunt:'powered' は電池が入っている間だけ
-function guardsOf(s, pi) { return s.players[pi].field.filter(y => { const t = CARDS[y.id].taunt; return t && (t !== 'powered' || y.bat > 0); }); }
+function guardsOf(s, pi) { return s.players[pi].field.filter(y => { if (y.tTaunt) return true; const t = CARDS[y.id].taunt; return t && (t !== 'powered' || y.bat > 0); }); }
+const fxOf = (s, pi) => (s.players[pi].fx = s.players[pi].fx || {});
 function hasKw(y, k) { return (CARDS[y.id].kw || []).includes(k); }
 // 電池入りのバリアロボは、相手のカードの効果で選ばれない（選ばない効果＝ボムロボなどは効く）。srcPi＝効果を出した側
 function immuneFrom(y, s, srcPi) {
@@ -296,10 +334,13 @@ function isOver(s) { return s.winner !== null || s.draw; }
 // ---------- 基本処理 ----------
 function damage(s, pi, n, why) {
   if (n <= 0 || isOver(s)) return;
+  if (fxOf(s, pi).protect) { log(s, `${pname(pi)}は緊急停止でダメージを受けない`, { t: 'fizzle' }); return; }
   s.players[pi].life = Math.max(0, s.players[pi].life - n);
   log(s, `${pname(pi)}に${n}ダメージ${why ? '（' + why + '）' : ''}`, { t: 'damage', pi, n });
   if (s.players[pi].life <= 0) { s.winner = 1 - pi; log(s, `${pname(1 - pi)}の勝利！`, { t: 'win', pi: 1 - pi }); }
   refreshStatics(s);
+  // 過熱ロボ：自分がダメージを受けるたびに電池+1
+  if (!isOver(s)) for (const y of s.players[pi].field) if (y.id === 'overheat' && placeBat(s, y, 1)) log(s, `過熱ロボに電池が1本入った`, { t: 'batfly', uid: y.uid });
 }
 // 回復。上限（LIFE_MAX）を超えてよい
 function heal(s, pi, n, why) {
@@ -313,12 +354,15 @@ function burst(s, uid, n, why) {
   const f = findRobo(s, uid); if (!f || f.y.bat <= 0) return false;
   f.y.bat--;
   log(s, `${cname(f.y)}の電池が1本破裂した`, { t: 'short', uid, n: 1 });
+  // シールド：破裂のダメージを1回無効（電池は破壊される）
+  if (f.y.shield) { delete f.y.shield; log(s, `${cname(f.y)}のシールドが破裂のダメージを防いだ`, { t: 'shield', uid }); sweepDeaths(s); return true; }
   roboDamage(s, uid, n, why);
   return true;
 }
 // ロボへのダメージ。手番の終わりまで残り、その分攻撃力が下がる
 function roboDamage(s, uid, n, why) {
   const f = findRobo(s, uid); if (!f || n <= 0 || isOver(s)) return;
+  if (fxOf(s, f.pi).protect) { log(s, `${cname(f.y)}は緊急停止でダメージを受けない`, { t: 'fizzle' }); return; }
   f.y.dmg = (f.y.dmg || 0) + n;
   log(s, `${cname(f.y)}に${n}ダメージ${why ? '（' + why + '）' : ''}`, { t: 'robodmg', uid, n });
   sweepDeaths(s);
@@ -345,6 +389,8 @@ function drawCards(s, pi, n, silent) {
 function destroy(s, uid, byBattle) {
   const f = findRobo(s, uid); if (!f) return false;
   const y = f.y;
+  if (byBattle && y.parry) { log(s, `${cname(y)}は受け流して手札に戻った`, { t: 'daruma', uid }); bounce(s, uid); return false; }
+  if (byBattle && fxOf(s, f.pi).protect) { log(s, `${cname(y)}は緊急停止で戦闘でも壊れない`, { t: 'daruma', uid }); return false; }
   if (byBattle && y.id === 'daruma' && y.bat > 0) {
     y.bat--;
     log(s, `ダルマロボは電池を1本失って破壊を免れた`, { t: 'daruma', uid });
@@ -373,6 +419,7 @@ function destroy(s, uid, byBattle) {
   // キーワード「バックアップ」（リレーロボがいれば、自分のロボすべてが持つ。リレーロボ自身が壊れた時も）
   if (leftBat > 0 && (hasKw(y, 'backup') || y.id === 'relay' || s.players[f.pi].field.some(z => z.id === 'relay'))) batPass(s, f.pi, uid, leftBat, 'バックアップで電池');
   if (y.id === 'garakuta') { log(s, 'ガラクタロボの効果', { t: 'garakuta' }); drawCards(s, y.owner, 1); }
+  if (y.id === 'selfdestruct') { log(s, '自爆ロボが爆発した！', { t: 'bakushin', uid }); damage(s, f.pi, 2, '自爆ロボ'); damage(s, 1 - f.pi, 2, '自爆ロボ'); }
   // 破壊された時に出るロボ（カード定義の spawn：コブン→アニキ、プロト→ノーマル）。同じ場所に出る
   const sp = CARDS[y.id].spawn;
   if (sp) spawnRobo(s, f.pi, y.owner, sp, f.i);
@@ -395,7 +442,7 @@ function enterBats(s, pi, card) {
   if (eh) { const k = placeBat(s, card, eh); if (k) log(s, `${cname(card)}は電池を${k}本入れて場に出た`, { t: 'enterbat', pi, uid: card.uid }); }
 }
 // 場を離れたカードから、場にいる間だけの状態を消す
-function resetCard(y) { delete y.lim; delete y.home; delete y.boost; delete y.rboost; delete y.dmg; delete y.copyAtk; delete y.rage; }
+function resetCard(y) { delete y.shield; delete y.tTaunt; delete y.tBat; delete y.parry; delete y.capPlus; delete y.lim; delete y.home; delete y.boost; delete y.rboost; delete y.dmg; delete y.copyAtk; delete y.rage; }
 // 電池を、自分の場のロボへ攻撃力の高い順（同値は左から）に上限まで移す
 function batPass(s, pi, fromUid, n, label) {
   const order = s.players[pi].field.map((y, i) => ({ y, i })).sort((a, b) => atkOf(b.y) - atkOf(a.y) || a.i - b.i);
@@ -459,6 +506,12 @@ function sorterTrigger(s, pi) {
   if (CARDS[c.id].kind === 'robo') { P.hand.push(c); log(s, `検品ロボ：${cname(c)}を手札に加えた`, { t: 'sorter', pi, id: c.id, to: 'hand' }); }
   else { P.scrap.push(c); log(s, `検品ロボ：${cname(c)}をスクラップに置いた`, { t: 'sorter', pi, id: c.id, to: 'scrap' }); }
 }
+// 解体ロボ：相手の場で電池が一番多いロボに破裂1（同じなら左。選ばないのでバリアロボにも効く）
+function demolisherTrigger(s, pi) {
+  let t = null;
+  for (const y of s.players[1 - pi].field) if (y.bat > 0 && (!t || y.bat > t.bat)) t = y;
+  if (t) { log(s, '解体ロボの効果', { t: 'demolisher' }); burst(s, t.uid, 1, '解体ロボ'); }
+}
 // 場のロボを持ち主の手札に戻す（ワープ装置）。トークンも出たあとは普通のカードなので手札へ
 function bounce(s, uid) {
   const f = findRobo(s, uid); if (!f) return false;
@@ -501,6 +554,7 @@ function deploy(s, pi, card, how, ch) {
     : card.id === 'scout' ? () => { log(s, 'スカウトロボの効果', { t: 'scout' }); drawCards(s, pi, 1); }
     : card.id === 'sorter' ? () => sorterTrigger(s, pi)
     : card.id === 'guardian' ? () => spawnRobo(s, pi, pi, 'guardbot')
+    : card.id === 'demolisher' ? () => demolisherTrigger(s, pi)
     : card.id === 'gattai' ? () => gattaiTrigger(s, pi, card.uid)
     : card.id === 'press' ? () => pressTrigger(s, pi, card.uid) : null;
   if (trig) { if (s.resolving) (s.deferred = s.deferred || []).push(trig); else trig(); }
@@ -520,7 +574,12 @@ function startTurn(s, isFirst) {
     if (y.id === 'heat') damage(s, pi, 2, 'ヒートロボ');
     if (isOver(s)) return;
     if (y.id === 'solar' && placeBat(s, y, 1)) log(s, `ソーラーロボに電池が1本入った`, { t: 'solar', pi, uid: y.uid });
+    if (y.id === 'rengine') { if (placeBat(s, y, 1)) log(s, `暴走機関ロボに電池が1本入った`, { t: 'solar', pi, uid: y.uid }); damage(s, pi, 1, '暴走機関ロボ'); if (isOver(s)) return; }
   }
+  // オーバーロードを相手の手番に使っていたら、この手番に行動+2（手番の終わりに4ダメージ）
+  const fx = fxOf(s, pi);
+  if (fx.nextExtraAttack) { fx.extraAttack = (fx.extraAttack || 0) + fx.nextExtraAttack; fx.nextExtraAttack = 0; }
+  if (fx.bonusActions) { s.actions += fx.bonusActions; (s.eotDmg = s.eotDmg || []).push({ pi, n: 4 * fx.bonusActions / 2 }); log(s, `オーバーロード：${pname(pi)}の行動が${fx.bonusActions}回増えた`, { t: 'extraact', pi }); fx.bonusActions = 0; }
   const v = s.v || {};
   if (s.turnNo === 1 && v.firstActions) s.actions = v.firstActions;
   if (s.turnNo === 2 && v.secondExtraAction) s.actions += v.secondExtraAction;
@@ -529,6 +588,7 @@ function startTurn(s, isFirst) {
 function endTurn(s) {
   if (isOver(s)) return;
   resolveEot(s);
+  fxOf(s, s.turn).extraAttack = 0; // 連撃回路の追加の攻撃は、その手番かぎり
   if (isOver(s)) return;
   // 膠着判定
   const P = s.players;
@@ -549,8 +609,13 @@ function resolveEot(s) {
   // オーバーロードの反動
   const ed = s.eotDmg || []; s.eotDmg = [];
   for (const x of ed) { damage(s, x.pi, x.n, 'オーバーロードの反動'); if (isOver(s)) return; }
+  for (const pi of [0, 1]) fxOf(s, pi).protect = false; // 緊急停止は手番の終わりまで
   // 手番の終わり：ダメージと「この手番の間」の修正を同時に取り除く（取り除いたことで壊れることはない）
-  for (const p of s.players) for (const y of p.field) { delete y.boost; delete y.dmg; }
+  for (const p of s.players) for (const y of p.field) {
+    // 緊急充電で入れた電池を外す（使って減っていれば、残っている分だけ）
+    if (y.tBat) { const k = Math.min(y.tBat, y.bat); y.bat -= k; if (k) log(s, `${cname(y)}の緊急充電の電池が${k}本外れた`, { t: 'short', uid: y.uid, n: k }); }
+    delete y.boost; delete y.dmg; delete y.tTaunt; delete y.tBat; delete y.parry;
+  }
   const list = s.eot.slice(); s.eot = [];
   for (const uid of list) {
     const f = findRobo(s, uid);
@@ -637,7 +702,7 @@ function checkAction(s, a) {
       if (def.deployPick) return pickError(s, pi, def.deployPick, a.ch || {}, L.c.uid);
       return null;
     }
-    return checkSpell(s, pi, L.c.id, a.ch || {});
+    return checkSpell(s, pi, L.c.id, a.ch || {}, L.c.uid);
   }
   if (a.t === 'release') {
     const f = findRobo(s, a.src); if (!f || f.pi !== pi) return '自分のロボを選んでください';
@@ -664,8 +729,19 @@ function thunderCandidates(s, pi) {
   const mx = Math.max.apply(null, all.map(atkOf));
   return all.filter(y => atkOf(y) === mx && !immuneFrom(y, s, pi));
 }
-function checkSpell(s, pi, id, ch) {
+// 強制排出で破壊できる伏せ札（持ち主の番号）。表にして使っているそのカード自身は除く
+function ejectPool(s, selfUid) { return [0, 1].filter(q => s.players[q].set && s.players[q].set.uid !== selfUid); }
+// 火事場の馬鹿力などの「ライフ5以下」
+const RAGE_LIFE = 5;
+function checkSpell(s, pi, id, ch, selfUid) {
   const def = CARDS[id];
+  if (id === 'bakaji' && s.players[pi].life > RAGE_LIFE) return `自分のライフが${RAGE_LIFE}以下の時だけ使えます`;
+  if (id === 'eject') {
+    const pool = ejectPool(s, selfUid);
+    if (!pool.length) return '伏せ札がありません';
+    if (!pool.includes(ch.pi)) return '破壊する伏せ札を選んでください';
+    return null;
+  }
   if (id === 'junk') {
     // ロボとアクションを1枚ずつ（スクラップにある方だけ）。どちらも無ければ使えない
     const { robos, spells } = junkPool(s, pi);
@@ -824,8 +900,111 @@ function resolveSpell(s, pi, card, ch) {
       break;
     }
     case 'overload': {
-      s.actions += 2; (s.eotDmg = s.eotDmg || []).push({ pi, n: 4 });
-      log(s, `${pname(pi)}の行動が2回増えた（手番終了時に4ダメージ）`, { t: 'extraact', pi });
+      if (s.turn === pi && s.phase === 'main') {
+        s.actions += 2; (s.eotDmg = s.eotDmg || []).push({ pi, n: 4 });
+        log(s, `${pname(pi)}の行動が2回増えた（手番終了時に4ダメージ）`, { t: 'extraact', pi });
+      } else {
+        const fx = fxOf(s, pi); fx.bonusActions = (fx.bonusActions || 0) + 2;
+        log(s, `${pname(pi)}の次の手番の行動が2回増える（その手番の終わりに4ダメージ）`, { t: 'extraact', pi });
+      }
+      break;
+    }
+    case 'combo': {
+      const fx = fxOf(s, pi);
+      if (s.turn === pi) { fx.extraAttack = (fx.extraAttack || 0) + 1; log(s, `${pname(pi)}はこの手番、もう1回攻撃できる`, { t: 'extraact', pi }); }
+      else { fx.nextExtraAttack = (fx.nextExtraAttack || 0) + 1; log(s, `${pname(pi)}は次の手番、もう1回攻撃できる`, { t: 'extraact', pi }); }
+      damage(s, pi, 5, '連撃回路');
+      break;
+    }
+    case 'estop': {
+      fxOf(s, pi).protect = true;
+      log(s, `緊急停止！この手番の間、${pname(pi)}とそのロボはダメージを受けない`, { t: 'estop', pi });
+      break;
+    }
+    case 'shield': {
+      const t = findRobo(s, ch.target);
+      if (t && t.pi === pi) { t.y.shield = true; log(s, `${cname(t.y)}にシールドを付けた`, { t: 'shield', uid: t.y.uid }); } else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'medkit': heal(s, pi, 3, '救急キット'); break;
+    case 'decoy': {
+      const g = spawnRobo(s, pi, pi, 'guardbot');
+      // 攻撃されている時（相手の手番の応答）なら、攻撃の対象をこのガードボットに変える
+      if (g && s.pending && s.turn !== pi) { s.pending.tgt = g.uid; log(s, `攻撃の対象が${cname(g)}に変わった`, { t: 'retarget' }); }
+      if (!g) log(s, '場がいっぱいで出せない', { t: 'fizzle' });
+      break;
+    }
+    case 'counter': {
+      const t = findRobo(s, ch.target);
+      if (t && t.pi === pi) {
+        const n = s.pending && s.pending.tgt === t.y.uid ? 2 : 1;
+        t.y.boost = (t.y.boost || 0) + n;
+        log(s, `${cname(t.y)}の攻撃力が${n}上がった（${atkOf(t.y)}）`, { t: 'limiter', uid: t.y.uid });
+      } else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'breaker': {
+      const t = findRobo(s, ch.target);
+      if (t && t.y.bat > 0 && !immuneFrom(t.y, s, pi)) burst(s, t.y.uid, 2, 'ブレーカー'); else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'eject': {
+      const tp = s.players[ch.pi];
+      if (tp && tp.set && tp.set.uid !== card.uid) {
+        const c = tp.set; tp.set = null; c.bat = 0; s.players[c.owner].scrap.push(c);
+        log(s, `セットされていた${cname(c)}を破壊した`, { t: 'setdestroy', pi: ch.pi, id: c.id });
+      } else log(s, '対象がいない', { t: 'fizzle' });
+      drawCards(s, pi, 1);
+      break;
+    }
+    case 'dismantle': {
+      const t = findRobo(s, ch.target);
+      if (t && pickPool(s, pi, CARDS.dismantle.pick).includes(t.y)) {
+        const bat = t.y.bat, uid = t.y.uid;
+        if (destroy(s, uid, false) && bat > 0) batPass(s, pi, uid, bat, '分解で外した電池');
+      } else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'dorder': {
+      const hit = s.players[1 - pi].field.filter(y => y.bat > 0).map(y => y.uid);
+      for (const u of hit) burst(s, u, 2, '解体命令');
+      if (!hit.length) log(s, '電池が入ったロボがいない', { t: 'fizzle' });
+      break;
+    }
+    case 'parry': {
+      const t = findRobo(s, ch.target);
+      if (t && t.pi === pi) { t.y.parry = true; log(s, `${cname(t.y)}は受け流しの構え`, { t: 'shield', uid: t.y.uid }); } else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'bulwark': {
+      const t = findRobo(s, ch.target);
+      if (t && t.pi === pi) { t.y.tTaunt = true; t.y.boost = (t.y.boost || 0) + 1; log(s, `${cname(t.y)}が防壁を展開した（挑発・攻撃力${atkOf(t.y)}）`, { t: 'limiter', uid: t.y.uid }); } else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'echarge': {
+      let n = 0;
+      for (const y of s.players[pi].field) { const k = placeBat(s, y, 1); if (k) { y.tBat = (y.tBat || 0) + k; n += k; log(s, '', { t: 'batfly', uid: y.uid }); } }
+      log(s, `緊急充電：電池を${n}本入れた（手番の終わりに外れる）`, { t: 'bat' });
+      break;
+    }
+    case 'brace': {
+      const t = findRobo(s, ch.target);
+      if (t && t.pi === pi) { t.y.capPlus = (t.y.capPlus || 0) + 1; placeBat(s, t.y, 1); log(s, `${cname(t.y)}を補強した（電池上限+1・電池+1）`, { t: 'batfly', uid: t.y.uid }); } else log(s, '対象がいない', { t: 'fizzle' });
+      break;
+    }
+    case 'retreat': {
+      const t = findRobo(s, ch.target);
+      if (t && t.pi === pi) bounce(s, t.y.uid); else log(s, '対象がいない', { t: 'fizzle' });
+      heal(s, pi, 2, '退避命令');
+      break;
+    }
+    case 'yakekuso': drawCards(s, pi, s.players[pi].life <= RAGE_LIFE ? 3 : 1); break;
+    case 'bakaji': {
+      const t = findRobo(s, ch.target);
+      if (t && t.pi === pi) {
+        t.y.boost = (t.y.boost || 0) + atkOf(t.y); // いまの攻撃力の分だけ上げる＝2倍（手番の終わりに消える）
+        log(s, `${cname(t.y)}の攻撃力が2倍になった（${atkOf(t.y)}）`, { t: 'limiter', uid: t.y.uid });
+      } else log(s, '対象がいない', { t: 'fizzle' });
       break;
     }
     case 'warp': {
@@ -932,6 +1111,9 @@ function applyRaw(s, a) {
         if (k) log(s, `${cname(t.y)}に電池を${k}本入れた`, { t: 'batfly', uid: t.y.uid });
       } else if (f.y.id === 'medic') {
         heal(s, pi, 2, 'メディックロボ');
+      } else if (f.y.id === 'rat') {
+        const t = findRobo(s, a.ch.target);
+        if (t && t.y.bat > 0) burst(s, t.y.uid, 1, 'ネズミロボ');
       }
       return;
     }
@@ -941,7 +1123,10 @@ function applyRaw(s, a) {
 // ---------- 戦闘 ----------
 function declareAttack(s, att, tgt, boost) {
   if (s.phase === 'main') log(s, `${pname(s.turn)}はバトルフェイズに入った`, { t: 'phase', pi: s.turn });
-  s.phase = 'battle'; s.attacked = true;
+  s.phase = 'battle';
+  // 連撃回路の追加の攻撃が残っていれば、それを使って「まだ攻撃できる」状態のままにする
+  const fx = fxOf(s, s.turn);
+  if (fx.extraAttack > 0) { fx.extraAttack--; s.attacked = false; } else s.attacked = true;
   s.pending = { att, tgt };
   if (boost) s.pending.boostA = true;
   const A = findRobo(s, att).y;
@@ -955,7 +1140,7 @@ function canRespondSet(s) { return !!(s.pending && s.players[1 - s.turn].set && 
 function rocketDefends(s) { const p = s.pending; if (!p || p.tgt === 'player') return false; const t = findRobo(s, p.tgt); return !!(t && t.y.id === 'rocket'); }
 function respondChoiceError(s, ch) {
   const di = 1 - s.turn, c = s.players[di].set; if (!c) return 'セットされていません';
-  return checkSpell(s, di, c.id, ch || {});
+  return checkSpell(s, di, c.id, ch || {}, c.uid);
 }
 // resp: null（何もしない） or { ch?（伏せ札を表にする時の対象）, boost?（ロケットロボを点火する） }
 // 伏せ札を表にして効果を処理するところまで（戦闘はまだ行わない）。画面で段階的に見せるために分けている
@@ -992,21 +1177,28 @@ function resolveBattle(s) {
   const a = atkOf(A), d = atkOf(T);
   const aCho = A.id === 'bomb' && A.bat > 0, dCho = T.id === 'bomb' && T.bat > 0;
   const aRok = A.id === 'crane' && A.bat > 0, dRok = T.id === 'crane' && T.bat > 0;
+  const aCru = A.id === 'crusher' && A.bat > 0, dCru = T.id === 'crusher' && T.bat > 0;
+  // クラッシャーロボ：戦闘でロボを破壊したら、相手の伏せ札を破壊する
+  const crush = q => { const P2 = s.players[1 - q]; if (!P2.set) return; const c = P2.set; P2.set = null; c.bat = 0; s.players[c.owner].scrap.push(c); log(s, `クラッシャーロボの効果：セットされていた${cname(c)}を破壊した`, { t: 'setdestroy', pi: 1 - q, id: c.id }); };
   log(s, `戦闘：${cname(A)}(${a}) vs ${cname(T)}(${d})`, { t: 'battle', a, d, att: A.uid, tgt: T.uid });
   // ガードボット：このロボの戦闘では、どちらのプレイヤーもダメージを受けない
   const noDmg = CARDS[A.id].noBattleDmg || CARDS[T.id].noBattleDmg;
   if (a > d) {
     const k = destroy(s, T.uid, true);
     if (k && aRok) { log(s, 'クレーンロボの効果', { t: 'crane' }); drawCards(s, pi, 1); }
+    if (k && aCru) crush(pi);
     if (!noDmg) damage(s, di, a - d, '戦闘');
   } else if (d > a) {
     const k = destroy(s, A.uid, true);
     if (k && dRok) { log(s, 'クレーンロボの効果', { t: 'crane' }); drawCards(s, di, 1); }
+    if (k && dCru) crush(di);
     if (!noDmg) damage(s, pi, d - a, '戦闘');
   } else {
     const k1 = destroy(s, T.uid, true), k2 = destroy(s, A.uid, true);
     if (k1 && aRok) { log(s, 'クレーンロボの効果', { t: 'crane' }); drawCards(s, pi, 1); }
     if (k2 && dRok) { log(s, 'クレーンロボの効果', { t: 'crane' }); drawCards(s, di, 1); }
+    if (k1 && aCru) crush(pi);
+    if (k2 && dCru) crush(di);
   }
   delete A.rboost; delete T.rboost;
   afterAttack(s, A);
@@ -1029,6 +1221,7 @@ function preBattle(s, A, T, p) {
   const oa = CARDS[A.id].onAttack;
   if (oa && oa.ping) { log(s, `${cname(A)}の突撃`, { t: 'bakushin', uid: A.uid }); damage(s, di, oa.ping, cname(A)); if (isOver(s)) return true; }
   if (oa && oa.atk) A.rboost = (A.rboost || 0) + oa.atk;
+  if (oa && oa.self) { damage(s, pi, oa.self, cname(A)); if (isOver(s)) return true; }
   if (T && A.id === 'drill' && A.bat > 0 && T.bat > 0 && !immuneFrom(T, s, pi)) {
     T.bat--; log(s, `ドリルロボが${cname(T)}の電池を1本外した`, { t: 'short', uid: T.uid, n: 1 });
   }
@@ -1058,7 +1251,7 @@ function invariant(s) {
   for (const p of s.players) { if (p.field.length > 3) throw new Error('field>3'); for (const y of p.field) if (y.bat > capOf(y)) throw new Error('bat>max'); }
 }
 
-const api = { spawnRobo, hasKw, capOf, enterOf, isMod, makeCard, baseId, MODS, TERMS, junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
+const api = { ejectPool, RAGE_LIFE, fxOf, spawnRobo, hasKw, capOf, enterOf, isMod, makeCard, baseId, MODS, TERMS, junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
   mulberry32, shuffle, newGame, clone, atkOf, rawAtk, lethal, roboDamage, sweepDeaths, immuneFrom, findRobo, allField, isOver,
   checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondReveal, respondChoiceError, resolveBattle,
   attackFull, endTurn, resolveEot, invariant, pname, cname };
