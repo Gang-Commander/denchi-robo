@@ -202,4 +202,27 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
 { const s = board([{ id: 'mini', bat: 3 }], []); const u = hand(s, 0, 'brace'); play(s, u, { target: F(s, 0, 0).uid }); ok(E.capOf(F(s, 0, 0)) === 4 && F(s, 0, 0).bat === 4, 'brace cap+1 bat+1'); }
 { const s = board([{ id: 'normal', bat: 1 }], []); s.players[0].life = 10; const u = hand(s, 0, 'retreat'); play(s, u, { target: F(s, 0, 0).uid });
   ok(s.players[0].hand.some(c => c.id === 'normal') && L(s, 0) === 12, 'retreat bounce + heal 2'); }
+// ===== 10/22 第3弾 =====
+{ const s = board([], [{ id: 'plant', bat: 3 }]); deck(s, 1, ['normal', 'normal']); const h = s.players[1].hand.length; E.apply(s, { t: 'end' }); ok(s.players[1].hand.length === h + 2, 'plant full: draw extra'); }
+{ const s = board([], [{ id: 'plant', bat: 2 }]); deck(s, 1, ['normal', 'normal']); const h = s.players[1].hand.length; E.apply(s, { t: 'end' }); ok(s.players[1].hand.length === h + 1, 'plant not full: no extra'); }
+{ const s = board([], []); const u = hand(s, 0, 'ups'); play(s, u); ok(F(s, 0, 0).bat === 2 && E.atkOf(F(s, 0, 0)) === 2, 'ups enters with 2'); }
+{ const s = board([{ id: 'charge', bat: 0 }], []); deck(s, 0, ['normal']); const u = hand(s, 0, 'qcharge'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).bat === 2 && s.players[0].hand.length === 1, 'qcharge +2, full -> draw'); }
+{ const s = board([{ id: 'heat', bat: 2 }], [{ id: 'normal', bat: 2 }]); const u = hand(s, 0, 'cannon');
+  ok(!!err(s, { t: 'play', uid: u, ch: { target: F(s, 0, 0).uid } }), 'cannon needs opp target');
+  play(s, u, { target: F(s, 0, 0).uid, to: F(s, 1, 0).uid }); ok(F(s, 0, 0).bat === 0 && s.players[1].field.length === 0, 'cannon 2 bats -> 4 dmg kills normal(4)'); }
+{ const s = board([{ id: 'charge', bat: 1 }], []); const u = hand(s, 0, 'rack'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).shield, 'rack full -> shield'); }
+{ const s = board([{ id: 'golem', bat: 0 }], []); for (let i = 0; i < 5; i++) s.players[0].scrap.push({ uid: 950 + i, id: 'normal', owner: 0, bat: 0 }); E.sweepDeaths(s); ok(E.atkOf(F(s, 0, 0)) === 5, 'golem +4 max'); }
+{ const s = board([{ id: 'normal', bat: 2 }], []); s.players[0].scrap.push({ uid: 960, id: 'heat', owner: 0, bat: 0 }); const u = hand(s, 0, 'convert');
+  play(s, u, { target: F(s, 0, 0).uid, uid: 960 }); ok(F(s, 0, 0).id === 'heat' && F(s, 0, 0).bat === 2 && s.players[0].scrap.some(c => c.id === 'normal'), 'convert swaps with batteries'); }
+{ const s = board([{ id: 'normal', bat: 0 }], []); s.players[0].scrap.push({ uid: 961, id: 'heat', owner: 0, bat: 0 }); deck(s, 0, ['normal']); const u = hand(s, 0, 'armor'); const tot = s.cardTotal || E.DECK_IDS.length * 2;
+  play(s, u, { target: F(s, 0, 0).uid, uid: 961 }); ok(F(s, 0, 0).shield && !s.players[0].scrap.some(c => c.id === 'heat') && s.players[0].hand.length === 1 && s.cardTotal === tot - 1, 'armor exile + shield + draw'); }
+{ const s = board([], []); deck(s, 0, ['ebattery', 'heat', 'normal']); const u = hand(s, 0, 'scavenge'); const top = E.scavengeTop(s, 0); ok(top[0].id === 'normal', 'scavenge top order');
+  play(s, u, { pick: top[2].uid }); ok(s.players[0].hand.length === 1 && s.players[0].hand[0].id === 'ebattery' && s.players[0].scrap.filter(c => c.id !== 'scavenge').length === 2, 'scavenge pick 1, rest scrap'); }
+{ const s = board([], []); deck(s, 0, ['ebattery', 'heat', 'normal']); const u = hand(s, 0, 'scavenge'); play(s, u, {}); ok(s.players[0].hand[0].id === 'heat', 'scavenge auto picks strongest robo'); }
+{ const s = board([], []); const u = hand(s, 0, 'shieldbot'); play(s, u); ok(F(s, 0, 0).shield, 'shieldbot shield on deploy'); }
+{ const s = board([{ id: 'heat', bat: 1 }], [{ id: 'mine', bat: 1 }]); E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null);
+  ok(s.players[1].field.length === 0 && F(s, 0, 0).bat === 0, 'mine bursts attacker before battle'); }
+{ const s = board([{ id: 'lure', bat: 1 }, { id: 'normal', bat: 0 }], []); ok(E.guardsOf(s, 0).length === 1 && E.hasKw(F(s, 0, 0), 'backup'), 'lure taunt + backup'); }
+{ const s = board([{ id: 'fullrush', bat: 2 }], [{ id: 'normal', bat: 1 }, { id: 'normal', bat: 2 }]); E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null);
+  ok(F(s, 1, 0) && F(s, 1, 0).bat === 1 && F(s, 1, 0).dmg === 1, 'fullrush bursts most-battery robo'); }
 done();

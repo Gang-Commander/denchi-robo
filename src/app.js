@@ -649,6 +649,40 @@ function playRobo(c) {
 function gatherSpell(id, casterPi, cb, cancel, selfUid) {
   const s = G.s;
   if (id === 'bakaji' && s.players[casterPi].life > E.RAGE_LIFE) { toast(`自分のライフが${E.RAGE_LIFE}以下の時だけ使えます`, 'err'); return cancel && cancel(); }
+  // スクラップのロボを1枚選ぶシート
+  const pickScrapRobo = (title, next) => {
+    const list = s.players[casterPi].scrap.filter(c => CARDS[c.id].kind === 'robo');
+    if (!list.length) { toast('スクラップにロボがありません', 'err'); return cancel && cancel(); }
+    openSheet(`<h3>${title}</h3><div class="glist">${list.map(c => cardHTML(c, { size: 'hand', cls: 'pickg' })).join('')}</div>
+      <div class="row"><button class="btn ghost" id="hkCancel">やめる</button></div>`, sh => {
+        sh.querySelectorAll('.pickg').forEach(b => b.addEventListener('click', () => { closeSheet(); next(+b.dataset.uid); }));
+        sh.querySelector('#hkCancel').addEventListener('click', () => { closeSheet(); cancel && cancel(); });
+      });
+  };
+  const own = s.players[casterPi].field, opp = s.players[1 - casterPi].field;
+  if (id === 'cannon') {
+    const src = own.filter(y => y.bat > 0), dst = opp.filter(y => !E.immuneFrom(y, s, casterPi));
+    if (!src.length) { toast('電池が入った自分のロボがいません', 'err'); return cancel && cancel(); }
+    if (!dst.length) { toast('ダメージを与えられる相手のロボがいません', 'err'); return cancel && cancel(); }
+    return startSel({ prompt: '電池をすべて外す自分のロボを選ぶ', valid: new Set(src.map(y => y.uid)), onCancel: cancel,
+      onDone: p => startSel({ prompt: `${E.findRobo(s, p[0]).y.bat * 2}ダメージを与える相手のロボを選ぶ`, valid: new Set(dst.map(y => y.uid)), onCancel: cancel, onDone: q => cb({ target: p[0], to: q[0] }) }) });
+  }
+  if (id === 'convert') {
+    if (!own.length) { toast('自分の場にロボがいません', 'err'); return cancel && cancel(); }
+    return pickScrapRobo('起動するスクラップのロボを選ぶ', u => startSel({ prompt: '破壊する自分のロボを選ぶ', valid: new Set(own.map(y => y.uid)), onCancel: cancel, onDone: p => cb({ target: p[0], uid: u }) }));
+  }
+  if (id === 'armor') {
+    if (!own.length) { toast('自分の場にロボがいません', 'err'); return cancel && cancel(); }
+    return pickScrapRobo('ゲームから取り除くスクラップのロボを選ぶ', u => startSel({ prompt: 'シールドを付ける自分のロボを選ぶ', valid: new Set(own.map(y => y.uid)), onCancel: cancel, onDone: p => cb({ target: p[0], uid: u }) }));
+  }
+  if (id === 'scavenge') {
+    // 見た時点で効果は始まっているので、やめられない
+    const top = E.scavengeTop(s, casterPi);
+    if (!top.length) { toast('山札がありません', 'err'); return cancel && cancel(); }
+    return openSheet(`<h3>廃品漁り：手札に加える1枚を選ぶ</h3><p class="sub">残りはスクラップに置かれます</p><div class="glist">${top.map(c => cardHTML(c, { size: 'hand', cls: 'pickg' })).join('')}</div>`, sh => {
+      sh.querySelectorAll('.pickg').forEach(b => b.addEventListener('click', () => { closeSheet(); cb({ pick: +b.dataset.uid }); }));
+    }, true);
+  }
   if (id === 'eject') {
     const pool = E.ejectPool(s, selfUid);
     if (!pool.length) { toast('伏せ札がありません', 'err'); return cancel && cancel(); }

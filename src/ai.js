@@ -175,6 +175,13 @@ function spellChoices(s, pi, id, uid) {
     case 'limiter': return E.allField(s).filter(y => !E.immuneFrom(y, s, pi)).map(y => ({ target: y.uid }));
     case 'overload': case 'emp': case 'estop': case 'medkit': case 'decoy': case 'yakekuso': case 'combo': case 'dorder': case 'echarge': return [{}];
     case 'eject': return E.ejectPool(s, uid).map(q => ({ pi: q }));
+    case 'scavenge': return P.deck.length ? [{}] : [];
+    case 'cannon': { const res = []; for (const a of P.field) if (a.bat > 0) for (const b of O.field) if (!E.immuneFrom(b, s, pi)) res.push({ target: a.uid, to: b.uid }); return res; }
+    case 'convert': case 'armor': {
+      const seen = {}, rs = P.scrap.filter(c => CARDS[c.id].kind === 'robo' && !seen[c.id] && (seen[c.id] = 1)), res = [];
+      for (const y of P.field) for (const c of rs) res.push({ target: y.uid, uid: c.uid });
+      return res;
+    }
     default: if (CARDS[id].burn) return [{}];
   }
   return [];
