@@ -3742,7 +3742,7 @@ function playFx(events, snap) {
       case 'bounce': { const r = rectOf(e.uid, snap); if (r) at(t, () => particles(center(r), 14, 'frost', r.width * 0.6, 18)); end = Math.max(end, t + 600); t += 300; break; }
       case 'reboot': fxNotice('reboot', e.pi === 0 ? 'リブートロボが手札に戻った' : 'リブートロボがCPUの手札に戻った', Math.max(t, lastDestroyEnd)); t = Math.max(t, lastDestroyEnd) + 1200; break;
       case 'junk': fxNotice(e.id, e.pi === 0 ? 'ジャンク回収で手札に戻った' : 'ジャンク回収でCPUの手札に戻った', t); t += 1500; break;
-      case 'sorter': fxNotice(e.id, `選別ロボ：${e.to === 'hand' ? '手札に加えた' : 'スクラップに置いた'}${e.pi === 0 ? '' : '（CPU）'}`, t); t += 1500; break;
+      case 'sorter': fxNotice(e.id, `検品ロボ：${e.to === 'hand' ? '手札に加えた' : 'スクラップに置いた'}${e.pi === 0 ? '' : '（CPU）'}`, t); t += 1500; break;
       case 'copy': { const r = rectOf(e.uid, snap); if (r) at(t + 300, () => particles(center(r), 14, '', r.width * 0.6, 16)); t += 300; break; }
       case 'bakushin': case 'scout': case 'garakuta': t += 150; break;
       case 'press': { const r = rectOf(e.uid, snap); if (r) fxImpact(r, t); t += 300; break; }
