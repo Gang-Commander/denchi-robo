@@ -1012,7 +1012,7 @@ Object.assign(CARDS, {
   feeder:  { id:'feeder',  name:'給電ロボ',       kind:'robo', atk:2, max:3, eff:'const', rare:true, text:'【常時】自分の場に出るロボは、付属電池1を持つ（このロボ自身も。付属電池は重なる）。' },
   plant:   { id:'plant',   name:'発電所ロボ',     kind:'robo', atk:2, max:2, eff:'const', kw:['full'], text:'【満充電】自分の手番開始時、山札を1枚引く。' },
   ups:     { id:'ups',     name:'予備電源ロボ',   kind:'robo', atk:0, max:4, eff:'none', enterBat:2, kw:['backup'], text:'' },
-  qcharge: { id:'qcharge', name:'急速充電',       kind:'spell', text:'自分のロボ1体に電池を2本入れる。そのロボが満充電になったら山札を1枚引き、ならなかったら手札を1枚選んで捨てる。',
+  qcharge: { id:'qcharge', name:'急速充電',       kind:'spell', text:'自分のロボ1体に電池を2本入れる。そのロボが満充電にならなかったら、手札を1枚選んで捨てる。',
              pick:{ side:'own', cond:'room', prompt:'電池を入れる自分のロボを選ぶ', none:'電池を入れられる自分のロボがいません' } },
   cannon:  { id:'cannon',  name:'放電砲',         kind:'spell', text:'自分のロボ1体の電池をすべて外す。外した本数の2倍のダメージを、相手のロボ1体に与える。' },
   rack:    { id:'rack',    name:'電池ラック',     kind:'spell', text:'自分のロボ1体に電池を1本入れ、シールドを付ける。',
@@ -1054,7 +1054,7 @@ Object.assign(CARDS, {
   decoy:   { id:'decoy',   name:'おとり人形',     kind:'spell', text:'自分の場にガードボットを1体出す。攻撃されている時に使ったら、攻撃の対象をそのガードボットに変える。' },
   counter: { id:'counter', name:'反撃準備',       kind:'spell', text:'自分のロボ1体を選ぶ。この手番の間、攻撃力+1（攻撃されているロボなら+2）。',
              pick:{ side:'own', prompt:'攻撃力を上げる自分のロボを選ぶ', none:'自分の場にロボがいません' } },
-  parry:   { id:'parry',   name:'受け流し',       kind:'spell', text:'自分のロボ1体を選ぶ。この手番の間、そのロボは戦闘で破壊される時、代わりに持ち主の手札に戻る。',
+  parry:   { id:'parry',   name:'受け流し',       kind:'spell', text:'自分のロボ1体を選ぶ。この手番の間、そのロボは戦闘で破壊される時、代わりに電池をすべて外す（場に残る）。',
              pick:{ side:'own', prompt:'受け流すロボを選ぶ', none:'自分の場にロボがいません' } },
   guardian:{ id:'guardian',name:'警備隊長ロボ',   kind:'robo', atk:2, max:3, eff:'const', text:'【常時】このロボを起動した時、自分の場に「ガードボット」を1体出す。' },
   guardbot:{ id:'guardbot',name:'ガードボット',   kind:'robo', atk:0, max:1, eff:'powered', token:true, enterBat:1, taunt:'powered', noBattleDmg:true,
@@ -1069,7 +1069,7 @@ Object.assign(CARDS, {
              pick:{ side:'own', prompt:'暴走させる自分のロボを選ぶ（攻撃力+2）', none:'自分の場にロボがいません' } },
   spark:   { id:'spark',   name:'スパークボム',   kind:'spell', text:'自分は2ダメージを受ける。相手か、ロボを1体選び、3ダメージを与える。',
              pick:{ side:'any', player:true, prompt:'3ダメージを与えるロボを選ぶ', none:'' } },
-  overload:{ id:'overload',name:'オーバーロード', kind:'spell', rare:true, text:'自分のメインフェイズ中に使ったら、この手番の行動を2回増やす。それ以外なら、次の自分の手番の行動を2回増やす。行動が増えた手番の終わりに、自分は3ダメージを受ける。' },
+  overload:{ id:'overload',name:'オーバーロード', kind:'spell', rare:true, draw:1, text:'山札を1枚引く。自分のメインフェイズ中に使ったら、この手番の行動を2回増やす。それ以外なら、次の自分の手番の行動を2回増やす。行動が増えた手番の終わりに、自分は3ダメージを受ける。' },
   selfdestruct:{ id:'selfdestruct',name:'自爆ロボ', kind:'robo', atk:3, max:1, eff:'const', text:'【常時】このロボが破壊された時、お互いに2ダメージを受ける。' },
   kamikaze:{ id:'kamikaze',name:'特攻ロボ',       kind:'robo', atk:2, max:1, eff:'const', onAttack:{ atk:2, self:1 }, text:'【常時】このロボが攻撃した時、その戦闘の間、攻撃力+2。自分は1ダメージを受ける。' },
   overheat:{ id:'overheat',name:'過熱ロボ',       kind:'robo', atk:3, max:2, eff:'const', text:'【常時】自分がダメージを受けるたびに、このロボに電池を1本入れる。' },
@@ -1088,9 +1088,9 @@ Object.assign(CARDS, {
              pick:{ side:'own', prompt:'手札に戻すロボを選ぶ', none:'自分の場にロボがいません' } },
   scavenge:{ id:'scavenge',name:'廃品漁り',       kind:'spell', text:'山札の上から3枚を見て、1枚を手札に加え、残りをスクラップに置く。' },
   shieldbot:{ id:'shieldbot',name:'盾持ちロボ',   kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、このロボにシールドを付ける。' },
-  mine:    { id:'mine',    name:'地雷ロボ',       kind:'robo', atk:1, max:2, eff:'const', enterBat:1, text:'【常時】このロボと戦闘する相手のロボに、戦闘の前に破裂1。' },
+  mine:    { id:'mine',    name:'地雷ロボ',       kind:'robo', atk:1, max:2, eff:'const', text:'【常時】このロボと戦闘する相手のロボに、戦闘の前に破裂1。' },
   lure:    { id:'lure',    name:'囮ロボ',         kind:'robo', atk:1, max:3, eff:'powered', enterBat:1, taunt:'powered', kw:['backup'], text:'【通電中】挑発。' },
-  fullrush:{ id:'fullrush',name:'満タン突撃ロボ', kind:'robo', atk:3, max:2, eff:'const', kw:['full'], text:'【満充電】このロボが攻撃した時、戦闘の前に、相手の場で電池が一番多いロボに破裂1（同じなら左。選ばない）。' },
+  fullrush:{ id:'fullrush',name:'満タン突撃ロボ', kind:'robo', atk:3, max:3, eff:'const', kw:['full'], text:'【満充電】このロボが攻撃した時、戦闘の前に、相手の場で電池が一番多いロボに破裂1（同じなら左。選ばない）。' },
   // 共通
   scout:   { id:'scout',   name:'スカウトロボ',   kind:'robo', atk:1, max:1, eff:'const', enterBat:1, text:'【常時】このロボを起動した時、山札を1枚引く。' },
   socket:  { id:'socket',  name:'ソケットロボ',   kind:'robo', atk:1, max:4, eff:'const', text:'【常時】このロボに「電池を入れる」行動をした時、電池が2本入る。' },
@@ -1370,7 +1370,7 @@ function drawCards(s, pi, n, silent) {
 function destroy(s, uid, byBattle) {
   const f = findRobo(s, uid); if (!f) return false;
   const y = f.y;
-  if (byBattle && y.parry) { log(s, `${cname(y)}は受け流して手札に戻った`, { t: 'daruma', uid }); bounce(s, uid); return false; }
+  if (byBattle && y.parry) { const k = y.bat; y.bat = 0; log(s, `${cname(y)}は受け流した（電池が${k}本外れた）`, { t: 'daruma', uid }); return false; }
   if (byBattle && fxOf(s, f.pi).protect) { log(s, `${cname(y)}は緊急停止で戦闘でも壊れない`, { t: 'daruma', uid }); return false; }
   if (byBattle && y.id === 'daruma' && y.bat > 0) {
     y.bat--;
@@ -2019,8 +2019,7 @@ function resolveSpell(s, pi, card, ch) {
         const k = placeBat(s, t.y, card.id === 'qcharge' ? 2 : 1);
         if (k) log(s, `${cname(t.y)}に電池を${k}本入れた`, { t: 'batfly', uid: t.y.uid });
         if (card.id === 'rack') { t.y.shield = true; log(s, `${cname(t.y)}にシールドを付けた`, { t: 'shield', uid: t.y.uid }); }
-        else if (isFull(t.y)) drawCards(s, pi, 1);
-        else qchargeDiscard(s, pi, ch.discard);
+        else if (!isFull(t.y)) qchargeDiscard(s, pi, ch.discard);
       } else log(s, '対象がいない', { t: 'fizzle' });
       break;
     }

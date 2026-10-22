@@ -154,7 +154,7 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
   ok(s.players[1].field.length === 0 && s.players[0].field.length === 1, 'counter +2 when attacked (2+2 vs 3)'); }
 { const s = board([{ id: 'normal', bat: 0 }], [{ id: 'heat', bat: 1 }]); setCard(s, 0, 'parry'); s.turn = 1;
   E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: F(s, 0, 0).uid }); resp(s, { target: F(s, 0, 0).uid });
-  ok(s.players[0].hand.some(c => c.id === 'normal') && !s.players[0].scrap.some(c => c.id === 'normal'), 'parry returns to hand instead'); }
+  ok(s.players[0].field.length === 1 && F(s, 0, 0).bat === 0, 'parry: stays on field, batteries removed'); }
 // 解体
 { const s = board([], [{ id: 'normal', bat: 2 }]); const u = hand(s, 0, 'breaker'); play(s, u, { target: F(s, 1, 0).uid }); ok(F(s, 1, 0).bat === 1 && F(s, 1, 0).dmg === 2, 'breaker burst2'); }
 { const s = board([], []); setCard(s, 1, 'thunder'); deck(s, 0, ['normal']); const u = hand(s, 0, 'eject');
@@ -207,7 +207,7 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
 { const s = board([], [{ id: 'plant', bat: 2 }]); deck(s, 1, ['normal', 'normal']); const h = s.players[1].hand.length; E.apply(s, { t: 'end' }); ok(s.players[1].hand.length === h + 2, 'plant full: draw extra'); }
 { const s = board([], [{ id: 'plant', bat: 1 }]); deck(s, 1, ['normal', 'normal']); const h = s.players[1].hand.length; E.apply(s, { t: 'end' }); ok(s.players[1].hand.length === h + 1, 'plant not full: no extra'); }
 { const s = board([], []); const u = hand(s, 0, 'ups'); play(s, u); ok(F(s, 0, 0).bat === 2 && E.atkOf(F(s, 0, 0)) === 2, 'ups enters with 2'); }
-{ const s = board([{ id: 'charge', bat: 0 }], []); deck(s, 0, ['normal']); const u = hand(s, 0, 'qcharge'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).bat === 2 && s.players[0].hand.length === 1, 'qcharge +2, full -> draw'); }
+{ const s = board([{ id: 'charge', bat: 0 }], []); deck(s, 0, ['normal']); hand(s, 0, 'normal'); const u = hand(s, 0, 'qcharge'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).bat === 2 && s.players[0].hand.length === 1, 'qcharge +2, full -> no draw, no discard'); }
 { const s = board([{ id: 'heat', bat: 2 }], [{ id: 'normal', bat: 2 }]); const u = hand(s, 0, 'cannon');
   ok(!!err(s, { t: 'play', uid: u, ch: { target: F(s, 0, 0).uid } }), 'cannon needs opp target');
   play(s, u, { target: F(s, 0, 0).uid, to: F(s, 1, 0).uid }); ok(F(s, 0, 0).bat === 0 && s.players[1].field.length === 0, 'cannon 2 bats -> 4 dmg kills normal(4)'); }
@@ -224,7 +224,7 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
 { const s = board([{ id: 'heat', bat: 1 }], [{ id: 'mine', bat: 1 }]); E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null);
   ok(s.players[1].field.length === 0 && F(s, 0, 0).bat === 0, 'mine bursts attacker before battle'); }
 { const s = board([{ id: 'lure', bat: 1 }, { id: 'normal', bat: 0 }], []); ok(E.guardsOf(s, 0).length === 1 && E.hasKw(F(s, 0, 0), 'backup'), 'lure taunt + backup'); }
-{ const s = board([{ id: 'fullrush', bat: 2 }], [{ id: 'normal', bat: 1 }, { id: 'normal', bat: 2 }]); E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null);
+{ const s = board([{ id: 'fullrush', bat: 3 }], [{ id: 'normal', bat: 1 }, { id: 'normal', bat: 2 }]); E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null);
   ok(F(s, 1, 0) && F(s, 1, 0).bat === 1 && F(s, 1, 0).dmg === 1, 'fullrush bursts most-battery robo'); }
 // ===== 返し（攻撃側が伏せ札で返す） =====
 { // 防御側ワープで逃げる → 攻撃側が返しのハンマーで先に壊す → ワープは不発
