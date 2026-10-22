@@ -27,7 +27,7 @@ for (let i = 0; i < N; i++) {
     while (!E.isOver(s) && k++ < 400) {
       const a = AI.chooseAction(s, { rng, w: s.turn === 0 ? AI.BASE_W : oppW }) || { t: 'end' };
       E.apply(s, a);
-      if (s.pending) { if (E.needsResponse(s)) E.respond(s, AI.chooseResponseFor(s, { w: s.turn === 0 ? oppW : AI.BASE_W })); else E.resolveBattle(s); }
+      if (s.pending) { if (E.needsResponse(s)) E.respond(s, AI.chooseResponseFor(s, { w: s.turn === 0 ? oppW : AI.BASE_W }), t => AI.chooseCounterFor(t, { w: t.turn === 0 ? AI.BASE_W : oppW })); else E.resolveBattle(s); }
     }
     const st = stat[r - 1]; st.n++; st.turns += s.turnNo; if (first === 0) { st.first++; if (s.winner === 0) st.firstW++; }
     if (!s.players[0].deck.length || !s.players[1].deck.length) st.deckout++;

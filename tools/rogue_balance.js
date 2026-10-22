@@ -42,7 +42,7 @@ for (let g = 0; g < N; g++) {
     if (a.t === 'release') { const f = E.findRobo(s, a.src); if (f) used[me].add(f.y.id); }
     E.apply(s, a);
     if (s.pending) {
-      if (E.needsResponse(s)) { const di = 1 - s.turn, c = s.players[di].set; const resp = AI.chooseResponseFor(s, opt); if (resp && resp.ch !== undefined && c) used[di].add(c.id); E.respond(s, resp); }
+      if (E.needsResponse(s)) { const di = 1 - s.turn, c = s.players[di].set; const resp = AI.chooseResponseFor(s, opt); if (resp && resp.ch !== undefined && c) used[di].add(c.id); E.respond(s, resp, t => { const c = t.players[t.turn].set, r = AI.chooseCounterFor(t, opt); if (r && c) used[t.turn].add(c.id); return r; }); }
       else E.resolveBattle(s);
     }
   }

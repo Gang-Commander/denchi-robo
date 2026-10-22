@@ -560,6 +560,14 @@ async function resolveAttackStaged(r) {
   if (!r) return step(() => E.resolveBattle(s));
   await step(() => E.respondReveal(s, r));
   if (!G || G.id !== my) return;
+  if (s.chain) {
+    // 攻撃側が自分の伏せ札で返すか（あなたが攻撃側なら確認、CPUなら思考）
+    let ctr = null;
+    if (E.canCounter(s)) ctr = s.turn === 0 ? await humanCounter() : (G.mode === 'tut' ? null : AI.chooseCounterFor(s, G.opt));
+    if (!G || G.id !== my) return;
+    await step(() => E.resolveChain(s, ctr));
+    if (!G || G.id !== my) return;
+  }
   await sleep(reduceMotion ? 100 : 450);
   if (!G || G.id !== my) return;
   return step(() => E.resolveBattle(s));
@@ -887,6 +895,29 @@ async function humanRespond() {
   let r = E.canRespondSet(s) ? await humanRespondSet() : null;
   if (E.rocketDefends(s)) { if (await askRocket(s.players[0].life, true)) r = Object.assign({}, r || {}, { boost: true }); }
   return r;
+}
+// 攻撃した後、CPUが伏せ札を表にした時：自分の伏せ札で返すか
+function humanCounter() {
+  return new Promise(resolve => {
+    const s = G.s, C = s.chain, set = s.players[0].set;
+    const ask = () => openSheet(`<h3 class="warn">CPUが${CARDS[C.card.id].name}を表にした！</h3>
+      <div class="respond">${cardHTML(C.card, { size: 'big' })}<p>${CARDS[C.card.id].text}</p></div>
+      <p class="sub">あなたのセットしたアクションを表にして返せます。返したほうが先に処理されます。</p>
+      <div class="respond">${cardHTML(set, { size: 'big' })}<p>${CARDS[set.id].text}</p></div>
+      ${statusHTML()}
+      <div class="row"><button class="btn" id="cNo">返さない</button><button class="btn primary" id="cYes">返す</button></div>`, sh => {
+        sh.querySelector('#cNo').addEventListener('click', () => { closeSheet(); resolve(null); });
+        sh.querySelector('#cYes').addEventListener('click', () => {
+          closeSheet();
+          gatherSpell(set.id, 0, ch => {
+            const err = E.counterChoiceError(s, ch);
+            if (err) { toast(err, 'err'); return ask(); }
+            render(); resolve({ ch });
+          }, () => ask(), set.uid);
+        });
+      }, true);
+    ask();
+  });
 }
 function humanRespondSet() {
   return new Promise(resolve => {

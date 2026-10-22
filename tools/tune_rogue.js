@@ -16,7 +16,7 @@ function play(wA, wB, seed, swap) {
   while (!E.isOver(s) && k++ < 3000) {
     const me = s.turn, a = AI.chooseAction(s, { w: W[me], rng: g }) || { t: 'end' };
     E.apply(s, a);
-    if (s.pending) { if (E.needsResponse(s)) E.respond(s, AI.chooseResponseFor(s, { w: W[1 - s.turn] })); else E.resolveBattle(s); }
+    if (s.pending) { if (E.needsResponse(s)) E.respond(s, AI.chooseResponseFor(s, { w: W[1 - s.turn] }), t => AI.chooseCounterFor(t, { w: W[t.turn] })); else E.resolveBattle(s); }
   }
   if (s.draw) return 0.5;
   return (s.winner === (swap ? 1 : 0)) ? 1 : 0;

@@ -8,7 +8,7 @@ for(let g=0;g<2000;g++){
     const acts=AI.mainActions(s).concat(AI.attackOptions(s));
     const a=(acts.length&&rng()<0.85)?acts[Math.floor(rng()*acts.length)]:{t:'end'};
     try{E.apply(s,a);}catch(e){errs++;console.log('illegal gen',a,e.message);break;}
-    if(s.pending){ if(E.needsResponse(s)){ const r=AI.chooseResponseFor(s,{}); E.respond(s,rng()<0.5?r:null);} else E.resolveBattle(s);}
+    if(s.pending){ if(E.needsResponse(s)){ const r=AI.chooseResponseFor(s,{}); E.respond(s,rng()<0.5?r:null,t=>AI.chooseCounterFor(t,{}));} else E.resolveBattle(s);}
     E.invariant(s);
   }
   if(!E.isOver(s)) {errs++; console.log('not over',g);}

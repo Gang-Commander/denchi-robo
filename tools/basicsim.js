@@ -18,7 +18,7 @@ for (const name of names) {
     while (!E.isOver(s) && k++ < 600) {
       const a = AI.chooseAction(s, { rng }) || { t: 'end' };
       E.apply(s, a);
-      if (s.pending) { if (E.needsResponse(s)) E.respond(s, AI.chooseResponseFor(s, {})); else E.resolveBattle(s); }
+      if (s.pending) { if (E.needsResponse(s)) E.respond(s, AI.chooseResponseFor(s, {}), t => AI.chooseCounterFor(t, {})); else E.resolveBattle(s); }
     }
     if (s.draw) draw++; else { dec++; if (s.winner === g % 2) firstW++; }
     turns += s.turnNo;

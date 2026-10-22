@@ -17,7 +17,7 @@ for(let g=0;g<N;g++){
     if(a.t==='play'){ played[me].add(uid2[a.uid].id); }
     if(a.t==='set'){ setIds[me].add(uid2[a.uid].id); }
     E.apply(s,a);
-    if(s.pending){ if(E.needsResponse(s)){ const di=1-s.turn, c=s.players[di].set; const r=AI.chooseResponseFor(s,opt); if(r&&c){ played[di].add(c.id); rev[di].add(c.id);} E.respond(s,r);} else E.resolveBattle(s); }
+    if(s.pending){ if(E.needsResponse(s)){ const di=1-s.turn, c=s.players[di].set; const r=AI.chooseResponseFor(s,opt); if(r&&c){ played[di].add(c.id); rev[di].add(c.id);} E.respond(s,r,t=>AI.chooseCounterFor(t,opt));} else E.resolveBattle(s); }
   }
   games++; turns+=s.turnNo; const w=s.draw?-1:s.winner; if(w===first) firstWins++;
   for(const pi of [0,1]){

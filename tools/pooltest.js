@@ -14,7 +14,7 @@ function runGame(g, useAI) {
     else { const acts = AI.mainActions(s).concat(AI.attackOptions(s)); a = (acts.length && rng() < 0.85) ? acts[Math.floor(rng() * acts.length)] : { t: 'end' }; }
     try { E.apply(s, a); } catch (e) { errs++; console.log('illegal', g, JSON.stringify(a), e.message); return; }
     if (s.pending) {
-      if (E.needsResponse(s)) { const r = useAI ? AI.chooseResponseFor(s, {}) : (() => { const o = AI.chooseResponseFor(s, {}); return rng() < 0.5 ? o : null; })(); E.respond(s, r); }
+      if (E.needsResponse(s)) { const r = useAI ? AI.chooseResponseFor(s, {}) : (() => { const o = AI.chooseResponseFor(s, {}); return rng() < 0.5 ? o : null; })(); E.respond(s, r, t => { const o = AI.chooseCounterFor(t, {}); return useAI || rng() < 0.5 ? o : null; }); }
       else E.resolveBattle(s);
     }
     try { E.invariant(s); } catch (e) { errs++; console.log('invariant', g, e.message, JSON.stringify(a)); return; }

@@ -12,7 +12,7 @@ function playGame(optA, optB, seed, first, check) {
     const a = AI.chooseAction(s, opts[me]) || { t: 'end' };
     E.apply(s, a);
     if (s.pending) {
-      if (E.needsResponse(s)) E.respond(s, AI.chooseResponseFor(s, opts[1 - me]));
+      if (E.needsResponse(s)) E.respond(s, AI.chooseResponseFor(s, opts[1 - me]), t => AI.chooseCounterFor(t, opts[me]));
       else E.resolveBattle(s);
     }
     if (check) E.invariant(s);

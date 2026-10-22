@@ -246,6 +246,7 @@ function clone(s) {
     winner: s.winner, draw: s.draw, stall: s.stall, lifeSnap: s.lifeSnap,
     pending: s.pending ? Object.assign({}, s.pending) : null, log: null, v: s.v, uidSeq: s.uidSeq || 0,
     cardTotal: s.cardTotal, lists: s.lists, eotDmg: (s.eotDmg || []).map(x => Object.assign({}, x)),
+    chain: s.chain ? { pi: s.chain.pi, card: cloneCard(s.chain.card), ch: s.chain.ch } : null,
   };
 }
 
@@ -1245,11 +1246,32 @@ function respondReveal(s, resp) {
   if (resp && resp.ch !== undefined && D.set && !isJammed(s, di)) {
     const c = D.set; D.set = null;
     log(s, `${pname(di)}はセットした${cname(c)}を表にした！`, { t: 'reveal', pi: di, id: c.id });
-    resolveSpell(s, di, c, resp.ch);
+    // すぐには処理しない。攻撃側が自分の伏せ札で返すかを決めてから、後から表にしたほうを先に処理する
+    s.chain = { pi: di, card: c, ch: resp.ch };
   }
 }
-function respond(s, resp) {
+// 攻撃側が、防御側の表にした伏せ札に自分の伏せ札で返せるか
+function canCounter(s) { return !!(s.chain && s.players[s.turn].set && !isJammed(s, s.turn)); }
+function counterChoiceError(s, ch) { const c = s.players[s.turn].set; if (!c) return 'セットされていません'; return checkSpell(s, s.turn, c.id, ch || {}, c.uid); }
+// 返し合いを処理する。ctr：null（返さない） or { ch }（攻撃側が伏せ札を表にする時の対象）
+// 後から表にした攻撃側を先に処理し、そのあと防御側。防御側の対象がいなくなっていたら不発
+function resolveChain(s, ctr) {
+  const C = s.chain; if (!C) return; s.chain = null;
+  const ai = s.turn, A = s.players[ai];
+  if (ctr && ctr.ch !== undefined && A.set && !isJammed(s, ai)) {
+    const c = A.set; A.set = null;
+    log(s, `${pname(ai)}はセットした${cname(c)}を表にして返した！`, { t: 'reveal', pi: ai, id: c.id, counter: true });
+    resolveSpell(s, ai, c, ctr.ch);
+  }
+  if (isOver(s)) { s.players[C.card.owner].scrap.push(C.card); return; }
+  const err = checkSpell(s, C.pi, C.card.id, C.ch || {}, C.card.uid);
+  if (err) { log(s, `${cname(C.card)}は不発になった（${err}）`, { t: 'fizzle' }); C.card.bat = 0; s.players[C.card.owner].scrap.push(C.card); return; }
+  resolveSpell(s, C.pi, C.card, C.ch);
+}
+// ctr：返し方（値）か、返し方を決める関数 (s) => ctr。省略時は返さない
+function respond(s, resp, ctr) {
   respondReveal(s, resp);
+  if (s.chain) resolveChain(s, typeof ctr === 'function' ? (canCounter(s) ? ctr(s) : null) : ctr);
   resolveBattle(s);
 }
 function resolveBattle(s) {
@@ -1346,6 +1368,7 @@ function invariant(s) {
   let bat = 0, n = 0;
   const real = arr => arr.filter(c => c.id !== 'onemore').length; // ワンモア以外は、トークンも含めて数える
   for (const p of s.players) { for (const y of p.field) bat += y.bat; n += real(p.deck) + real(p.hand) + real(p.field) + real(p.scrap) + (p.set && p.set.id !== 'onemore' ? 1 : 0); }
+  if (s.chain && s.chain.card.id !== 'onemore') n++;
   if (n !== (s.cardTotal || DECK_IDS.length * 2)) throw new Error('card count ' + n);
   for (const y of allField(s)) if (lethal(y)) throw new Error('lethal robot left on field');
   for (const p of s.players) { if (p.field.length > 3) throw new Error('field>3'); for (const y of p.field) if (y.bat > capOf(y)) throw new Error('bat>max'); }
@@ -1353,7 +1376,7 @@ function invariant(s) {
 
 const api = { isFull, mostBat, scavengeTop, ejectPool, RAGE_LIFE, fxOf, spawnRobo, hasKw, capOf, enterOf, isMod, makeCard, baseId, MODS, TERMS, junkPool, THEMES, BASIC_DECK, BASIC_IDS, KEYWORDS, pickPool, pickError, cantAttack, canRespondSet, rocketDefends, heal, bounce, maintTargets, battleAtk, LIM_BONUS, LIM_LABEL, RETIRED_IDS, TOKEN_IDS, isJammed, sniperCandidates, guardsOf, hackCandidates, CARDS, ROBO_IDS, SPELL_IDS, DECK_IDS, LIFE_MAX, FIELD_MAX,
   mulberry32, shuffle, newGame, clone, atkOf, rawAtk, lethal, roboDamage, sweepDeaths, immuneFrom, findRobo, allField, isOver,
-  checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondReveal, respondChoiceError, resolveBattle,
+  checkAction, checkSpell, thunderCandidates, apply, needsResponse, respond, respondReveal, canCounter, counterChoiceError, resolveChain, respondChoiceError, resolveBattle,
   attackFull, endTurn, resolveEot, invariant, pname, cname };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

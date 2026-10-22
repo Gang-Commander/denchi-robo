@@ -225,4 +225,20 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
 { const s = board([{ id: 'lure', bat: 1 }, { id: 'normal', bat: 0 }], []); ok(E.guardsOf(s, 0).length === 1 && E.hasKw(F(s, 0, 0), 'backup'), 'lure taunt + backup'); }
 { const s = board([{ id: 'fullrush', bat: 2 }], [{ id: 'normal', bat: 1 }, { id: 'normal', bat: 2 }]); E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null);
   ok(F(s, 1, 0) && F(s, 1, 0).bat === 1 && F(s, 1, 0).dmg === 1, 'fullrush bursts most-battery robo'); }
+// ===== 返し（攻撃側が伏せ札で返す） =====
+{ // 防御側ワープで逃げる → 攻撃側が返しのハンマーで先に壊す → ワープは不発
+  const s = board([{ id: 'heat', bat: 0 }], [{ id: 'normal', bat: 0 }, { id: 'normal', bat: 1 }]);
+  setCard(s, 1, 'warp'); setCard(s, 0, 'hammer');
+  E.apply(s, { t: 'attack', att: F(s, 0, 0).uid, tgt: F(s, 1, 0).uid });
+  const tu = F(s, 1, 0).uid;
+  E.respondReveal(s, { ch: { target: tu } }); ok(E.canCounter(s), 'attacker can counter');
+  E.resolveChain(s, { ch: { target: tu } });
+  ok(!s.players[1].hand.some(c => c.id === 'normal') && s.players[1].scrap.some(c => c.id === 'warp') && !s.players[0].set, 'counter resolves first, warp fizzles'); E.resolveBattle(s); }
+{ const s = board([{ id: 'heat', bat: 0 }], [{ id: 'normal', bat: 0 }]); setCard(s, 1, 'counter'); setCard(s, 0, 'drycell');
+  E.apply(s, { t: 'attack', att: F(s, 0, 0).uid, tgt: F(s, 1, 0).uid });
+  E.respond(s, { ch: { target: F(s, 1, 0).uid } }, () => ({ ch: { target: F(s, 0, 0).uid } }));
+  ok(s.players[1].field.length === 0 && s.players[0].field.length === 1, 'counter drycell wins (4+1+1=6 vs 2+2=4)'); }
+{ const s = board([{ id: 'heat', bat: 0 }], [{ id: 'normal', bat: 0 }]); setCard(s, 1, 'counter');
+  E.apply(s, { t: 'attack', att: F(s, 0, 0).uid, tgt: F(s, 1, 0).uid }); E.respondReveal(s, { ch: { target: F(s, 1, 0).uid } });
+  ok(!E.canCounter(s), 'no set -> cannot counter'); E.resolveChain(s, null); E.resolveBattle(s); ok(s.players[1].field.length === 0 && s.players[0].field.length === 0, 'no reply: defender spell resolves (4 vs 4 tie)'); }
 done();

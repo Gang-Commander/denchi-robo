@@ -254,6 +254,21 @@ function chooseResponse(s, w) {
   return best;
 }
 
+// ---------- 返し（攻撃側：防御側が表にした伏せ札に、自分の伏せ札で返す） ----------
+function chooseCounter(s, w) {
+  const me = s.turn, c = s.players[me].set;
+  if (!E.canCounter(s) || !c) return null;
+  let best = null, bv = -Infinity;
+  const opts = [null].concat(spellChoices(s, me, c.id, c.uid).filter(ch => !E.counterChoiceError(s, ch)).map(ch => ({ ch })));
+  for (const r of opts) {
+    const t = E.clone(s); E.resolveChain(t, r); E.resolveBattle(t); E.resolveEot(t);
+    const v = evaluate(t, me, w, 1 - me);
+    if (v > bv) { bv = v; best = r; }
+  }
+  return best;
+}
+const counterFn = w => t => chooseCounter(t, w);
+
 // ---------- 攻撃の評価（相手の伏せアクションは期待値） ----------
 function unknownSpells(s, op) {
   // 相手のアクションで、まだ公開領域（スクラップ）に出ていないもの = 伏せカードの候補
@@ -287,7 +302,7 @@ function evalAttack(s, act, me, w, opt) {
     t.players[op].set = { uid: O.set.uid, id, owner: op, bat: 0 };
     E.apply(t, act);
     const r = chooseResponse(t, w);
-    E.respond(t, r);
+    E.respond(t, r, counterFn(w));
     sum += finishVal(t, me, w);
   }
   return sum / cands.length;
@@ -341,7 +356,11 @@ function chooseAction(s, opt) {
 
 // 自分が防御側の時（相手の攻撃宣言中）の応答
 function chooseResponseFor(s, opt) { return chooseResponse(s, opt.w || BASE_W); }
+// 攻撃側として返すかどうか（防御側が伏せ札を表にした後）
+function chooseCounterFor(s, opt) { return chooseCounter(s, opt.w || BASE_W); }
+// シミュレーション用：防御側の応答と攻撃側の返しを、両方CPUで決めて処理する
+function respondAuto(s, optD, optA) { E.respond(s, chooseResponseFor(s, optD || {}), t => chooseCounterFor(t, optA || optD || {})); }
 
-const api = { BASE_W, evaluate, chooseAction, chooseResponseFor, mainActions, attackOptions, spellChoices };
+const api = { BASE_W, evaluate, chooseAction, chooseResponseFor, chooseCounterFor, respondAuto, mainActions, attackOptions, spellChoices };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.AI = api;
 })(typeof window !== 'undefined' ? window : globalThis);
