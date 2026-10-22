@@ -48,7 +48,7 @@ Object.assign(CARDS, {
              pick:{ side:'own', cond:'room', notSelf:true, prompt:'電池を2本入れる自分のロボを選ぶ', none:'電池を入れられる自分の別のロボがいません' } },
   gigant:  { id:'gigant',  name:'ギガントロボ',   kind:'robo', atk:5, max:1, eff:'const', rare:true, afterAttackBat:1, text:'【常時】電池が入っていない間、このロボは攻撃できない。このロボが攻撃したら、戦闘のあとで電池を1本外す。' },
   feeder:  { id:'feeder',  name:'給電ロボ',       kind:'robo', atk:2, max:3, eff:'const', rare:true, text:'【常時】自分の場に出るロボは、付属電池1を持つ（このロボ自身も。付属電池は重なる）。' },
-  relay:   { id:'relay',   name:'中継ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】自分のロボすべては、バックアップを持つ（このロボ自身も）。' },
+  relay:   { id:'relay',   name:'リレーロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】自分のロボすべては、バックアップを持つ（このロボ自身も）。' },
   // 解体
   drill:   { id:'drill',   name:'ドリルロボ',     kind:'robo', atk:3, max:2, eff:'powered', text:'【通電中】このロボが攻撃した時、戦闘の前に相手のロボの電池を1本外す。' },
   hammer:  { id:'hammer',  name:'ハンマー',       kind:'spell', text:'攻撃力4以下のロボを1体選び、破壊する。',
@@ -62,7 +62,7 @@ Object.assign(CARDS, {
   gattai:  { id:'gattai',  name:'ガッタイロボ',   kind:'robo', atk:3, max:3, eff:'const', rare:true, text:'【常時】このロボを起動した時、自分のスクラップにあるロボの数だけ、このロボに電池を入れる。' },
   press:   { id:'press',   name:'プレスロボ',     kind:'robo', atk:4, max:1, eff:'const', rare:true, text:'【常時】このロボを起動した時、お互いに、自分の場で攻撃力が一番低いロボを1体破壊する（このロボも含む。同じなら左のロボ。選ばない効果）。' },
   proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'normal', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を1枚出す（新しく出たカードは、そのあと普通のカードとして扱う）。' },
-  sorter:  { id:'sorter',  name:'選別ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、山札の一番上を見る。ロボなら手札に、アクションならスクラップに置く。' },
+  sorter:  { id:'sorter',  name:'検品ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、山札の一番上を見る。ロボなら手札に、アクションならスクラップに置く。' },
   // 防衛
   guardian:{ id:'guardian',name:'警備ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、自分の場に「ガードボット」を1体出す。' },
   guardbot:{ id:'guardbot',name:'ガードボット',   kind:'robo', atk:0, max:1, eff:'powered', token:true, enterBat:1, taunt:'powered', noBattleDmg:true,
@@ -370,7 +370,7 @@ function destroy(s, uid, byBattle) {
   G.push(y); // アニキロボ（トークン）もスクラップへ行く
   s.eot = s.eot.filter(u => u !== uid);
   log(s, `${cname(y)}が破壊された`, { t: 'destroy', uid, pi: f.pi });
-  // キーワード「バックアップ」（中継ロボがいれば、自分のロボすべてが持つ。中継ロボ自身が壊れた時も）
+  // キーワード「バックアップ」（リレーロボがいれば、自分のロボすべてが持つ。リレーロボ自身が壊れた時も）
   if (leftBat > 0 && (hasKw(y, 'backup') || y.id === 'relay' || s.players[f.pi].field.some(z => z.id === 'relay'))) batPass(s, f.pi, uid, leftBat, 'バックアップで電池');
   if (y.id === 'garakuta') { log(s, 'ガラクタロボの効果', { t: 'garakuta' }); drawCards(s, y.owner, 1); }
   // 破壊された時に出るロボ（カード定義の spawn：コブン→アニキ、プロト→ノーマル）。同じ場所に出る
@@ -452,12 +452,12 @@ function junkPool(s, pi) {
   const g = s.players[pi].scrap.filter(c => c.id !== 'onemore'); // トークンも出たあとは普通のカード（ワンモアだけは対象外）
   return { robos: g.filter(c => CARDS[c.id].kind === 'robo'), spells: g.filter(c => CARDS[c.id].kind === 'spell') };
 }
-// 選別ロボ：山札の一番上を見て、ロボなら手札、アクションならスクラップ
+// 検品ロボ：山札の一番上を見て、ロボなら手札、アクションならスクラップ
 function sorterTrigger(s, pi) {
   const P = s.players[pi]; if (!P.deck.length) return;
   const c = P.deck.pop();
-  if (CARDS[c.id].kind === 'robo') { P.hand.push(c); log(s, `選別ロボ：${cname(c)}を手札に加えた`, { t: 'sorter', pi, id: c.id, to: 'hand' }); }
-  else { P.scrap.push(c); log(s, `選別ロボ：${cname(c)}をスクラップに置いた`, { t: 'sorter', pi, id: c.id, to: 'scrap' }); }
+  if (CARDS[c.id].kind === 'robo') { P.hand.push(c); log(s, `検品ロボ：${cname(c)}を手札に加えた`, { t: 'sorter', pi, id: c.id, to: 'hand' }); }
+  else { P.scrap.push(c); log(s, `検品ロボ：${cname(c)}をスクラップに置いた`, { t: 'sorter', pi, id: c.id, to: 'scrap' }); }
 }
 // 場のロボを持ち主の手札に戻す（ワープ装置）。トークンも出たあとは普通のカードなので手札へ
 function bounce(s, uid) {
