@@ -80,6 +80,13 @@ function threatOf(s, ai, di, w) {
   }
   return best;
 }
+// 相手のデッキに破裂を起こすカードがどれだけあるか（0〜1）。デッキリストが分からない時は0.5
+const BURST_IDS = ['static', 'short', 'emp', 'breaker', 'rat', 'demolisher', 'dorder', 'mine', 'fullrush'];
+function burstThreat(s, op) {
+  if (!s.lists || !s.lists[op]) return 0.5;
+  const n = s.lists[op].filter(id => BURST_IDS.includes(E.baseId(id))).length;
+  return Math.min(1, n / 3);
+}
 function sideVal(s, pi, w) {
   const p = s.players[pi];
   let v = w.life * p.life + (p.life <= 5 ? -w.lowLife * (6 - p.life) : 0);
@@ -88,9 +95,12 @@ function sideVal(s, pi, w) {
   for (const c of p.hand) { if (c.id === 'onemore') { v += (w.coin ?? 0.8) - w.hand; continue; } if (CARDS[c.id].kind === 'spell') v += w.handSpell; }
   if (p.set) v += w.set;
   // 一時的な効果（連撃回路の追加の攻撃、オーバーロードの次の手番の行動、シールド）
+  // この手番の追加の攻撃は探索（bestBattle）で数えるので、ここでは次の手番の分だけ
   const fx = p.fx || {};
-  v += (w.extraAtk ?? 2.5) * ((fx.extraAttack || 0) + (fx.nextExtraAttack || 0)) + (w.bonusAct ?? 1.0) * (fx.bonusActions || 0);
-  for (const y of p.field) if (y.shield) v += (w.shield ?? 0.6);
+  v += (w.extraAtk ?? 2.5) * (fx.nextExtraAttack || 0) + (w.bonusAct ?? 1.0) * (fx.bonusActions || 0);
+  // シールドは相手が破裂を使うデッキの時だけ価値がある
+  const sh = p.field.filter(y => y.shield);
+  if (sh.length) { const k = burstThreat(s, 1 - pi); for (const y of sh) v += (w.shield ?? 1.2) * k * (1 + 0.3 * y.bat); }
   return v;
 }
 // next: 次に手番を持つプレイヤー
@@ -294,6 +304,11 @@ function unknownSpells(s, op) {
   return SPELL_IDS.filter(id => !known[id]);
 }
 function finishVal(s, me, w) { const t = E.clone(s); E.resolveEot(t); return evaluate(t, me, w, 1 - me); }
+// 攻撃の後：連撃回路でまだ攻撃できるなら、続けて攻撃した場合も考える
+function afterAttackVal(t, me, w, opt) {
+  if (!E.isOver(t) && t.turn === me && !t.attacked && !t.pending) return bestBattle(t, me, w, opt).v;
+  return finishVal(t, me, w);
+}
 function evalAttack(s, act, me, w, opt) {
   const op = 1 - me, O = s.players[op];
   if (!O.set || opt.ignoreSet || E.isJammed(s, op)) {
@@ -302,7 +317,7 @@ function evalAttack(s, act, me, w, opt) {
     if (t.players[op].set && opt.ignoreSet) E.resolveBattle(t); // 伏せを無視する（甘い読み）
     else if (E.needsResponse(t)) E.respond(t, chooseResponse(t, w)); // ロケットロボの点火だけ選ぶ
     else E.resolveBattle(t);
-    return finishVal(t, me, w);
+    return afterAttackVal(t, me, w, opt);
   }
   const cands = unknownSpells(s, op);
   if (!cands.length) cands.push(O.set.id); // 理論上起きない保険
@@ -313,7 +328,7 @@ function evalAttack(s, act, me, w, opt) {
     E.apply(t, act);
     const r = chooseResponse(t, w);
     E.respond(t, r, counterFn(w));
-    sum += finishVal(t, me, w);
+    sum += afterAttackVal(t, me, w, opt);
   }
   return sum / cands.length;
 }
