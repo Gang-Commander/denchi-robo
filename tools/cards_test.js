@@ -133,4 +133,5 @@ const err = (s, a) => E.checkAction(s, a);
 { const s = board([{ id: 'normal', bat: 0 }], []); s.players[0].field.push({ uid: 777, id: 'aniki', owner: 0, bat: 0 }); const u = hand(s, 0, 'warp');
   play(s, u, { target: 777 }); ok(s.players[0].hand.some(c => c.id === 'aniki'), 'warp token -> hand'); }
 { const s = board([], []); s.players[0].scrap.push({ uid: 778, id: 'aniki', owner: 0, bat: 0 }); const u = hand(s, 0, 'junk'); play(s, u, { uid: 778 }); ok(s.players[0].hand.some(c => c.id === 'aniki'), 'junk can return token'); }
+{ const s = board([], []); const u = hand(s, 0, 'onemore'); play(s, u, {}); ok(!s.players[0].scrap.some(c => c.id === 'onemore') && s.actions === 3, 'onemore is removed from game'); }
 done();

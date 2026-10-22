@@ -26,7 +26,7 @@ const CARDS = {
               pick:{ side:'any', cond:'bat', prompt:'電池を破壊するロボを選ぶ', none:'電池が入ったロボがいません' } },
   repair:    { id:'repair',    name:'リペアキット', kind:'spell', text:'自分か相手のスクラップのロボを1体選び、自分の場で起動する。' },
   swap:    { id:'swap',    name:'電池交換',   kind:'spell', text:'場のロボを2体選び、1体目の電池を1本、2体目に移す。' },
-  onemore: { id:'onemore', name:'ワンモア',   kind:'spell', token:true, noSet:true, noCost:true, text:'後攻が最初から持つ特別なアクション。この手番の行動を1回増やす。使うのに行動を消費しない。セットはできない。' },
+  onemore: { id:'onemore', name:'ワンモア',   kind:'spell', token:true, noSet:true, noCost:true, removeOnUse:true, text:'後攻が最初から持つ特別なアクション。この手番の行動を1回増やす。使うのに行動を消費しない。セットはできない。使ったら、ゲームから取り除く。' },
   thunder:    { id:'thunder',    name:'かみなり',   kind:'spell', text:'場で最も攻撃力の高いロボを、1体選び破壊する。' },
   // ---- 2026-10 追加ロボ ----
   sniper:  { id:'sniper',  name:'スナイパーロボ', kind:'robo', atk:2, max:1, eff:'release', text:'【放電】このロボ以外で、場で最も攻撃力の高いロボを1体選び、破壊する。', enterBat:1 },
@@ -106,9 +106,9 @@ const THEMES = {
   charge:   { name:'充電',       ids:['turbo','megaton','ebattery','manual','charge','dynamo','gigant','solar','feeder','relay'] },
   demolish: { name:'解体',       ids:['thunder','sniper','short','souji','magnet','drill','hammer','emp'] },
   scrap:    { name:'スクラップ', ids:['recycle','repair','kobun','crane','reboot','parts','junk','gattai','hack','press','proto','sorter'] },
-  defense:  { name:'防衛',       ids:['barrier','daruma','bomb','wall','medic','fortress','guard','jammer','guardian'] },
+  defense:  { name:'防衛',       ids:['barrier','daruma','bomb','wall','medic','fortress','guard','jammer'] },
   rampage:  { name:'暴走',       ids:['heat','limiter','bakushin','kajiba','runaway','spark','overload','rocket'] },
-  common:   { name:'共通',       ids:['swap','thief','scout','socket','warp','batpack','leak','copy'] },
+  common:   { name:'共通',       ids:['swap','thief','scout','socket','warp','batpack','leak','copy','guardian'] },
 };
 const BASIC_DECK = ['normal','normal','normal','mini','mini','garakuta','drycell','drycell','static','static'];
 const BASIC_IDS = ['normal','mini','garakuta','drycell','static'];
@@ -871,7 +871,9 @@ function resolveSpell(s, pi, card, ch) {
     }
   }
   if (CARDS[card.id].draw) drawCards(s, pi, CARDS[card.id].draw); // 追加で引く（カード定義の draw）
-  card.bat = 0; s.players[card.owner].scrap.push(card);
+  card.bat = 0;
+  if (CARDS[card.id].removeOnUse) log(s, `${cname(card)}はゲームから取り除かれた`, { t: 'exile', id: card.id }); // ワンモア
+  else s.players[card.owner].scrap.push(card);
   sweepDeaths(s);
   // アクションの処理が終わってから、途中で起きた起動時効果を処理する
   const later = s.deferred || []; s.resolving = false; s.deferred = [];
