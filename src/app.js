@@ -710,6 +710,18 @@ function gatherSpell(id, casterPi, cb, cancel, selfUid) {
     };
     return pickFrom(robos, '手札に戻すロボを選ぶ', u => pickFrom(spells, '手札に戻すアクションを選ぶ', sid => cb(Object.assign({}, u !== undefined ? { uid: u } : {}, sid !== undefined ? { sid } : {}))));
   }
+  if (id === 'qcharge') {
+    // 満充電にならないロボを選んだら、捨てる手札を選ぶ
+    return gatherPick(CARDS.qcharge.pick, casterPi, null, ch => {
+      const hand = s.players[casterPi].hand.filter(c => c.uid !== selfUid);
+      if (E.qchargeFills(s, ch.target) || !hand.length) return cb(ch);
+      openSheet(`<h3>満充電にならないので、捨てる手札を1枚選ぶ</h3><div class="glist">${hand.map(c => cardHTML(c, { size: 'hand', cls: 'pickg' })).join('')}</div>
+        <div class="row"><button class="btn ghost" id="hkCancel">やめる</button></div>`, sh => {
+          sh.querySelectorAll('.pickg').forEach(b => b.addEventListener('click', () => { closeSheet(); cb(Object.assign({}, ch, { discard: +b.dataset.uid })); }));
+          sh.querySelector('#hkCancel').addEventListener('click', () => { closeSheet(); cancel && cancel(); });
+        });
+    }, cancel);
+  }
   if (CARDS[id].pick) return gatherPick(CARDS[id].pick, casterPi, null, cb, cancel);
   switch (id) {
     case 'overload': return cb({});

@@ -178,13 +178,13 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
 { const s = board([{ id: 'kamikaze', bat: 0 }], []); const l0 = L(s, 0), l1 = L(s, 1);
   E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(L(s, 1) === l1 - 4 && L(s, 0) === l0 - 1, 'kamikaze +2, self 1'); }
 { const s = board([{ id: 'overheat', bat: 0 }], []); const u = hand(s, 0, 'runaway'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).bat === 1, 'overheat gains battery on damage'); }
-{ const s = board([], [{ id: 'rengine', bat: 0 }]); const l = L(s, 1); E.apply(s, { t: 'end' }); ok(F(s, 1, 0).bat === 1 && L(s, 1) === l - 1, 'rengine start of turn'); }
+{ const s = board([], [{ id: 'rengine', bat: 0 }]); const l = L(s, 1); E.apply(s, { t: 'end' }); ok(F(s, 1, 0).bat === 1 && L(s, 1) === l - 2, 'rengine start of turn'); }
 { const s = board([], []); deck(s, 0, ['normal', 'normal', 'normal']); s.players[0].life = 5; const u = hand(s, 0, 'yakekuso'); play(s, u, {}); ok(s.players[0].hand.length === 3, 'yakekuso low life draw 3'); }
 { const s = board([{ id: 'normal', bat: 1 }], []); const u = hand(s, 0, 'bakaji');
   ok(!!err(s, { t: 'play', uid: u, ch: { target: F(s, 0, 0).uid } }), 'bakaji needs life<=5');
   s.players[0].life = 5; play(s, u, { target: F(s, 0, 0).uid }); ok(E.atkOf(F(s, 0, 0)) === 6, 'bakaji x2'); }
 { const s = board([{ id: 'normal', bat: 0 }, { id: 'normal', bat: 0 }], []); const u = hand(s, 0, 'combo'); const l = L(s, 0); play(s, u, {});
-  ok(L(s, 0) === l - 5, 'combo self 5');
+  ok(L(s, 0) === l - 3, 'combo self 3');
   E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(!s.attacked && !err(s, { t: 'attack', att: F(s, 0, 1).uid, tgt: 'player' }), 'combo second attack');
   E.attackFull(s, F(s, 0, 1).uid, 'player', null); ok(s.attacked, 'combo then no more'); }
 { const s = board([{ id: 'normal', bat: 0 }], [{ id: 'normal', bat: 0 }]); setCard(s, 0, 'combo'); s.turn = 1;
@@ -203,8 +203,8 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
 { const s = board([{ id: 'normal', bat: 1 }], []); s.players[0].life = 10; const u = hand(s, 0, 'retreat'); play(s, u, { target: F(s, 0, 0).uid });
   ok(s.players[0].hand.some(c => c.id === 'normal') && L(s, 0) === 12, 'retreat bounce + heal 2'); }
 // ===== 10/22 第3弾 =====
-{ const s = board([], [{ id: 'plant', bat: 3 }]); deck(s, 1, ['normal', 'normal']); const h = s.players[1].hand.length; E.apply(s, { t: 'end' }); ok(s.players[1].hand.length === h + 2, 'plant full: draw extra'); }
-{ const s = board([], [{ id: 'plant', bat: 2 }]); deck(s, 1, ['normal', 'normal']); const h = s.players[1].hand.length; E.apply(s, { t: 'end' }); ok(s.players[1].hand.length === h + 1, 'plant not full: no extra'); }
+{ const s = board([], [{ id: 'plant', bat: 2 }]); deck(s, 1, ['normal', 'normal']); const h = s.players[1].hand.length; E.apply(s, { t: 'end' }); ok(s.players[1].hand.length === h + 2, 'plant full: draw extra'); }
+{ const s = board([], [{ id: 'plant', bat: 1 }]); deck(s, 1, ['normal', 'normal']); const h = s.players[1].hand.length; E.apply(s, { t: 'end' }); ok(s.players[1].hand.length === h + 1, 'plant not full: no extra'); }
 { const s = board([], []); const u = hand(s, 0, 'ups'); play(s, u); ok(F(s, 0, 0).bat === 2 && E.atkOf(F(s, 0, 0)) === 2, 'ups enters with 2'); }
 { const s = board([{ id: 'charge', bat: 0 }], []); deck(s, 0, ['normal']); const u = hand(s, 0, 'qcharge'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).bat === 2 && s.players[0].hand.length === 1, 'qcharge +2, full -> draw'); }
 { const s = board([{ id: 'heat', bat: 2 }], [{ id: 'normal', bat: 2 }]); const u = hand(s, 0, 'cannon');
@@ -241,4 +241,12 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
 { const s = board([{ id: 'heat', bat: 0 }], [{ id: 'normal', bat: 0 }]); setCard(s, 1, 'counter');
   E.apply(s, { t: 'attack', att: F(s, 0, 0).uid, tgt: F(s, 1, 0).uid }); E.respondReveal(s, { ch: { target: F(s, 1, 0).uid } });
   ok(!E.canCounter(s), 'no set -> cannot counter'); E.resolveChain(s, null); E.resolveBattle(s); ok(s.players[1].field.length === 0 && s.players[0].field.length === 0, 'no reply: defender spell resolves (4 vs 4 tie)'); }
+// ===== 10/22 数値見直し =====
+{ const s = board([{ id: 'heat', bat: 0 }], []); deck(s, 0, ['normal']); hand(s, 0, 'normal'); const keep = hand(s, 0, 'ebattery'); const u = hand(s, 0, 'qcharge');
+  ok(E.qchargeFills(s, F(s, 0, 0).uid), 'qcharge fills heat (max2)');
+}
+{ const s = board([{ id: 'solar', bat: 0 }], []); const d = hand(s, 0, 'normal'); hand(s, 0, 'ebattery'); const u = hand(s, 0, 'qcharge');
+  play(s, u, { target: F(s, 0, 0).uid, discard: d }); ok(F(s, 0, 0).bat === 2 && !s.players[0].hand.some(c => c.uid === d) && s.players[0].hand.length === 1, 'qcharge not full -> discard chosen'); }
+{ const s = board([{ id: 'normal', bat: 0 }], []); const u = hand(s, 0, 'rack'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).shield && F(s, 0, 0).bat === 1, 'rack shield even if not full'); }
+{ const s = board([], [{ id: 'normal', bat: 0 }]); const u = hand(s, 0, 'dismantle'); play(s, u, { target: F(s, 1, 0).uid }); ok(s.players[1].field.length === 0, 'dismantle atk<=3'); }
 done();

@@ -125,6 +125,16 @@ function spellChoices(s, pi, id, uid) {
     for (const r of rs) for (const sp of ss) res.push(Object.assign({}, r ? { uid: r.uid } : {}, sp ? { sid: sp.uid } : {}));
     return res;
   }
+  if (id === 'qcharge') {
+    // 満充電にならない時は、捨てる手札も選ぶ（同じカード名は1つにまとめる）
+    const res = [];
+    for (const y of E.pickPool(s, pi, CARDS.qcharge.pick)) {
+      if (E.qchargeFills(s, y.uid)) { res.push({ target: y.uid }); continue; }
+      const seen = {}, hs = P.hand.filter(c => c.uid !== uid && !seen[c.id] && (seen[c.id] = 1));
+      if (!hs.length) res.push({ target: y.uid }); else for (const c of hs) res.push({ target: y.uid, discard: c.uid });
+    }
+    return res;
+  }
   const pk = CARDS[id].pick;
   if (pk) {
     if (pk.zone === 'scrap') { const seen = {}; return E.pickPool(s, pi, pk).filter(c => !seen[c.id] && (seen[c.id] = 1)).map(c => ({ uid: c.uid })); }
