@@ -1025,9 +1025,9 @@ Object.assign(CARDS, {
   proto:   { id:'proto',   name:'プロトロボ',     kind:'robo', atk:2, max:1, eff:'const', spawn:'normal', text:'【常時】このロボが破壊された時、自分の場に「ノーマルロボ」を1枚出す（新しく出たカードは、そのあと普通のカードとして扱う）。' },
   sorter:  { id:'sorter',  name:'検品ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、山札の一番上を見る。ロボなら手札に、アクションならスクラップに置く。' },
   // 防衛
-  guardian:{ id:'guardian',name:'警備ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、自分の場に「ガードボット」を1体出す。' },
+  guardian:{ id:'guardian',name:'警備隊長ロボ',       kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、自分の場に「ガードボット」を1体出す。' },
   guardbot:{ id:'guardbot',name:'ガードボット',   kind:'robo', atk:0, max:1, eff:'powered', token:true, enterBat:1, taunt:'powered', noBattleDmg:true,
-             text:'【通電中】挑発。【常時】このロボの戦闘では、どちらのプレイヤーもダメージを受けない。（警備ロボから出るトークン）' },
+             text:'【通電中】挑発。【常時】このロボの戦闘では、どちらのプレイヤーもダメージを受けない。（警備隊長ロボから出るトークン）' },
   wall:    { id:'wall',    name:'ウォールロボ',   kind:'robo', atk:5, max:0, eff:'const', text:'【常時】このロボは攻撃できない。' },
   medic:   { id:'medic',   name:'メディックロボ', kind:'robo', atk:2, max:2, eff:'release', enterBat:1, text:'【放電】自分のライフを2回復する（上限を超えてよい）。' },
   fortress:{ id:'fortress',name:'フォートレスロボ', kind:'robo', atk:3, max:2, eff:'powered', rare:true, text:'【通電中】自分の別のロボが戦闘で破壊される時、代わりにそのロボの電池を1本外す。' },
@@ -1339,7 +1339,7 @@ function destroy(s, uid, byBattle) {
   if (sp) spawnRobo(s, f.pi, y.owner, sp, f.i);
   return true;
 }
-// 効果でロボを出す（コブン→アニキ、プロト→ノーマル、警備ロボ→ガードボット）。idx を省くと右端。場が3体なら出ない
+// 効果でロボを出す（コブン→アニキ、プロト→ノーマル、警備隊長ロボ→ガードボット）。idx を省くと右端。場が3体なら出ない
 function spawnRobo(s, pi, owner, id, idx) {
   const F = s.players[pi].field;
   if (F.length >= FIELD_MAX) return null;
