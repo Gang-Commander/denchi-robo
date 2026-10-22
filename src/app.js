@@ -53,7 +53,7 @@ function batPips(y) {
 // 場の外での攻撃力：最初から電池が入って出るロボは、その分を含めて表示する
 // キーワード能力（効果文の1行目に表示）
 const KEYWORDS = E.KEYWORDS;
-function kwList(d) { return (d.enterBat ? [KEYWORDS.enterBat] : []).concat((d.kw || []).map(k => KEYWORDS[k])); }
+function kwList(d) { return (d.enterBat ? [{ name: '付属電池' + d.enterBat, help: KEYWORDS.enterBat.help.replace(/N本/, d.enterBat + '本') }] : []).concat((d.kw || []).map(k => KEYWORDS[k])); }
 // 本文の中のキーワード（破裂N など）は太字にする
 function textKw(t) { for (const x of E.TERMS) if (x.kw) t = t.replace(x.kw, m => `<b class="kw">${m}</b>`); return t; }
 function cardText(d) { const k = kwList(d); return (k.length ? `<b class="kw">${k.map(x => x.name).join('・')}</b>${d.text ? '<br>' : ''}` : '') + textKw(d.text); }
@@ -157,7 +157,7 @@ function fieldHTML(s, pi) {
       if (G.tut && G.tut.hl && G.tut.hl.includes(y.id) && pi === 0) cls += ' coach';
       if (y.lim) cls += ' lim';
       if (y.home !== undefined && y.home !== pi) cls += ' hacked';
-      if (y.id === 'guard' && y.bat > 0) cls += ' guarding';
+      if (E.guardsOf(s, pi).includes(y)) cls += ' guarding';
       h += `<div class="slot">${cardHTML(y, { zone: 'field', cls, badge: pk ? '×' + pk : '', })}</div>`;
     } else h += `<div class="slot empty"></div>`;
   }
@@ -510,6 +510,7 @@ function playFx(events, snap) {
       case 'bounce': { const r = rectOf(e.uid, snap); if (r) at(t, () => particles(center(r), 14, 'frost', r.width * 0.6, 18)); end = Math.max(end, t + 600); t += 300; break; }
       case 'reboot': fxNotice('reboot', e.pi === 0 ? 'リブートロボが手札に戻った' : 'リブートロボがCPUの手札に戻った', Math.max(t, lastDestroyEnd)); t = Math.max(t, lastDestroyEnd) + 1200; break;
       case 'junk': fxNotice(e.id, e.pi === 0 ? 'ジャンク回収で手札に戻った' : 'ジャンク回収でCPUの手札に戻った', t); t += 1500; break;
+      case 'sorter': fxNotice(e.id, `選別ロボ：${e.to === 'hand' ? '手札に加えた' : 'スクラップに置いた'}${e.pi === 0 ? '' : '（CPU）'}`, t); t += 1500; break;
       case 'copy': { const r = rectOf(e.uid, snap); if (r) at(t + 300, () => particles(center(r), 14, '', r.width * 0.6, 16)); t += 300; break; }
       case 'bakushin': case 'scout': case 'garakuta': t += 150; break;
       case 'press': { const r = rectOf(e.uid, snap); if (r) fxImpact(r, t); t += 300; break; }
@@ -1076,7 +1077,7 @@ function pickTarget(att) {
   const s = G.s, O = s.players[1].field, name = CARDS[cardByUid(att).id].name;
   if (!O.length) return humanAct({ t: 'attack', att, tgt: 'player' });
   const gs = E.guardsOf(s, 1), cand = gs.length ? gs : O;
-  startSel({ prompt: gs.length ? `${name}の攻撃対象を選ぶ（ガードロボしか狙えません）` : `${name}の攻撃対象を選ぶ`, valid: new Set(cand.map(y => y.uid)), onDone: p => humanAct({ t: 'attack', att, tgt: p[0] }), onCancel: () => render() });
+  startSel({ prompt: gs.length ? `${name}の攻撃対象を選ぶ（挑発しているロボしか狙えません）` : `${name}の攻撃対象を選ぶ`, valid: new Set(cand.map(y => y.uid)), onDone: p => humanAct({ t: 'attack', att, tgt: p[0] }), onCancel: () => render() });
 }
 async function onBattleBtn() {
   if (!G || !canQuick()) return;
@@ -1287,7 +1288,7 @@ function bindAim(root) {
       dragFired = true; setTimeout(() => { dragFired = false; }, 0);
       if (!tgtEl) {
         const hit = document.elementFromPoint(ev.clientX, ev.clientY);
-        if (hit && hit.closest('#oppField .card[data-uid]') && E.guardsOf(G.s, 1).length) toast('ガードロボがいるので、ガードロボしか狙えません', 'err');
+        if (hit && hit.closest('#oppField .card[data-uid]') && E.guardsOf(G.s, 1).length) toast('挑発しているロボがいるので、そのロボしか狙えません', 'err');
         return;
       }
       if (wasErr) { toast(wasErr, 'err'); return; }
@@ -1936,7 +1937,7 @@ function renderRules() {
   const ys = E.ROBO_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const ss = E.SPELL_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   // デッキに入らないカード（後攻が持つワンモア、コブンロボから出るアニキロボ）
-  const ts = ['onemore', 'aniki'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
+  const ts = ['onemore', 'aniki', 'guardbot'].map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const rs = E.RETIRED_IDS.map(id => ({ uid: -1, id, owner: 0, bat: 0 }));
   const row = c => { const d = CARDS[c.id]; return `<div class="dex">${cardHTML(c, { size: 'hand' })}<div><h4>${d.name}${d.rare ? ' ★' : ''}${d.kind === 'robo' ? `<span class="dexmeta">攻撃力${shownAtk(c)}${d.enterBat ? '（電池込み）' : ''}・電池上限${d.max}・${EFF_LABEL[d.eff]}</span>` : '<span class="dexmeta">アクション</span>'}</h4><p>${cardText(d)}</p></div></div>`; };
   // ロボは効果の種類ごとにまとめ、グループ内は攻撃力→名前の順。アクションは名前順

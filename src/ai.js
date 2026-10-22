@@ -85,7 +85,7 @@ function sideVal(s, pi, w) {
   let v = w.life * p.life + (p.life <= 5 ? -w.lowLife * (6 - p.life) : 0);
   for (const y of p.field) v += roboVal(y, w);
   v += w.hand * p.hand.length;
-  for (const c of p.hand) { if (CARDS[c.id].token) { v += (w.coin ?? 0.8) - w.hand; continue; } if (CARDS[c.id].kind === 'spell') v += w.handSpell; }
+  for (const c of p.hand) { if (c.id === 'onemore') { v += (w.coin ?? 0.8) - w.hand; continue; } if (CARDS[c.id].kind === 'spell') v += w.handSpell; }
   if (p.set) v += w.set;
   return v;
 }

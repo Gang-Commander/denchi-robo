@@ -117,4 +117,20 @@ const err = (s, a) => E.checkAction(s, a);
   play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).id === 'normal' && F(s, 0, 0).bat === 3 && F(s, 0, 1).bat === 0, 'baton touch: batteries to strongest first'); }
 { const s = board([{ id: 'mini', bat: 2 }, { id: 'normal', bat: 0 }], [{ id: 'heat', bat: 1 }]);
   E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(F(s, 0, 0).id === 'normal' && F(s, 0, 0).bat === 2, 'mini baton touch'); }
+{ const s = board([{ id: 'normal', bat: 0 }], []); const u = hand(s, 0, 'feeder'), v = hand(s, 0, 'mini'); play(s, u); E.apply(s, { t: 'play', uid: v });
+  ok(F(s, 0, 1).bat === 1 && F(s, 0, 2).bat === 2, 'feeder: itself +1, mini 1+1=2'); }
+{ const s = board([{ id: 'relay', bat: 0 }, { id: 'heat', bat: 2 }, { id: 'normal', bat: 0 }], [{ id: 'turbo', bat: 3 }]);
+  s.turn = 1; E.attackFull(s, F(s, 1, 0).uid, F(s, 0, 1).uid, null); ok(F(s, 0, 0).id === 'relay' && F(s, 0, 0).bat === 2 && F(s, 0, 1).id === 'normal', 'relay gives backup to heat (to leftmost of equals)'); }
+{ const s = board([], []); deck(s, 0, ['normal', 'thunder']); const u = hand(s, 0, 'sorter'); play(s, u);
+  ok(s.players[0].scrap.some(c => c.id === 'thunder') && s.players[0].hand.length === 0, 'sorter: action to scrap');
+  const v = hand(s, 0, 'sorter'); play(s, v); ok(s.players[0].hand.some(c => c.id === 'normal'), 'sorter: robo to hand'); }
+{ const s = board([{ id: 'heat', bat: 1 }], [{ id: 'normal', bat: 0 }]); s.turn = 1; const u = hand(s, 1, 'guardian'); play(s, u);
+  ok(F(s, 1, 2) && F(s, 1, 2).id === 'guardbot' && F(s, 1, 2).bat === 1, 'guardian spawns guardbot with battery');
+  s.turn = 0; s.actions = 2;
+  ok(!!err(s, { t: 'attack', att: F(s, 0, 0).uid, tgt: F(s, 1, 0).uid }), 'taunt forces target');
+  const l = s.players[1].life; E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 2).uid, null);
+  ok(s.players[1].life === l && !s.players[1].field.some(y => y.id === 'guardbot') && s.players[1].scrap.some(c => c.id === 'guardbot'), 'guardbot: no damage, goes to scrap'); }
+{ const s = board([{ id: 'normal', bat: 0 }], []); s.players[0].field.push({ uid: 777, id: 'aniki', owner: 0, bat: 0 }); const u = hand(s, 0, 'warp');
+  play(s, u, { target: 777 }); ok(s.players[0].hand.some(c => c.id === 'aniki'), 'warp token -> hand'); }
+{ const s = board([], []); s.players[0].scrap.push({ uid: 778, id: 'aniki', owner: 0, bat: 0 }); const u = hand(s, 0, 'junk'); play(s, u, { uid: 778 }); ok(s.players[0].hand.some(c => c.id === 'aniki'), 'junk can return token'); }
 done();
