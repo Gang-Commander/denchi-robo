@@ -86,7 +86,7 @@ Object.assign(CARDS, {
   armor:   { id:'armor',   name:'廃材装甲',       kind:'spell', text:'自分のスクラップのロボ1枚をゲームから取り除き、自分のロボ1体にシールドを付ける。山札を1枚引く。' },
   // 防衛（10/22 追加・名前は仮）
   estop:   { id:'estop',   name:'緊急停止',       kind:'spell', text:'この手番の間、自分と自分のロボはダメージを受けず、自分のロボは戦闘で破壊されない。' },
-  shield:  { id:'shield',  name:'防護シールド',   kind:'spell', text:'自分のロボ1体にシールドを付ける。',
+  shield:  { id:'shield',  name:'防護シールド',   kind:'spell', draw:1, text:'自分のロボ1体にシールドを付ける。山札を1枚引く。',
              pick:{ side:'own', prompt:'シールドを付ける自分のロボを選ぶ', none:'自分の場にロボがいません' } },
   medkit:  { id:'medkit',  name:'救急キット',     kind:'spell', draw:1, text:'自分のライフを3回復する。山札を1枚引く。' },
   decoy:   { id:'decoy',   name:'おとり人形',     kind:'spell', text:'自分の場にガードボットを1体出す。攻撃されている時に使ったら、攻撃の対象をそのガードボットに変える。' },
@@ -112,7 +112,7 @@ Object.assign(CARDS, {
   kamikaze:{ id:'kamikaze',name:'特攻ロボ',       kind:'robo', atk:2, max:1, eff:'const', onAttack:{ atk:2, self:1 }, text:'【常時】このロボが攻撃した時、その戦闘の間、攻撃力+2。自分は1ダメージを受ける。' },
   overheat:{ id:'overheat',name:'過熱ロボ',       kind:'robo', atk:3, max:2, eff:'const', text:'【常時】自分がダメージを受けるたびに、このロボに電池を1本入れる。' },
   rengine: { id:'rengine', name:'暴走機関ロボ',   kind:'robo', atk:4, max:2, eff:'const', text:'【常時】自分の手番開始時、このロボに電池を1本入れ、自分は2ダメージを受ける。' },
-  yakekuso:{ id:'yakekuso',name:'ヤケクソ',       kind:'spell', text:'自分のライフが5以下なら、山札を3枚引く。そうでなければ1枚引く。' },
+  yakekuso:{ id:'yakekuso',name:'ヤケクソ',       kind:'spell', text:'自分のライフが5以下なら、山札を4枚引く。そうでなければ2枚引く。' },
   bakaji:  { id:'bakaji',  name:'火事場の馬鹿力', kind:'spell', text:'自分のライフが5以下の時だけ使える。自分のロボ1体を選び、この手番の間、攻撃力を2倍にする。',
              pick:{ side:'own', prompt:'攻撃力を2倍にする自分のロボを選ぶ', none:'自分の場にロボがいません' } },
   combo:   { id:'combo',   name:'連撃回路',       kind:'spell', rare:true, text:'次の自分のバトルフェイズで、もう1回攻撃できる。自分は3ダメージを受ける。' },
@@ -1102,7 +1102,7 @@ function resolveSpell(s, pi, card, ch) {
       }
       break;
     }
-    case 'yakekuso': drawCards(s, pi, s.players[pi].life <= RAGE_LIFE ? 3 : 1); break;
+    case 'yakekuso': drawCards(s, pi, s.players[pi].life <= RAGE_LIFE ? 4 : 2); break;
     case 'bakaji': {
       const t = findRobo(s, ch.target);
       if (t && t.pi === pi) {

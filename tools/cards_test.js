@@ -144,7 +144,7 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
   E.apply(s, { t: 'end' }); ok(!s.players[0].fx.protect, 'estop ends at turn end'); }
 { const s = board([], [{ id: 'normal', bat: 2 }]); const u = hand(s, 0, 'static'); s.players[1].field[0].shield = true;
   play(s, u, { target: F(s, 1, 0).uid }); ok(F(s, 1, 0).bat === 1 && !F(s, 1, 0).dmg && !F(s, 1, 0).shield, 'shield blocks burst damage once'); }
-{ const s = board([{ id: 'normal', bat: 0 }], []); const u = hand(s, 0, 'shield'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).shield, 'shield attaches'); }
+{ const s = board([{ id: 'normal', bat: 0 }], []); deck(s, 0, ['normal']); const u = hand(s, 0, 'shield'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).shield && s.players[0].hand.length === 1, 'shield attaches + draw'); }
 { const s = board([], []); s.players[0].life = 10; deck(s, 0, ['normal']); const u = hand(s, 0, 'medkit'); play(s, u, {}); ok(L(s, 0) === 13 && s.players[0].hand.length === 1, 'medkit heal 3 draw 1'); }
 { const s = board([], [{ id: 'heat', bat: 1 }]); setCard(s, 0, 'decoy'); s.turn = 1;
   E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: 'player' });
@@ -179,7 +179,8 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
   E.attackFull(s, F(s, 0, 0).uid, 'player', null); ok(L(s, 1) === l1 - 4 && L(s, 0) === l0 - 1, 'kamikaze +2, self 1'); }
 { const s = board([{ id: 'overheat', bat: 0 }], []); const u = hand(s, 0, 'runaway'); play(s, u, { target: F(s, 0, 0).uid }); ok(F(s, 0, 0).bat === 1, 'overheat gains battery on damage'); }
 { const s = board([], [{ id: 'rengine', bat: 0 }]); const l = L(s, 1); E.apply(s, { t: 'end' }); ok(F(s, 1, 0).bat === 1 && L(s, 1) === l - 2, 'rengine start of turn'); }
-{ const s = board([], []); deck(s, 0, ['normal', 'normal', 'normal']); s.players[0].life = 5; const u = hand(s, 0, 'yakekuso'); play(s, u, {}); ok(s.players[0].hand.length === 3, 'yakekuso low life draw 3'); }
+{ const s = board([], []); deck(s, 0, ['normal', 'normal', 'normal', 'normal', 'normal']); s.players[0].life = 5; const u = hand(s, 0, 'yakekuso'); play(s, u, {}); ok(s.players[0].hand.length === 4, 'yakekuso low life draw 4'); }
+{ const s = board([], []); deck(s, 0, ['normal', 'normal', 'normal']); const u = hand(s, 0, 'yakekuso'); play(s, u, {}); ok(s.players[0].hand.length === 2, 'yakekuso draw 2'); }
 { const s = board([{ id: 'normal', bat: 1 }], []); const u = hand(s, 0, 'bakaji');
   ok(!!err(s, { t: 'play', uid: u, ch: { target: F(s, 0, 0).uid } }), 'bakaji needs life<=5');
   s.players[0].life = 5; play(s, u, { target: F(s, 0, 0).uid }); ok(E.atkOf(F(s, 0, 0)) === 6, 'bakaji x2'); }
