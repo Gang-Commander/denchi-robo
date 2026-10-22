@@ -61,9 +61,9 @@ Object.assign(CARDS, {
   breaker: { id:'breaker', name:'ブレーカー',     kind:'spell', text:'電池が入ったロボを1体選び、破裂2。',
              pick:{ side:'any', cond:'bat', prompt:'破裂2させるロボを選ぶ', none:'電池が入ったロボがいません' } },
   eject:   { id:'eject',   name:'強制排出',       kind:'spell', text:'伏せ札を1枚破壊する。山札を1枚引く。' },
-  rat:     { id:'rat',     name:'ネズミロボ',     kind:'robo', atk:1, max:2, eff:'release', enterBat:1, text:'【放電】電池が入った相手のロボ1体に、破裂1。',
-             pick:{ side:'opp', cond:'bat', prompt:'破裂1させる相手のロボを選ぶ', none:'電池が入った相手のロボがいません' } },
-  crusher: { id:'crusher', name:'クラッシャーロボ', kind:'robo', atk:3, max:3, eff:'powered', text:'【通電中】このロボが戦闘でロボを破壊した時、相手の伏せ札を破壊する。' },
+  rat:     { id:'rat',     name:'ネズミロボ',     kind:'robo', atk:1, max:1, eff:'release', enterBat:1, text:'【放電】電池が入った相手のロボ1体に、破裂2。',
+             pick:{ side:'opp', cond:'bat', prompt:'破裂2させる相手のロボを選ぶ', none:'電池が入った相手のロボがいません' } },
+  crusher: { id:'crusher', name:'クラッシャーロボ', kind:'robo', atk:3, max:1, eff:'powered', text:'【通電中】このロボが戦闘でロボを破壊した時、相手の伏せ札を破壊する。' },
   dismantle:{ id:'dismantle',name:'分解',         kind:'spell', text:'攻撃力3以下のロボを1体破壊し、その電池を自分の場のロボに移す（攻撃力の高い順）。',
              pick:{ side:'any', maxAtk:3, prompt:'分解するロボを選ぶ（攻撃力3以下）', none:'攻撃力3以下のロボがいません' } },
   demolisher:{ id:'demolisher',name:'解体ロボ',   kind:'robo', atk:2, max:2, eff:'const', text:'【常時】このロボを起動した時、相手の場で電池が一番多いロボに破裂1（同じなら左。選ばない）。' },
@@ -107,11 +107,11 @@ Object.assign(CARDS, {
              pick:{ side:'own', prompt:'暴走させる自分のロボを選ぶ（攻撃力+2）', none:'自分の場にロボがいません' } },
   spark:   { id:'spark',   name:'スパークボム',   kind:'spell', text:'自分は2ダメージを受ける。相手か、ロボを1体選び、3ダメージを与える。',
              pick:{ side:'any', player:true, prompt:'3ダメージを与えるロボを選ぶ', none:'' } },
-  overload:{ id:'overload',name:'オーバーロード', kind:'spell', rare:true, text:'自分のメインフェイズ中に使ったら、この手番の行動を2回増やす。それ以外なら、次の自分の手番の行動を2回増やす。行動が増えた手番の終わりに、自分は4ダメージを受ける。' },
+  overload:{ id:'overload',name:'オーバーロード', kind:'spell', rare:true, text:'自分のメインフェイズ中に使ったら、この手番の行動を2回増やす。それ以外なら、次の自分の手番の行動を2回増やす。行動が増えた手番の終わりに、自分は3ダメージを受ける。' },
   selfdestruct:{ id:'selfdestruct',name:'自爆ロボ', kind:'robo', atk:3, max:1, eff:'const', text:'【常時】このロボが破壊された時、お互いに2ダメージを受ける。' },
   kamikaze:{ id:'kamikaze',name:'特攻ロボ',       kind:'robo', atk:2, max:1, eff:'const', onAttack:{ atk:2, self:1 }, text:'【常時】このロボが攻撃した時、その戦闘の間、攻撃力+2。自分は1ダメージを受ける。' },
   overheat:{ id:'overheat',name:'過熱ロボ',       kind:'robo', atk:3, max:2, eff:'const', text:'【常時】自分がダメージを受けるたびに、このロボに電池を1本入れる。' },
-  rengine: { id:'rengine', name:'暴走機関ロボ',   kind:'robo', atk:4, max:2, eff:'const', text:'【常時】自分の手番開始時、このロボに電池を1本入れ、自分は2ダメージを受ける。' },
+  rengine: { id:'rengine', name:'暴走機関ロボ',   kind:'robo', atk:4, max:1, eff:'const', text:'【常時】自分の手番開始時、このロボに電池を1本入れ、自分は2ダメージを受ける。' },
   yakekuso:{ id:'yakekuso',name:'ヤケクソ',       kind:'spell', text:'自分のライフが5以下なら、山札を4枚引く。そうでなければ2枚引く。' },
   bakaji:  { id:'bakaji',  name:'火事場の馬鹿力', kind:'spell', text:'自分のライフが5以下の時だけ使える。自分のロボ1体を選び、この手番の間、攻撃力を2倍にする。',
              pick:{ side:'own', prompt:'攻撃力を2倍にする自分のロボを選ぶ', none:'自分の場にロボがいません' } },
@@ -616,7 +616,7 @@ function startTurn(s, isFirst) {
   // オーバーロードを相手の手番に使っていたら、この手番に行動+2（手番の終わりに4ダメージ）
   const fx = fxOf(s, pi);
   if (fx.nextExtraAttack) { fx.extraAttack = (fx.extraAttack || 0) + fx.nextExtraAttack; fx.nextExtraAttack = 0; }
-  if (fx.bonusActions) { s.actions += fx.bonusActions; (s.eotDmg = s.eotDmg || []).push({ pi, n: 4 * fx.bonusActions / 2 }); log(s, `オーバーロード：${pname(pi)}の行動が${fx.bonusActions}回増えた`, { t: 'extraact', pi }); fx.bonusActions = 0; }
+  if (fx.bonusActions) { s.actions += fx.bonusActions; (s.eotDmg = s.eotDmg || []).push({ pi, n: 3 * fx.bonusActions / 2 }); log(s, `オーバーロード：${pname(pi)}の行動が${fx.bonusActions}回増えた`, { t: 'extraact', pi }); fx.bonusActions = 0; }
   const v = s.v || {};
   if (s.turnNo === 1 && v.firstActions) s.actions = v.firstActions;
   if (s.turnNo === 2 && v.secondExtraAction) s.actions += v.secondExtraAction;
@@ -954,11 +954,11 @@ function resolveSpell(s, pi, card, ch) {
     }
     case 'overload': {
       if (s.turn === pi && s.phase === 'main') {
-        s.actions += 2; (s.eotDmg = s.eotDmg || []).push({ pi, n: 4 });
-        log(s, `${pname(pi)}の行動が2回増えた（手番終了時に4ダメージ）`, { t: 'extraact', pi });
+        s.actions += 2; (s.eotDmg = s.eotDmg || []).push({ pi, n: 3 });
+        log(s, `${pname(pi)}の行動が2回増えた（手番終了時に3ダメージ）`, { t: 'extraact', pi });
       } else {
         const fx = fxOf(s, pi); fx.bonusActions = (fx.bonusActions || 0) + 2;
-        log(s, `${pname(pi)}の次の手番の行動が2回増える（その手番の終わりに4ダメージ）`, { t: 'extraact', pi });
+        log(s, `${pname(pi)}の次の手番の行動が2回増える（その手番の終わりに3ダメージ）`, { t: 'extraact', pi });
       }
       break;
     }
@@ -1217,7 +1217,7 @@ function applyRaw(s, a) {
         heal(s, pi, 2, 'メディックロボ');
       } else if (f.y.id === 'rat') {
         const t = findRobo(s, a.ch.target);
-        if (t && t.y.bat > 0) burst(s, t.y.uid, 1, 'ネズミロボ');
+        if (t && t.y.bat > 0) burst(s, t.y.uid, 2, 'ネズミロボ');
       }
       return;
     }

@@ -51,7 +51,7 @@ const err = (s, a) => E.checkAction(s, a);
   play(s, u, { target: F(s, 1, 0).uid }); ok(F(s, 1, 0).dmg === 3 && E.atkOf(F(s, 1, 0)) === 1 && L(s, 0) === 13, 'spark 3 dmg robo, self 2'); }
 { const s = board([], []); const u = hand(s, 0, 'spark'); play(s, u, { target: 'player' }); ok(L(s, 1) === 12, 'spark to player'); }
 { const s = board([], []); const u = hand(s, 0, 'overload'); play(s, u, {}); ok(s.actions === 3, 'overload +2 actions (1 used)');
-  E.apply(s, { t: 'end' }); ok(L(s, 0) === 11, 'overload 4 at end'); }
+  E.apply(s, { t: 'end' }); ok(L(s, 0) === 12, 'overload 3 at end'); }
 { const s = board([{ id: 'rocket', bat: 0 }], [{ id: 'heat', bat: 1 }]); // 1+5=6 vs 5
   E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null, true);
   ok(s.players[1].field.length === 0 && L(s, 0) === 11 && L(s, 1) === 14, 'rocket boost: win, self 4, opp 1'); }
@@ -162,8 +162,8 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
   play(s, u, { pi: 1 }); ok(!s.players[1].set && s.players[0].hand.length === 1, 'eject destroys set + draw'); }
 { const s = board([{ id: 'normal', bat: 0 }], [{ id: 'heat', bat: 0 }]); setCard(s, 0, 'eject'); s.turn = 1;
   ok(!!E.respondChoiceError(s, { pi: 0 }), 'eject from set cannot target itself'); }
-{ const s = board([{ id: 'rat', bat: 1 }], [{ id: 'normal', bat: 1 }]); E.apply(s, { t: 'release', src: F(s, 0, 0).uid, ch: { target: F(s, 1, 0).uid } });
-  ok(F(s, 1, 0).bat === 0 && F(s, 1, 0).dmg === 1, 'rat release burst1'); }
+{ const s = board([{ id: 'rat', bat: 1 }], [{ id: 'normal', bat: 2 }]); E.apply(s, { t: 'release', src: F(s, 0, 0).uid, ch: { target: F(s, 1, 0).uid } });
+  ok(F(s, 1, 0).bat === 1 && F(s, 1, 0).dmg === 2, 'rat release burst2'); }
 { const s = board([{ id: 'crusher', bat: 1 }], [{ id: 'normal', bat: 0 }]); s.players[1].set = { uid: 5000, id: 'eject', owner: 1, bat: 0 };
   E.attackFull(s, F(s, 0, 0).uid, F(s, 1, 0).uid, null); ok(!s.players[1].set && s.players[1].field.length === 0, 'crusher destroys set after kill'); }
 { const s = board([{ id: 'normal', bat: 0 }], [{ id: 'mini', bat: 1 }]); const u = hand(s, 0, 'dismantle');
@@ -194,7 +194,7 @@ const setCard = (s, pi, id) => { const c = { uid: s.uidSeq++, id, owner: pi, bat
   E.apply(s, { t: 'end' }); ok(s.players[0].fx.extraAttack === 1, 'combo carried to own turn'); }
 { const s = board([{ id: 'normal', bat: 0 }], [{ id: 'normal', bat: 0 }]); setCard(s, 0, 'overload'); s.turn = 1; const l = L(s, 0);
   E.apply(s, { t: 'attack', att: F(s, 1, 0).uid, tgt: F(s, 0, 0).uid }); resp(s, {}); E.apply(s, { t: 'end' });
-  ok(s.actions === 4, 'overload on opp turn: +2 next turn'); E.apply(s, { t: 'end' }); ok(L(s, 0) <= l - 4, 'overload 4 at that turn end'); }
+  ok(s.actions === 4, 'overload on opp turn: +2 next turn'); E.apply(s, { t: 'end' }); ok(L(s, 0) <= l - 3, 'overload 3 at that turn end'); }
 // 共通2
 { const s = board([{ id: 'normal', bat: 0 }, { id: 'heat', bat: 0 }], [{ id: 'normal', bat: 0 }]); const u = hand(s, 0, 'bulwark'); play(s, u, { target: F(s, 0, 0).uid });
   ok(E.guardsOf(s, 0).length === 1 && E.atkOf(F(s, 0, 0)) === 3, 'bulwark taunt +1'); E.apply(s, { t: 'end' }); ok(!E.guardsOf(s, 0).length, 'bulwark ends'); }
